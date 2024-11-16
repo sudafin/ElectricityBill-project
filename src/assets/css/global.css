@@ -1,0 +1,66 @@
+/* 全局样式 */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+.el-button {
+  border-radius: 20px;
+}
+
+.el-button--primary {
+  background-color: #ff9900;
+  border-color: #ff9900;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background-color: #ffaa33;
+  border-color: #ffaa33;
+}
+
+.el-card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.el-table {
+  border-radius: 10px;
+}
+
+.el-table th.el-table__cell {
+  background-color: #f5f7fa;
+}
+
+.el-menu-item.is-active {
+  background-color: #ff9900 !important;
+}
+
+.eb-app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.eb-main-container {
+  display: flex;
+  flex: 1;
+}
+
+.eb-content-container {
+  flex: 1;
+  padding: 20px;
+}
+
+.eb-header {
+  background-color: #409eff;
+  color: #fff;
+}
+
+.eb-sidebar {
+  background-color: #545c64;
+  color: #fff;
+}
