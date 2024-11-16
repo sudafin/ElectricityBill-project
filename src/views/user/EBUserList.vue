@@ -39,19 +39,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
 import EBTable from '@/components/EBTable.vue';
 import EBPagination from '@/components/EBPagination.vue';
 
 const router = useRouter();
-const userStore = useUserStore();
 
 const searchText = ref('');
 const currentPage = ref(1);
 const pageSize = ref(10);
 const loading = ref(false);
+const userList = ref([]);
+const total = ref(0);
 
 const columns = [
   { prop: 'username', label: '用户名' },
@@ -64,16 +64,21 @@ const columns = [
 const fetchUserList = async (page = currentPage.value) => {
   loading.value = true;
   currentPage.value = page;
-  await userStore.fetchUserList({
-    page: currentPage.value,
-    size: pageSize.value,
-    username: searchText.value,
-    email: searchText.value,
-  });
+  
+  // 模拟从后端获取数据
+  const mockData = [
+    { id: 1, username: 'admin', email: 'admin@example.com', phone: '13800000000', role: 'admin' },
+    { id: 2, username: 'user', email: 'user@example.com', phone: '13800000001', role: 'user' },
+  ];
+  userList.value = mockData;
+  total.value = mockData.length;
+  
   loading.value = false;
 };
 
-fetchUserList();
+onMounted(() => {
+  fetchUserList();
+});
 
 const handleCreate = () => {
   router.push({ name: 'UserCreate' });
@@ -84,8 +89,9 @@ const handleEdit = (row) => {
 };
 
 const handleDelete = async (row) => {
-  await userStore.deleteUser(row.id);
-  await fetchUserList();
+  // 模拟删除用户
+  userList.value = userList.value.filter(user => user.id !== row.id);
+  total.value = userList.value.length;
 };
 </script>
 

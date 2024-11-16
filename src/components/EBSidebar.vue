@@ -7,6 +7,7 @@
     <el-menu 
       :default-active="activeIndex"
       :collapse="isCollapsed"
+      :collapse-transition="false"
       class="eb-menu"
       @select="handleSelect"
       background-color="#545c64"
@@ -89,21 +90,22 @@ import {
   Bell,
   Wallet,
   Setting,
-  Expand,
   Fold,
+  Expand,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
 const activeIndex = ref(route.path);
-const isCollapsed = ref(false);
 
-const handleSelect = (index) => {
-  router.push(index);
-};
+const isCollapsed = ref(false);
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
+};
+
+const handleSelect = (index) => {
+  router.push(index);
 };
 </script>
 
@@ -146,7 +148,7 @@ const toggleSidebar = () => {
 }
 
 .eb-sidebar-footer {
-  position: absolute;
+  position: sticky;
   bottom: 0;
   width: 100%;
   display: flex;
@@ -154,6 +156,7 @@ const toggleSidebar = () => {
   align-items: center;
   height: 40px;
   background-color: #434a50;
+  z-index: 1;
 }
 
 .eb-menu {
@@ -189,5 +192,13 @@ const toggleSidebar = () => {
 .eb-sidebar.is-collapsed :deep(.el-sub-menu__title) span,
 .eb-sidebar.is-collapsed :deep(.el-menu-item) span {
   opacity: 0;
+}
+
+.eb-sidebar.is-collapsed :deep(.el-menu--collapse) {
+  width: 64px;
+}
+
+.eb-sidebar:not(.is-collapsed) :deep(.el-menu--collapse) {
+  width: 200px;
 }
 </style> 

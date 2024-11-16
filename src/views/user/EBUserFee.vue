@@ -46,13 +46,8 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { useUserStore } from '@/store/user';
-import { useFeeStore } from '@/store/fee';
+import { ref, reactive, onMounted } from 'vue';
 import EBForm from '@/components/EBForm.vue';
-
-const userStore = useUserStore();
-const feeStore = useFeeStore();
 
 const form = reactive({
   userId: '',
@@ -76,16 +71,20 @@ const rules = {
 const formRef = ref(null);
 const userList = ref([]);
 
-const fetchUserList = async () => {
-  const { data } = await userStore.fetchUserList();
-  userList.value = data.list;
-};
-
-fetchUserList();
+onMounted(() => {
+  // 模拟获取用户列表
+  userList.value = [
+    { id: 1, username: 'admin' },
+    { id: 2, username: 'user' },
+  ];
+});
 
 const submitForm = async () => {
   await formRef.value.validate();
-  await feeStore.createFee(form);
+  
+  // 模拟提交表单
+  console.log('录入费用:', form);
+  
   resetForm();
 };
 

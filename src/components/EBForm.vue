@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { defineProps, reactive } from 'vue';
+import { defineProps, defineExpose, ref } from 'vue';
 
 const props = defineProps({
   formItems: {

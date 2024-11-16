@@ -37,14 +37,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
 import EBForm from '@/components/EBForm.vue';
 
 const route = useRoute();
 const router = useRouter();
-const userStore = useUserStore();
 
 const isEdit = ref(!!route.params.id);
 const form = reactive({
@@ -70,11 +68,14 @@ const formRef = ref(null);
 
 const submitForm = async () => {
   await formRef.value.validate();
+  
+  // 模拟提交表单
   if (isEdit.value) {
-    await userStore.updateUser({ id: route.params.id, ...form });
+    console.log('编辑用户:', form);
   } else {
-    await userStore.createUser(form);
+    console.log('新增用户:', form);
   }
+  
   router.push({ name: 'UserList' });
 };
 
@@ -82,10 +83,13 @@ const resetForm = () => {
   formRef.value.resetFields();
 };
 
-if (isEdit.value) {
-  const user = await userStore.fetchUserDetail(route.params.id);
-  Object.assign(form, user);
-}
+onMounted(() => {
+  if (isEdit.value) {
+    // 模拟获取用户详情
+    const mockData = { id: 1, username: 'admin', email: 'admin@example.com', phone: '13800000000', role: 'admin' };
+    Object.assign(form, mockData);
+  }
+});
 </script>
 
 <style scoped>
