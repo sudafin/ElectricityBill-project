@@ -10,9 +10,9 @@
       :collapse-transition="false"
       class="eb-menu"
       @select="handleSelect"
-      background-color="#fff"
+      background-color="transparent"
       text-color="#333"
-      active-text-color="#409eff"
+      active-text-color="#00c091"
     >
       <el-menu-item index="/dashboard">
         <el-icon><House /></el-icon>
@@ -109,10 +109,11 @@ const handleSelect = (index) => {
   z-index: 1;
   height: calc(100vh - 80px);
   overflow-y: auto;
-  background-color: #fff;
+  background: linear-gradient(to bottom right, #ffffff, #e6fff2);
   transition: width 0.28s;
   border-radius: 30px;
-  box-shadow: 0 1px 5px 0 #ecf5ff
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .eb-sidebar.is-collapsed {
@@ -128,24 +129,24 @@ const handleSelect = (index) => {
   justify-content: center;
   align-items: center;
   height: 60px;
-  background-color: #fff;
+  background-color: transparent;
 }
 
 .eb-sidebar-title {
-  color: #333;
+  color: #00c091;
   font-size: 20px;
   font-weight: bold;
 }
 
 .eb-sidebar-icon {
-  color: #333;
+  color: #00c091;
   font-size: 24px;
   cursor: pointer;
 }
 
 .eb-sidebar-footer {
   position: absolute;
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -153,14 +154,20 @@ const handleSelect = (index) => {
   align-items: center;
   width: 40px;
   height: 40px;
-  background-color: #409eff;
+  background-color: #fff;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .eb-sidebar-footer:hover {
-  background-color: #66b1ff;
+  background-color: #f0f9eb;
+}
+
+.eb-sidebar-footer .eb-sidebar-icon {
+  color: #00c091;
+  font-size: 20px;
 }
 
 .eb-menu {
@@ -168,7 +175,7 @@ const handleSelect = (index) => {
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: #ecf5ff !important;
+  background-color: #d9f7ec !important;
 }
 
 :deep(.el-sub-menu__title),
@@ -182,7 +189,7 @@ const handleSelect = (index) => {
 
 :deep(.el-sub-menu__title) i,
 :deep(.el-menu-item) i {
-  color: #333;
+  color: #00c091;
 }
 
 :deep(.el-sub-menu__title) span,
