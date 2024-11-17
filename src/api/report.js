@@ -1,17 +1,9 @@
 import request from '@/utils/request';
 
-export function getReportData(params) {
+export function fetchReportDataAPI({ startDate, endDate }) {
   return request({
-    url: '/report/data',
+    url: '/report',
     method: 'get',
-    params,
-  });
-}
-
-export function generateReport(data) {
-  return request({
-    url: '/report/generate',
-    method: 'post',
-    data,
+    params: { startDate, endDate },
   });
 } 

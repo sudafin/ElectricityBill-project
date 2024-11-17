@@ -24,33 +24,28 @@
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </template>
-        <el-menu-item index="/user/list">用户列表</el-menu-item>
-        <el-menu-item index="/user/create">添加用户</el-menu-item>
-        <el-menu-item index="/user/fee">费用录入</el-menu-item>
+        <el-menu-item index="/user/list">用户信息管理</el-menu-item>
+        <el-menu-item index="/user/role">角色权限管理</el-menu-item>
       </el-sub-menu>
       
-      <el-sub-menu index="/fee">
-        <template #title>
-          <el-icon><Coin /></el-icon>
-          <span>费用管理</span>
-        </template>
-        <el-menu-item index="/fee/list">费用列表</el-menu-item>
-        <el-menu-item index="/fee/query">费用查询</el-menu-item>
-      </el-sub-menu>
+      <el-menu-item index="/fee">
+        <el-icon><Coin /></el-icon>
+        <span>费用管理</span>
+      </el-menu-item>
       
       <el-menu-item index="/report">
         <el-icon><DataAnalysis /></el-icon>
-        <span>数据统计</span>
+        <span>数据统计与报表</span>
       </el-menu-item>
       
       <el-menu-item index="/reconciliation">
         <el-icon><DocumentChecked /></el-icon>
-        <span>对账审批</span>
+        <span>对账与审批</span>
       </el-menu-item>
       
       <el-menu-item index="/notification">
         <el-icon><Bell /></el-icon>
-        <span>通知提醒</span>
+        <span>通知和提醒</span>
       </el-menu-item>
       
       <el-menu-item index="/payment">
@@ -63,7 +58,6 @@
           <el-icon><Setting /></el-icon>
           <span>系统设置</span>
         </template>
-        <el-menu-item index="/setting/role">角色权限</el-menu-item>
         <el-menu-item index="/setting/rate">费率设置</el-menu-item>
         <el-menu-item index="/setting/param">参数配置</el-menu-item>
         <el-menu-item index="/setting/log">日志管理</el-menu-item>
