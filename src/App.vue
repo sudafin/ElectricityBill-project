@@ -22,6 +22,6 @@ const layout = computed(() => {
 
 <style>
 body {
-  background: #fff;
+  background: #f0f2f5;
 }
 </style> 

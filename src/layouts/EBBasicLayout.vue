@@ -1,20 +1,22 @@
 <template>
   <div class="eb-app-container">
-    <el-container>
+    <div class="eb-app-header">
+      <EBHeader />
+    </div>
+    <el-container class="eb-app-content">
       <el-aside width="auto">
         <EBSidebar />
       </el-aside>
-      <el-container>
-        <el-main>
-          <EBHeader />
+      <el-main>
+        <div class="eb-main-content">
           <EBBreadcrumb />
           <router-view></router-view>
-        </el-main>
-      </el-container>
+        </div>
+      </el-main>
     </el-container>
-    <el-footer>
+    <div class="eb-app-footer">
       <EBFooter />
-    </el-footer>
+    </div>
   </div>
 </template>
 
@@ -30,36 +32,40 @@ import EBBreadcrumb from '@/components/EBBreadcrumb.vue';
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background-color: #f0f2f5;
 }
 
-.el-container {
+.eb-app-header {
+  width: 100%;
+}
+
+.eb-app-content {
   flex: 1;
-}
-
-.el-header {
-  background-color: #fff;
-  color: #333;
-  text-align: center;
-  line-height: 60px;
+  padding: 10px;
 }
 
 .el-aside {
-  background-color: #545c64;
+  background-color: transparent;
   color: #333;
   text-align: center;
   line-height: 200px;
+  padding: 0;
+  margin-right: 20px;
 }
 
 .el-main {
-  background-color: #f0f2f5;
-  color: #333;
   padding: 0;
 }
 
-.el-footer {
+.eb-main-content {
   background-color: #fff;
   color: #333;
-  text-align: center;
-  line-height: 60px;
+  padding: 20px;
+  border-radius: 30px;
+  margin-left: 20px;
+}
+
+.eb-app-footer {
+  width: 100%;
 }
 </style> 

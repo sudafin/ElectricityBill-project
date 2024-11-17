@@ -29,7 +29,7 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
   justify-content: space-between;
   align-items: center;
   height: 60px;
-  background-color: #fff;
+  background-color: transparent;
   color: #333;
   padding: 0 20px;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
@@ -38,6 +38,7 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
 .eb-title {
   font-size: 20px;
   font-weight: bold;
+  color: #409eff;
 }
 
 .eb-header-right {

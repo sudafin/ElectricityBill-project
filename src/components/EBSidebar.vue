@@ -10,9 +10,9 @@
       :collapse-transition="false"
       class="eb-menu"
       @select="handleSelect"
-      background-color="#545c64"
-      text-color="#fff"
-      active-text-color="#ffd04b"
+      background-color="#fff"
+      text-color="#333"
+      active-text-color="#409eff"
     >
       <el-menu-item index="/dashboard">
         <el-icon><House /></el-icon>
@@ -63,8 +63,8 @@
         <el-menu-item index="/setting/log">日志管理</el-menu-item>
       </el-sub-menu>
     </el-menu>
-    <div class="eb-sidebar-footer">
-      <el-icon class="eb-sidebar-icon" @click="toggleSidebar">
+    <div class="eb-sidebar-footer" @click="toggleSidebar">
+      <el-icon class="eb-sidebar-icon">
         <Fold v-if="!isCollapsed" />
         <Expand v-else />
       </el-icon>
@@ -107,10 +107,12 @@ const handleSelect = (index) => {
 .eb-sidebar {
   position: relative;
   z-index: 1;
-  height: 100vh;
+  height: calc(100vh - 80px);
   overflow-y: auto;
-  background-color: #545c64;
+  background-color: #fff;
   transition: width 0.28s;
+  border-radius: 30px;
+  box-shadow: 0 1px 5px 0 #ecf5ff
 }
 
 .eb-sidebar.is-collapsed {
@@ -126,31 +128,39 @@ const handleSelect = (index) => {
   justify-content: center;
   align-items: center;
   height: 60px;
-  background-color: #434a50;
+  background-color: #fff;
 }
 
 .eb-sidebar-title {
-  color: #fff;
+  color: #333;
   font-size: 20px;
   font-weight: bold;
 }
 
 .eb-sidebar-icon {
-  color: #fff;
+  color: #333;
   font-size: 24px;
   cursor: pointer;
 }
 
 .eb-sidebar-footer {
-  position: sticky;
-  bottom: 0;
-  width: 100%;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 40px;
   height: 40px;
-  background-color: #434a50;
-  z-index: 1;
+  background-color: #409eff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.eb-sidebar-footer:hover {
+  background-color: #66b1ff;
 }
 
 .eb-menu {
@@ -158,7 +168,7 @@ const handleSelect = (index) => {
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: #ff9900 !important;
+  background-color: #ecf5ff !important;
 }
 
 :deep(.el-sub-menu__title),
@@ -172,7 +182,7 @@ const handleSelect = (index) => {
 
 :deep(.el-sub-menu__title) i,
 :deep(.el-menu-item) i {
-  color: #fff;
+  color: #333;
 }
 
 :deep(.el-sub-menu__title) span,

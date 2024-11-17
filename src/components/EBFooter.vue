@@ -15,9 +15,10 @@ const currentYear = ref(new Date().getFullYear());
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 60px;
+  height: 50px;
   background-color: #f5f7fa;
   color: #909399;
   font-size: 14px;
+  
 }
 </style> 
