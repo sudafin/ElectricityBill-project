@@ -1,13 +1,15 @@
 <template>
-  <el-breadcrumb v-if="breadcrumbList.length > 0" class="eb-breadcrumb" separator="/">
-    <el-breadcrumb-item
-      v-for="(item, index) in breadcrumbList"
-      :key="index"
-      :to="{ name: item.redirect || item.name, params: item.params }"
-    >
-      {{ item.meta.title }}
-    </el-breadcrumb-item>
-  </el-breadcrumb>
+  <div v-if="breadcrumbList.length > 0" class="eb-breadcrumb-container">
+    <el-breadcrumb class="eb-breadcrumb" separator="/">
+      <el-breadcrumb-item
+        v-for="(item, index) in breadcrumbList"
+        :key="index"
+        :to="{ name: item.redirect || item.name, params: item.params }"
+      >
+        {{ item.meta.title }}
+      </el-breadcrumb-item>
+    </el-breadcrumb>
+  </div>
 </template>
 
 <script setup>
@@ -49,7 +51,25 @@ watch(
 </script>
 
 <style scoped>
-.eb-breadcrumb {
-  margin: 20px;
+.eb-breadcrumb-container {
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 10px 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  margin: 10px 10px -20px 10px;
+}
+
+.eb-breadcrumb :deep(.el-breadcrumb__inner) {
+  color: #333;
+  font-weight: bold;
+}
+
+.eb-breadcrumb :deep(.el-breadcrumb__inner):hover {
+  color: #6B97FF;
+}
+
+.eb-breadcrumb :deep(.el-breadcrumb__separator) {
+  color: #999;
 }
 </style> 

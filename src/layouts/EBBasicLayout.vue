@@ -1,13 +1,13 @@
 <template>
   <div class="eb-app-container">
-    <div class="eb-app-header">
+    <div class="eb-app-header" >
       <EBHeader />
     </div>
     <el-container class="eb-app-content">
-      <el-aside width="auto">
+      <el-aside width="auto" class="eb-app-aside">
         <EBSidebar />
       </el-aside>
-      <el-main>
+      <el-main class="eb-app-main">
         <div class="eb-main-content">
           <EBBreadcrumb />
           <router-view></router-view>
@@ -42,28 +42,31 @@ import EBBreadcrumb from '@/components/EBBreadcrumb.vue';
 .eb-app-content {
   flex: 1;
   padding: 10px;
+  display: flex;
+  align-items: flex-start;
 }
 
-.el-aside {
+.eb-app-aside {
   background-color: transparent;
   color: #333;
   text-align: center;
   line-height: 200px;
   padding: 0;
-  margin-right: 20px;
+  margin-right: 10px;
 }
 
-.el-main {
+.eb-app-main {
+  flex: 1;
   padding: 0;
 }
 
-.eb-main-content {
+/* .eb-main-content {
   background-color: #fff;
   color: #333;
   padding: 20px;
-  border-radius: 30px;
-  margin-left: 20px;
-}
+  border-radius: 10px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+} */
 
 .eb-app-footer {
   width: 100%;

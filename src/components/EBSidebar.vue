@@ -11,8 +11,8 @@
       class="eb-menu"
       @select="handleSelect"
       background-color="transparent"
-      text-color="#333"
-      active-text-color="#00c091"
+      text-color="#fff"
+      active-text-color="#fff"
     >
       <el-menu-item index="/dashboard">
         <el-icon><House /></el-icon>
@@ -109,11 +109,10 @@ const handleSelect = (index) => {
   z-index: 1;
   height: calc(100vh - 80px);
   overflow-y: auto;
-  background: linear-gradient(to bottom right, #ffffff, #e6fff2);
+  background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
   transition: width 0.28s;
-  border-radius: 30px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .eb-sidebar.is-collapsed {
@@ -129,24 +128,27 @@ const handleSelect = (index) => {
   justify-content: center;
   align-items: center;
   height: 60px;
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
 .eb-sidebar-title {
-  color: #00c091;
+  color: #fff;
   font-size: 20px;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .eb-sidebar-icon {
-  color: #00c091;
+  color: #fff;
   font-size: 24px;
   cursor: pointer;
 }
 
 .eb-sidebar-footer {
   position: absolute;
-  bottom: 10px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -158,15 +160,16 @@ const handleSelect = (index) => {
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .eb-sidebar-footer:hover {
-  background-color: #f0f9eb;
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 .eb-sidebar-footer .eb-sidebar-icon {
-  color: #00c091;
+  color: #8ec5fc;
   font-size: 20px;
 }
 
@@ -175,7 +178,7 @@ const handleSelect = (index) => {
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: #d9f7ec !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 :deep(.el-sub-menu__title),
@@ -189,7 +192,7 @@ const handleSelect = (index) => {
 
 :deep(.el-sub-menu__title) i,
 :deep(.el-menu-item) i {
-  color: #00c091;
+  color: #fff;
 }
 
 :deep(.el-sub-menu__title) span,

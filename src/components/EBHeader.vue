@@ -1,13 +1,13 @@
 <template>
   <el-header class="eb-header">
     <div class="eb-header-left">
-      <span class="eb-title">电费管理系统</span>
+      <img src="@/assets/images/logo.png" alt="logo" class="eb-logo">
     </div>
     <div class="eb-header-right">
       <el-dropdown>
         <div class="eb-avatar-wrapper">
-          <el-avatar :size="40" :src="avatarUrl"></el-avatar>
-          <span class="eb-user-name">Admin</span>
+          <el-avatar :size="45" :src="avatarUrl"></el-avatar>
+          <!-- <span class="eb-user-name">Admin</span> -->
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -32,16 +32,14 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
   justify-content: space-between;
   align-items: center;
   height: 60px;
-  background: linear-gradient(to right, #ffffff, #e6fff2);
-  color: #333;
+  background-color: white;
   padding: 0 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px #fff
 }
 
 .eb-title {
   font-size: 20px;
-  font-weight: bold;
-  color: #00c091;
+  font-weight: 600;
 }
 
 .eb-header-right {
@@ -57,18 +55,28 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 10px;
   border-radius: 30px;
-  transition: all 0.3s;
+  transition: all 0.5s;
 }
 
 .eb-avatar-wrapper:hover {
-  background-color: #f0f9eb;
+  background-color:transparent;
 }
 
 .eb-user-name {
   margin-left: 10px;
-  color: #00c091;
-  font-weight: bold;
+  color: #fff;
+  font-weight: 600;
+}
+
+.eb-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.eb-logo {
+  height: 50px;
+  margin-left: 30px;
+
 }
 </style> 
