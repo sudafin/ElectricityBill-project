@@ -18,11 +18,12 @@ const routes = [
         path: '/user',
         name: 'User',
         component: () => import('@/layouts/EBTabLayout.vue'),
-        redirect: '/user/list',
+        redirect: '/user/dashboard',
         meta: { requiresAuth: true, title: '用户管理' },
         children: [
-          { path: 'list', name: 'UserList', component: () => import('@/views/user/EBUserList.vue'), meta: { title: '用户信息管理' } },
-          { path: 'role', name: 'RoleSetting', component: () => import('@/views/setting/EBRoleSetting.vue'), meta: { title: '角色权限管理' } },
+          { path: 'dashboard', name: 'UserDashboard', component: () => import('@/views/user/EBUserDashBoard.vue'), meta: { title: '用户概览' } },
+          { path: 'payment/:id', name: 'UserPayment', component: () => import('@/views/user/EBUserPayment.vue'), meta: { title: '用户缴费' } },
+          { path: 'form', name: 'UserForm', component: () => import('@/views/user/EBUserForm.vue'), meta: { title: '新增用户' } },
         ],
       },
       {
@@ -62,6 +63,7 @@ const routes = [
         redirect: '/setting/rate',
         meta: { requiresAuth: true, title: '系统设置' },
         children: [
+          { path: 'role', name: 'RoleSetting', component: () => import('@/views/setting/EBRoleSetting.vue'), meta: { title: '角色权限管理' } },
           { path: 'rate', name: 'FeeRateSetting', component: () => import('@/views/setting/EBFeeRateSetting.vue'), meta: { title: '费率设置' } },
           { path: 'param', name: 'ParamSetting', component: () => import('@/views/setting/EBParamSetting.vue'), meta: { title: '参数配置' } },
           { path: 'log', name: 'LogSetting', component: () => import('@/views/setting/EBLogSetting.vue'), meta: { title: '日志管理' } },

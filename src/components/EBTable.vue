@@ -1,6 +1,11 @@
 <template>
   <div class="eb-table">
-    <el-table :data="tableData" v-bind="$attrs">
+    <el-table 
+      :data="tableData" 
+      v-bind="$attrs"
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column v-if="selection" type="selection" width="55"></el-table-column>
       <el-table-column
         v-for="(column, index) in columns"
         :key="index"
@@ -21,7 +26,7 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
   tableData: {
@@ -32,7 +37,17 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  selection: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const emit = defineEmits(['selection-change']);
+
+const handleSelectionChange = (selection) => {
+  emit('selection-change', selection);
+};
 </script>
 
 <style scoped>

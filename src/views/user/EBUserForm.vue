@@ -2,100 +2,107 @@
   <div class="user-form">
     <el-card>
       <template #header>
-        <div class="header">
-          <span>{{ isEdit ? '编辑用户' : '新增用户' }}</span>
-        </div>
       </template>
-      <EBForm
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-      >
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名"></el-input>
+      <el-form ref="userFormRef" :model="userForm" :rules="rules" label-width="120px">
+        <el-form-item label="用户姓名" prop="username">
+          <el-input v-model="userForm.username" placeholder="请输入用户姓名"></el-input>
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱"></el-input>
+        <el-form-item label="电话" prop="phone">
+          <el-input v-model="userForm.phone" placeholder="请输入电话"></el-input>
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号"></el-input>
+        <el-form-item label="地址" prop="address">
+          <el-input v-model="userForm.address" placeholder="请输入地址"></el-input>
         </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="form.role" placeholder="请选择角色">
-            <el-option label="管理员" value="admin"></el-option>
-            <el-option label="普通用户" value="user"></el-option>
+        <el-form-item label="用户类型" prop="userType">
+          <el-select v-model="userForm.userType" placeholder="请选择用户类型">
+            <el-option label="居民用户" value="居民用户"></el-option>
+            <el-option label="商业用户" value="商业用户"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitForm">保存</el-button>
+          <el-button type="primary" @click="submitForm">提交</el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
-      </EBForm>
+      </el-form>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import EBForm from '@/components/EBForm.vue';
+import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 
-const route = useRoute();
 const router = useRouter();
+const userFormRef = ref(null);
 
-const isEdit = ref(!!route.params.id);
-const form = reactive({
+const isEdit = ref(false);
+const userForm = reactive({
   username: '',
-  email: '',
   phone: '',
-  role: '',
+  address: '',
+  userType: '',
 });
-const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: ['blur', 'change'] },
-  ],
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: ['blur', 'change'] },
-  ],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-};
 
-const formRef = ref(null);
+const rules = reactive({
+  username: [{ required: true, message: '请输入用户姓名', trigger: 'blur' }],
+  phone: [{ required: true, message: '请输入电话', trigger: 'blur' }],
+  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
+  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
+});
 
 const submitForm = async () => {
-  await formRef.value.validate();
-  
-  // 模拟提交表单
-  if (isEdit.value) {
-    console.log('编辑用户:', form);
-  } else {
-    console.log('新增用户:', form);
-  }
-  
-  router.push({ name: 'UserList' });
+  userFormRef.value.validate((valid) => {
+    if (valid) {
+      // 提交表单
+      console.log('提交表单:', userForm);
+      ElMessage.success('提交成功');
+      router.push({ name: 'UserDashboard' });
+    } else {
+      console.log('表单验证失败!');
+      return false;
+    }
+  });
 };
 
 const resetForm = () => {
-  formRef.value.resetFields();
+  userFormRef.value.resetFields();
 };
-
-onMounted(() => {
-  if (isEdit.value) {
-    // 模拟获取用户详情
-    const mockData = { id: 1, username: 'admin', email: 'admin@example.com', phone: '13800000000', role: 'admin' };
-    Object.assign(form, mockData);
-  }
-});
 </script>
 
 <style scoped>
+.user-form {
+  padding: 20px;
+  background-color: #f5f7fa;
+  /* 居中 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+}
+
+.el-card {
+  border: none;
+  border-radius: 16px;
+  background-color: #fff;
+  box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  width: 60vh;
+}
+
+.el-card :deep(.el-card__header) {
+  border-bottom: none;
+  padding: 20px;
+}
+
+.el-card :deep(.el-card__body) {
+  padding: 0px 40px 20px 20px;
+  
 }
 </style> 
