@@ -1,31 +1,35 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <div class="login-header">
-        <span class="login-title">电费管理系统</span>
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-box">
+        <div class="login-box-inner">
+          <div class="login-header">
+            <img src="@/assets/images/logo.png" alt="logo" class="login-logo">
+          </div>
+          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
+            <el-form-item prop="username">
+              <el-input
+                v-model="loginForm.username"
+                placeholder="请输入用户名"
+                size="large"
+              ></el-input>
+            </el-form-item>
+            <el-form-item prop="password">
+              <el-input
+                v-model="loginForm.password"
+                type="password"
+                placeholder="请输入密码"
+                show-password
+                size="large"
+              ></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" class="login-button" @click="handleLogin" size="large">登录</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
       </div>
-      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
-        <el-form-item prop="username">
-          <el-input
-            v-model="loginForm.username"
-            placeholder="请输入用户名"
-            prefix-icon="User"
-          ></el-input>
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input
-            v-model="loginForm.password"
-            type="password"
-            placeholder="请输入密码"
-            prefix-icon="Lock"
-            show-password
-          ></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" class="login-button" @click="handleLogin">登录</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -67,36 +71,61 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.login-page {
+  width: 100%;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f0f2f5;
+  background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.login-card {
-  width: 400px;
+.login-container {
+  width: 100%;
+  max-width: 600px;
+  padding: 60px;
+  border-radius: 10px;
+  box-shadow: 0px 14px 80px rgba(34, 35, 58, 0.2);
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  border-radius: 10px;
+  background: linear-gradient(to bottom right, #ffffff, #f3e5f5);
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.login-box-inner {
+  width: 100%;
 }
 
 .login-header {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
-.login-title {
-  font-size: 24px;
-  font-weight: bold;
-  color: #409eff;
+.login-logo {
+  width: 300px;
+  height: 80px;
+  margin-bottom: 20px;
+  margin-left: 30px;
 }
 
 .login-form {
-  margin-top: 20px;
+  width: 100%;
 }
 
 .login-button {
   width: 100%;
+  background-color: #3f51b5;
+  border-color: #3f51b5;
 }
 </style> 
