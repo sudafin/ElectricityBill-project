@@ -5,6 +5,7 @@
         v-for="(item, index) in breadcrumbList"
         :key="index"
         :to="{ name: item.redirect || item.name, params: item.params }"
+        :class="{ 'current-route': index === breadcrumbList.length - 1 }"
       >
         {{ item.meta.title }}
       </el-breadcrumb-item>
@@ -66,6 +67,10 @@ watch(
 }
 
 .eb-breadcrumb :deep(.el-breadcrumb__inner):hover {
+  color: #6B97FF;
+}
+
+.eb-breadcrumb :deep(.current-route .el-breadcrumb__inner) {
   color: #6B97FF;
 }
 
