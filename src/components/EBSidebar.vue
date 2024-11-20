@@ -18,14 +18,10 @@
         <el-icon><House /></el-icon>
         <span>首页</span>
       </el-menu-item>
-      
-      <el-sub-menu index="/user">
-        <template #title>
+      <el-menu-item index="/user">
           <el-icon><User /></el-icon>
-          <span>用户管理</span>
-        </template>
-        <el-menu-item index="/user/dashboard">用户概览</el-menu-item>
-      </el-sub-menu>
+          <span>用户费用</span>
+      </el-menu-item>
       
       <el-menu-item index="/fee">
         <el-icon><Coin /></el-icon>
