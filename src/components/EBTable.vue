@@ -5,7 +5,7 @@
       v-bind="$attrs"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column v-if="selection" type="selection" width="55"></el-table-column>
+      <el-table-column v-if="selection" type="selection" width="10"></el-table-column>
       <el-table-column
         v-for="(column, index) in columns"
         :key="index"

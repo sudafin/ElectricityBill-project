@@ -23,11 +23,6 @@
           <span>用户费用</span>
       </el-menu-item>
       
-      <el-menu-item index="/fee">
-        <el-icon><Coin /></el-icon>
-        <span>费用管理</span>
-      </el-menu-item>
-      
       <el-menu-item index="/report">
         <el-icon><DataAnalysis /></el-icon>
         <span>数据统计与报表</span>

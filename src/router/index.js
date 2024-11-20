@@ -27,12 +27,6 @@ const routes = [
         ],
       },
       {
-        path: '/fee',
-        name: 'Fee',
-        component: () => import('@/views/fee/EBFeeList.vue'),
-        meta: { requiresAuth: true, title: '费用管理' },
-      },
-      {
         path: '/report',
         name: 'Report',
         component: () => import('@/views/report/EBReport.vue'),
