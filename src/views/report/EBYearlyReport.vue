@@ -1,5 +1,5 @@
 <template>
-  <EBChart :option="props.dailyElectricityUsageOption || props.dailyFeeAmountOption" height="240px" />
+  <EBChart :option="props.yearlyElectricityUsageOption || props.yearlyFeeAmountOption" height="240px" />
 </template>
 
 <script setup>
@@ -7,11 +7,11 @@ import { defineProps } from 'vue';
 import EBChart from '@/components/EBChart.vue';
 
 const props = defineProps({
-  dailyElectricityUsageOption: {
+  yearlyElectricityUsageOption: {
     type: Object,
     required: true
   },
-  dailyFeeAmountOption: {
+  yearlyFeeAmountOption: {
     type: Object,
     required: true
   }
