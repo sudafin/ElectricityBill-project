@@ -35,8 +35,13 @@ const routes = [
       {
         path: '/reconciliation',
         name: 'Reconciliation',
-        component: () => import('@/views/reconciliation/EBReconciliationList.vue'),
-        meta: { requiresAuth: true, title: '对账与审批' },
+        component: () => import('@/layouts/EBTabLayout.vue'),
+        redirect: '/reconciliation/list',
+        meta: { requiresAuth: true, title: '对账与审批', children: true },
+        children: [
+          { path: 'list', name: 'ReconciliationList', component: () => import('@/views/reconciliation/EBReconciliation.vue'), meta: { title: '对账列表' } },
+          { path: 'approval/:id', name: 'Approval', component: () => import('@/views/reconciliation/EBApproval.vue'), meta: { title: '审批详情' } }
+        ]
       },
       {
         path: '/notification',

@@ -28,10 +28,11 @@
         <span>数据统计与报表</span>
       </el-menu-item>
       
-      <el-menu-item index="/reconciliation">
-        <el-icon><DocumentChecked /></el-icon>
-        <span>对账与审批</span>
+      <el-menu-item index="/reconciliation">  
+          <el-icon><DocumentChecked /></el-icon>
+          <span>对账与审批</span>
       </el-menu-item>
+    
       
       <el-menu-item index="/notification">
         <el-icon><Bell /></el-icon>
