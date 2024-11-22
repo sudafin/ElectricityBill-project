@@ -46,8 +46,29 @@ const routes = [
       {
         path: '/notification',
         name: 'Notification',
-        component: () => import('@/views/notification/EBNotificationList.vue'),
-        meta: { requiresAuth: true, title: '通知和提醒' },
+        component: () => import('@/layouts/EBTabLayout.vue'),
+        redirect: '/notification/list',
+        meta: { requiresAuth: true, title: '通知和提醒', children: true },
+        children: [
+          { 
+            path: 'list', 
+            name: 'NotificationList', 
+            component: () => import('@/views/notification/EBNotificationList.vue'), 
+            meta: { title: '通知列表' } 
+          },
+          {
+            path: 'create',
+            name: 'NotificationCreate',
+            component: () => import('@/views/notification/EBNotificationForm.vue'),
+            meta: { title: '新增通知' }
+          },
+          {
+            path: 'edit/:id',
+            name: 'NotificationEdit',
+            component: () => import('@/views/notification/EBNotificationForm.vue'),
+            meta: { title: '编辑通知' }
+          },
+        ],
       },
       {
         path: '/payment',

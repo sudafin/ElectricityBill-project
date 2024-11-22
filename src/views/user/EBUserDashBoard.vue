@@ -89,25 +89,36 @@
         </div>
       </template>
       <!-- 表格 -->
-      <EBTable
+      <el-table
         ref="tableRef"
-        :loading="loading"
-        :columns="columns"
+        v-loading="loading"
         :data="userList"
-        :selection="true"
         @selection-change="handleSelectionChange"
       >
-        <template #accountStatus="{ row }">
-          <el-tag :type="row.accountStatus === '正常' ? 'success' : 'danger'">
-            {{ row.accountStatus }}
-          </el-tag>
-        </template>
-        <template #actions="{ row }">
-          <el-button type="primary" link @click="showDetail(row)">详情</el-button>
-          <el-button type="success" link @click="handlePayment(row)">缴费</el-button>
-          <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-        </template>
-      </EBTable>
+        <el-table-column type="selection" width="55"></el-table-column>
+        <el-table-column prop="username" label="用户姓名"></el-table-column>
+        <el-table-column prop="phone" label="电话"></el-table-column>
+        <el-table-column prop="meterNo" label="电表编号"></el-table-column>
+        <el-table-column prop="address" label="地址"></el-table-column>
+        <el-table-column prop="userType" label="用户类型"></el-table-column>
+        <el-table-column label="账号状态">
+          <template #default="{ row }">
+            <el-tag :type="row.accountStatus === '正常' ? 'success' : 'danger'">
+              {{ row.accountStatus }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="balance" label="当前电费余额"></el-table-column>
+        <el-table-column prop="electricityUsage" label="用电量"></el-table-column>
+        <el-table-column prop="lastPaymentDate" label="最近缴费时间"></el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="showDetail(row)">详情</el-button>
+            <el-button type="success" link @click="handlePayment(row)">缴费</el-button>
+            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
@@ -313,9 +324,13 @@ const handleBatchDelete = () => {
     .then(async () => {
       // 模拟批量删除用户
       console.log('批量删除用户:', selectedUserIds.value);
-      await fetchUserList();
+      userList.value = userList.value.filter(item => !selectedUserIds.value.includes(item.id));
+      total.value = userList.value.length;
+      
+      // 更新 selectedUserIds,只保留还存在于 userList 中的行
+      selectedUserIds.value = selectedUserIds.value.filter(id => userList.value.some(item => item.id === id));
+      
       ElMessage.success('删除成功');
-      tableRef.value.clearSelection();
     })
     .catch(() => {});
 };

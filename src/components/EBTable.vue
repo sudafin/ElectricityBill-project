@@ -1,22 +1,24 @@
 <template>
   <div class="eb-table">
-    <el-table 
-      :data="tableData" 
+    <el-table
+      ref="tableRef"
       v-bind="$attrs"
+      :data="data"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column v-if="selection" type="selection" width="10"></el-table-column>
+      <el-table-column v-if="selection" type="selection" width="55"></el-table-column>
       <el-table-column
-        v-for="(column, index) in columns"
-        :key="index"
+        v-for="column in columns"
+        :key="column.prop"
         :prop="column.prop"
         :label="column.label"
         :width="column.width"
         :fixed="column.fixed"
         :formatter="column.formatter"
+        :show-overflow-tooltip="column.showOverflowTooltip"
       >
         <template #default="scope">
-          <slot :name="column.prop" :row="scope.row">
+          <slot :name="column.slotName" v-bind="scope" >
             {{ scope.row[column.prop] }}
           </slot>
         </template>
@@ -26,16 +28,16 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { ref, defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
-  tableData: {
-    type: Array,
-    default: () => [],
-  },
   columns: {
     type: Array,
-    default: () => [],
+    required: true,
+  },
+  data: {
+    type: Array,
+    required: true,
   },
   selection: {
     type: Boolean,
@@ -44,6 +46,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['selection-change']);
+
+const tableRef = ref(null);
 
 const handleSelectionChange = (selection) => {
   emit('selection-change', selection);
