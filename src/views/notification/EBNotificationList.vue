@@ -431,6 +431,7 @@ const getStatusType = (status) => {
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-all;
+
 }
 
 /* 修改抽屉的默认样式 */

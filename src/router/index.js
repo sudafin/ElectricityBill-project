@@ -73,8 +73,13 @@ const routes = [
       {
         path: '/payment',
         name: 'Payment',
-        component: () => import('@/views/payment/EBPaymentList.vue'),
-        meta: { requiresAuth: true, title: '支付管理' },
+        component: () => import('@/layouts/EBTabLayout.vue'),
+        redirect: '/payment/list',
+        meta: { requiresAuth: true, title: '支付管理', children: true },
+        children: [
+          { path: 'list', name: 'PaymentList', component: () => import('@/views/payment/EBPaymentList.vue'), meta: { title: '支付列表' } },
+          { path: 'detail/:id', name: 'PaymentDetail', component: () => import('@/views/payment/EBPaymentDetail.vue'), meta: { title: '支付详情' } }
+        ],
       },
       {
         path: '/setting',
