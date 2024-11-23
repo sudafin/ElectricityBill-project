@@ -50,8 +50,7 @@
           <span>系统设置</span>
         </template>
         <el-menu-item index="/setting/role">角色权限</el-menu-item>
-        <el-menu-item index="/setting/rate">费率设置</el-menu-item>
-        <el-menu-item index="/setting/param">参数配置</el-menu-item>
+        <el-menu-item index="/setting/rate">费率管理</el-menu-item>
         <el-menu-item index="/setting/log">日志管理</el-menu-item>
       </el-sub-menu>
     </el-menu>

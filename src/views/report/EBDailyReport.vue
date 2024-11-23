@@ -1,5 +1,5 @@
 <template>
-  <EBChart :option="props.dailyElectricityUsageOption || props.dailyFeeAmountOption" height="240px" />
+  <EBChart :option="props.dailyElectricityUsageOption || props.dailyFeeAmountOption" height="120px" />
 </template>
 
 <script setup>

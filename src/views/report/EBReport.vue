@@ -132,9 +132,9 @@ const reportData = ref([]);
 
 const dailyElectricityUsageOption = ref({
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: '10%',
+    right: '10%',
+    bottom: '10%',
     containLabel: true
   },
   title: {
@@ -164,9 +164,9 @@ const dailyElectricityUsageOption = ref({
 
 const dailyFeeAmountOption = ref({
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: '10%',
+    right: '10%',
+    bottom: '10%',
     containLabel: true
   },
   title: {
@@ -216,9 +216,9 @@ const dailyFeeAmountOption = ref({
 
 const monthlyElectricityUsageOption = ref({
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: '10%',
+    right: '10%',
+    bottom: '10%',
     containLabel: true
   },
   title: {
@@ -594,7 +594,7 @@ const exportReport = () => {
 
 <style scoped>
 .report-dashboard {
-  padding: 12px;
+  padding: 26px;
   background-color: #f5f7fa;
 }
 
@@ -650,8 +650,10 @@ const exportReport = () => {
 }
 
 .chart-container {
+  height: 100%;
   margin: 12px 0;
   display: flex;
+
 }
 
 .chart-card {

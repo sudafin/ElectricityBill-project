@@ -89,9 +89,8 @@ const routes = [
         meta: { requiresAuth: true, title: '系统设置', children: true },
         children: [
           { path: 'role', name: 'RoleSetting', component: () => import('@/views/setting/role/EBRoleSetting.vue'), meta: { title: '角色权限管理' } },
-          { path: 'rate', name: 'FeeRateSetting', component: () => import('@/views/setting/EBFeeRateSetting.vue'), meta: { title: '费率设置' } },
-          { path: 'param', name: 'ParamSetting', component: () => import('@/views/setting/EBParamSetting.vue'), meta: { title: '参数配置' } },
-          { path: 'log', name: 'LogSetting', component: () => import('@/views/setting/EBLogSetting.vue'), meta: { title: '日志管理' } },
+          { path: 'rate', name: 'RateSetting', component: () => import('@/views/setting/rate/EBRateManagement.vue'), meta: { title: '费率管理' } },
+          { path: 'log', name: 'LogSetting', component: () => import('@/views/setting/log/EBLogSetting.vue'), meta: { title: '日志管理' } },
         ],
       },
     ],
