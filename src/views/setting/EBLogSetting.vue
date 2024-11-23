@@ -1,6 +1,11 @@
 <template>
   <div class="log-setting">
-    <el-card>
+    <el-card class="filter-card">
+      <template #header>
+        <div class="header">
+          <span>日志设置</span>
+        </div>
+      </template>
       <EBTable
         :loading="loading"
         :columns="columns"
@@ -10,15 +15,18 @@
           <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
         </template>
       </EBTable>
-      <EBPagination
-        :total="total"
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        @current-change="fetchLogList"
-        @size-change="fetchLogList(1)"
-      />
+      <div class="pagination">
+        <EBPagination
+          :total="total"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          @current-change="fetchLogList"
+          @size-change="fetchLogList(1)"
+        />
+      </div>
     </el-card>
     
+    <!-- 日志详情对话框 -->
     <el-dialog
       v-model="dialogVisible"
       title="日志详情"
@@ -48,6 +56,7 @@ import { ref } from 'vue';
 import { useSettingStore } from '@/store/setting';
 import EBTable from '@/components/EBTable.vue';
 import EBPagination from '@/components/EBPagination.vue';
+import { ElMessage } from 'element-plus';
 
 const settingStore = useSettingStore();
 
@@ -68,10 +77,14 @@ const columns = [
 const fetchLogList = async (page = currentPage.value) => {
   loading.value = true;
   currentPage.value = page;
-  await settingStore.fetchLogList({
-    page: currentPage.value,
-    size: pageSize.value,
-  });
+  try {
+    await settingStore.fetchLogList({
+      page: currentPage.value,
+      size: pageSize.value,
+    });
+  } catch (error) {
+    ElMessage.error('获取日志失败');
+  }
   loading.value = false;
 };
 
@@ -84,6 +97,29 @@ const handleDetail = (row) => {
 </script>
 
 <style scoped>
+.log-setting {
+  padding: 20px;
+  background-color: #f5f7fa;
+}
+
+.filter-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
 .margin-top {
   margin-top: 20px;
 }
