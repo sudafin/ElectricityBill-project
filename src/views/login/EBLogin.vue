@@ -7,10 +7,10 @@
             <img src="@/assets/images/logo.png" alt="logo" class="login-logo">
           </div>
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
-            <el-form-item prop="username">
+            <el-form-item prop="account">
               <el-input
-                v-model="loginForm.username"
-                placeholder="请输入用户名"
+                v-model="loginForm.account"
+                placeholder="请输入账号"
                 size="large"
               ></el-input>
             </el-form-item>
@@ -34,37 +34,80 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { ElMessage } from 'element-plus';
+import { encryptWithRSA } from '@/utils/encrypt';
+import { getPublicKey } from '@/api/user';
 
 const router = useRouter();
 const userStore = useUserStore();
 
 const loginForm = reactive({
-  username: '',
+  account: '',
   password: '',
 });
 
 const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  account: [
+    { required: true, message: '请输入账号', trigger: 'blur' },
+    { min: 8, max: 16, message: '账号长度应为8-16位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '账号应包含数字和字母', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
+  ],
 };
 
 const loginFormRef = ref(null);
 
+// 获取公钥
+async function fetchPublicKey() {
+  try {
+    const publicKey = await getPublicKey();
+    return publicKey;
+  } catch (error) {
+    console.error('获取公钥失败:', error);
+    throw error;
+  }
+}
+
+// 在组件挂载时获取公钥
+onMounted(async () => {
+  try {
+    const publicKey = await fetchPublicKey();
+    userStore.setPublicKey(publicKey);
+  } catch (error) {
+    ElMessage.error('获取公钥失败,请刷新页面重试');
+  }
+});
+
+// 登录
 const handleLogin = async () => {
+  if (!loginFormRef.value) return;
+
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userStore.login(loginForm);
+        // 使用 store 中的公钥加密密码
+        const encryptedPassword = encryptWithRSA(loginForm.password, userStore.publicKey);
+        // 发送登录请求
+        await userStore.login({
+          account: loginForm.account,
+          password: encryptedPassword,
+        });
+
+        // 登录成功后的逻辑
+        console.log('管理员ID:', userStore.adminInfo.id);
         router.push('/dashboard');
       } catch (error) {
-        ElMessage.error('登录失败,请检查用户名和密码');
+        ElMessage.error('登录失败,请检查账号和密码');
       }
     } else {
-      ElMessage.error('请填写正确的用户名和密码');
+      ElMessage.error('请填写正确的账号和密码');
     }
   });
 };

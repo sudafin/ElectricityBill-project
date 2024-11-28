@@ -2,12 +2,18 @@ import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getToken, removeToken } from '@/utils/auth';
 import router from '@/router';
+const BASE_URL = '/api';
 
 const service = axios.create({
-  baseURL: import.meta.env.VITE_APP_BASE_API,
+  baseURL: BASE_URL,
+  responseType: 'json',
   timeout: 5000,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json;charset=utf-8',
+  } // 设置请求头内容
 });
-
+// 请求拦截器
 service.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -21,13 +27,15 @@ service.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
+// 响应拦截器
 service.interceptors.response.use(
   (response) => {
     const res = response.data;
-    if (res.code !== 20000) {
+    if (response.status === 200) {
+      return res;
+    } else {
       ElMessage.error(res.message || 'Error');
-      if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
+      if (response.status === 401) {
         ElMessageBox.confirm(
           '您已经登出,您可以取消停留在此页面,或重新登录',
           '确认登出', 
@@ -42,8 +50,6 @@ service.interceptors.response.use(
         });
       }
       return Promise.reject(new Error(res.message || 'Error'));
-    } else {
-      return res;
     }
   },
   (error) => {

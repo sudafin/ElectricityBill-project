@@ -33,8 +33,16 @@ export function deleteUser(id) {
 
 export function login(data) {
   return request({
-    url: '/user/login',
+    url: '/admin/login',
     method: 'post',
     data,
+  });
+}
+
+export function getPublicKey() {
+  return request({
+    url: '/admin',
+    method: 'get',
+    responseType: 'text',
   });
 } 
