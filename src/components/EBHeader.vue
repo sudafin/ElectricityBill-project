@@ -5,14 +5,15 @@
     </div>
     <div class="eb-header-right">
       <el-dropdown>
-        <div class="eb-avatar-wrapper">
-          <el-avatar :size="45" :src="avatarUrl"></el-avatar>
-          <!-- <span class="eb-user-name">Admin</span> -->
+        <div class="eb-user-info">
+          <el-avatar :size="42" :src="adminInfo.avatar"></el-avatar>
+          <div class="eb-user-details">
+            <span class="eb-user-name">{{ adminInfo.username }} | {{ adminInfo.role }}</span>
+          </div>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item>个人中心</el-dropdown-item>
-            <el-dropdown-item divided>退出登录</el-dropdown-item>
+            <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -22,8 +23,27 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/store/user';
 
-const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png');
+const router = useRouter();
+const userStore = useUserStore();
+
+// 使用假数据替换用户名和角色
+const adminInfo = ref({
+  username: '张三',
+  role: '管理员',
+  avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+});
+
+const handleLogout = async () => {
+  try {
+    await userStore.logout();
+    router.push('/login');
+  } catch (error) {
+    console.error('退出登录失败:', error);
+  }
+};
 </script>
 
 <style scoped>
@@ -32,14 +52,9 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
   justify-content: space-between;
   align-items: center;
   height: 60px;
-  background-color: white;
+  background-color: #f5f7fa;
   padding: 0 20px;
-  box-shadow: 0 2px 12px #fff
-}
-
-.eb-title {
-  font-size: 20px;
-  font-weight: 600;
+  border-bottom: 1px solid #e4e7ed;
 }
 
 .eb-header-right {
@@ -47,26 +62,27 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
   align-items: center;
 }
 
-.eb-header-right .el-dropdown {
-  margin-left: 20px;
-}
-
-.eb-avatar-wrapper {
+.eb-user-info {
   display: flex;
   align-items: center;
   cursor: pointer;
-  border-radius: 30px;
-  transition: all 0.5s;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
 }
 
-.eb-avatar-wrapper:hover {
-  background-color:transparent;
+
+.eb-user-details {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: 20px;
 }
 
 .eb-user-name {
-  margin-left: 10px;
-  color: #fff;
+  font-size: 16px;
   font-weight: 600;
+  color: rgb(126, 164, 251);
 }
 
 .eb-header-left {
@@ -77,6 +93,8 @@ const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
 .eb-logo {
   height: 50px;
   margin-left: 30px;
-
 }
-</style> 
+:focus-visible {
+  outline: none;
+}
+</style>
