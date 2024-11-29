@@ -28,11 +28,10 @@ import { useUserStore } from '@/store/user';
 
 const router = useRouter();
 const userStore = useUserStore();
-
 // 使用假数据替换用户名和角色
 const adminInfo = ref({
-  username: '张三',
-  role: '管理员',
+  username: userStore.adminInfo.userName,
+  role: userStore.adminInfo.roleName,
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
 });
 

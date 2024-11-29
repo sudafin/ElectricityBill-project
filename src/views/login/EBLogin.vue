@@ -99,9 +99,6 @@ const handleLogin = async () => {
           account: loginForm.account,
           password: encryptedPassword,
         });
-
-        // 登录成功后的逻辑
-        console.log('管理员ID:', userStore.adminInfo.id);
         router.push('/dashboard');
       } catch (error) {
         ElMessage.error('登录失败,请检查账号和密码');

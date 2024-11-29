@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getToken, removeToken } from '@/utils/auth';
+import { getToken, removeToken, removeAdminInfo } from '@/utils/auth';
 import router from '@/router';
 const BASE_URL = '/api';
 
@@ -18,7 +18,7 @@ service.interceptors.request.use(
   (config) => {
     const token = getToken();
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers['Authorization'] = `${token}`;
     }
     return config;
   },
@@ -28,35 +28,43 @@ service.interceptors.request.use(
   }
 );
 // 响应拦截器
+// 响应拦截器
 service.interceptors.response.use(
   (response) => {
     const res = response.data;
-    if (response.status === 200) {
-      return res;
+    // 直接判断响应状态码
+    if (res.code === 0 || response.status === 200) {
+      return res.data || res;
+    } else if (response.status === 401) {
+      // token 失效,提示用户重新登录
+      ElMessageBox.confirm('登录状态已过期,您可以继续留在该页面,或者重新登录', '系统提示', {
+        confirmButtonText: '重新登录',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        // 用户确认重新登录,清除 token 和用户信息,并跳转到登录页面
+        removeToken();
+        removeAdminInfo();
+        router.push('/login');
+      });
+      return Promise.reject(new Error('登录状态已过期'));
     } else {
-      ElMessage.error(res.message || 'Error');
-      if (response.status === 401) {
-        ElMessageBox.confirm(
-          '您已经登出,您可以取消停留在此页面,或重新登录',
-          '确认登出', 
-          {
-            confirmButtonText: '重新登录',
-            cancelButtonText: '取消',
-            type: 'warning',
-          }
-        ).then(() => {
-          removeToken();
-          router.push('/login');
-        });
-      }
-      return Promise.reject(new Error(res.message || 'Error'));
+      // 其他错误状态码的处理
+      ElMessage.error(res.message || '请求失败');
+      return Promise.reject(new Error(res.message || '请求失败'));
     }
   },
   (error) => {
-    console.log(`err${error}`);
-    ElMessage.error(error.message);
+    // 处理请求错误
+    if(error.status === 401){
+      const token = getToken();
+      if (token) {
+      removeToken();
+      removeAdminInfo();
+      }
+      router.push('/login');
+    }
     return Promise.reject(error);
   }
 );
-
 export default service; 

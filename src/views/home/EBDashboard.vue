@@ -37,10 +37,10 @@
       <el-col :span="6">
         <el-card class="rounded-card" shadow="hover">
           <div class="card-content">
-            <el-icon class="card-icon"><Warning /></el-icon>
+            <el-icon class="card-icon"><Help /></el-icon>
             <div class="card-detail">
               <p class="card-number">{{ abnormalBills }}</p>
-              <p class="card-desc">异常账单</p>
+              <p class="card-desc">普通账单</p>
             </div>
           </div>
         </el-card>
@@ -79,51 +79,75 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import * as echarts from 'echarts';
-import { User, Coin, Wallet, Warning } from '@element-plus/icons-vue'
+import { User, Coin, Wallet, Warning, Help } from '@element-plus/icons-vue'
+import { getDashboardInfo } from '@/api/user';
 
-const totalUsers = ref(1234);
-const totalFees = ref(12345.67);
-const totalIncome = ref(98765.43);
-const abnormalBills = ref(21);
 
+const totalUsers = ref(null);
+const totalFees = ref(null);
+const totalIncome = ref(null);
+const abnormalBills = ref(null);
+const electricityWeekUsageList = ref([]);
+const userTypeList = ref(null);
 const powerChart = ref(null);
 const userTypeChart = ref(null);
 
-const powerData = ref([
-  { date: '2023-06-01', power: 150 },
-  { date: '2023-06-02', power: 230 },
-  { date: '2023-06-03', power: 224 },
-  { date: '2023-06-04', power: 218 },
-  { date: '2023-06-05', power: 135 },
-  { date: '2023-06-06', power: 147 },
-  { date: '2023-06-07', power: 260 },
-]);
+const powerData = ref([]);
+const userTypeData = ref([]);
 
-const userTypeData = ref([
-  { value: 1048, name: '普通用户' },
-  { value: 735, name: '商业用户' },
-  { value: 580, name: '工业用户' },
-  { value: 484, name: '农业用户' },
-  { value: 300, name: '其他用户' },
-]);
+// 获取仪表盘信息
+const fetchDashboardInfo = async()=>{
+    try{
+      const res = await getDashboardInfo();
+      totalUsers.value = res.totalUser;
+      totalFees.value = res.totalElectricityUsage;
+      totalIncome.value = res.totalAmount;
+      abnormalBills.value = res.totalPaymentBill;
+      electricityWeekUsageList.value = res.electricityWeekUsageList;
+      userTypeList.value = res.userTypeMap;
+    } catch (error) {
+      console.error('获取仪表盘信息失败:', error);
+    }
+  }
+// 在组件挂载时获取仪表盘信息
+onMounted(async () => {
+  await fetchDashboardInfo();
 
-onMounted(() => {
-  // 初始化用电量折线图
+    // 处理用电量数据 格式化为{date: '2024-11-29', value: 100}
+    powerData.value = Array.from({length: 7}, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return {
+        date: date.toISOString().split('T')[0],
+        value: electricityWeekUsageList.value[i] || 0
+      };
+});
+    // 初始化用电量折线图
   const powerChartInstance = echarts.init(powerChart.value);
   powerChartInstance.setOption({
     xAxis: {
       type: 'category',
-      data: powerData.value.map(item => item.date),
+      data: Array.from({length: 7}, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split('T')[0];
+      }),
     },
     yAxis: {
       type: 'value'
     },
     series: [{
-      data: powerData.value.map(item => item.power),
+      data: powerData.value.map(item => item.value),
       type: 'line'
     }]
   });
-
+  
+    // 处理用户类型数据 格式化为{name: '居民', value: 100}
+    userTypeData.value = Object.entries(userTypeList.value).map(([name, value]) => ({
+      name,
+      value
+    }));
+console.log("userTypeData", userTypeData.value);
   // 初始化用户类型饼图
   const userTypeChartInstance = echarts.init(userTypeChart.value);
   userTypeChartInstance.setOption({

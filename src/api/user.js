@@ -53,3 +53,10 @@ export function logout() {
     method: 'post',
   });
 } 
+
+export function getDashboardInfo() {
+  return request({
+    url: '/dashboard',
+    method: 'get',
+  });
+}
