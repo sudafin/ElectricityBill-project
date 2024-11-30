@@ -82,9 +82,10 @@ const handleLogout = async () => {
 }
 
 .eb-user-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 100;
   color: rgb(126, 164, 251);
+  margin-top: 2px;
 }
 
 .eb-header-left {
