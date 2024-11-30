@@ -1,10 +1,10 @@
 import request from '@/utils/request';
 
-export function getUserList(params) {
+export function getUserList(userPageQuery) {
   return request({
-    url: '/user/list',
+    url: '/user/page',
     method: 'get',
-    params,
+    params: userPageQuery,
   });
 }
 
@@ -58,5 +58,12 @@ export function getDashboardInfo() {
   return request({
     url: '/dashboard',
     method: 'get',
+  });
+}
+export function getUseList(userPageQuery){
+  return request({
+    url: '/user/page',
+    method: 'get',
+    params: userPageQuery,
   });
 }
