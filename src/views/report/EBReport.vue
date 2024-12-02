@@ -594,11 +594,13 @@ const exportReport = () => {
 
 <style scoped>
 .report-dashboard {
-  padding: 26px;
+  margin: 20px 0px 0 20px;
+  padding: 20px;
   background-color: #f5f7fa;
 }
 
 .filter-card {
+  
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }

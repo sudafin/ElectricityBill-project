@@ -131,20 +131,18 @@
         </el-table-column>
       </el-table>
 
-      <div class="pagination-wrapper">
+      <div class="pagination">
         <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
+          :current-page="currentPage"
+          :page-size="pageSize"
           :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="prev, pager, next, sizes"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          class="glass-pagination"
-        />
-        <div class="data-statistics">
-          共 <span class="highlight">{{ total }}</span> 条记录
-        </div>
+          :disabled="loading"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+          prev-text="上一页"
+          next-text="下一页"
+        ></el-pagination>
+        <div class="total">共 {{ total }} 条</div>
       </div>
     </el-card>
     
@@ -594,18 +592,18 @@ onMounted(() => {
 }
 
 /* 分页样式 */
-.pagination-wrapper {
-  margin-top: 20px;
+.pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-radius: 8px;
+  margin-top: 20px;
 }
 
-.glass-pagination {
-  padding: 0;
+.total {
+  color: #999;
+  font-size: 14px;
 }
+
 
 .data-statistics {
   color: #606266;

@@ -64,13 +64,19 @@
       <div class="batch-actions">
         <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedRows.length">批量删除</el-button>
       </div>
-      <EBPagination
-        :total="total"
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        @current-change="fetchNotificationList"
-        @size-change="fetchNotificationList(1)"
-      />
+      <div class="pagination">
+        <el-pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          :disabled="loading"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+          prev-text="上一页"
+          next-text="下一页"
+        ></el-pagination>
+        <div class="total">共 {{ total }} 条</div>
+      </div>
     </el-card>
     
     <!-- 详情抽屉 -->
@@ -309,9 +315,11 @@ const getStatusType = (status) => {
   margin-top: 20px;
 }
 
-.pagination-info {
+.total {
   color: #999;
+  font-size: 14px;
 }
+
 
 .actions {
   display: flex;

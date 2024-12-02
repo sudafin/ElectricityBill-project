@@ -131,17 +131,18 @@
         </el-table-column>
       </el-table>
 
-      <div class="pagination-wrapper">
+      <div class="pagination">
         <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
+          :current-page="currentPage"
+          :page-size="pageSize"
           :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          class="glass-pagination"
-        />
+          :disabled="loading"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+          prev-text="上一页"
+          next-text="下一页"
+        ></el-pagination>
+        <div class="total">共 {{ total }} 条</div>
       </div>
     </el-card>
 
@@ -490,12 +491,18 @@ fetchLogList();
   border-radius: 4px;
 }
 
-/* 分页样式 */
-.pagination-wrapper {
-  margin-top: 20px;
+.pagination {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
 }
+
+.total {
+  color: #999;
+  font-size: 14px;
+}
+
 
 /* 详情弹窗 */
 .glass-dialog :deep(.el-dialog) {

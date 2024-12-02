@@ -99,10 +99,13 @@
           :current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          background
-          layout="prev, pager, next"
-          @current-change="fetchReconciliationList"
-        />
+          :disabled="loading"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+          prev-text="上一页"
+          next-text="下一页"
+        ></el-pagination>
+        <div class="total">共 {{ total }} 条</div>
       </div>
     </el-card>
 
@@ -303,8 +306,14 @@ const showDetail = (row) => {
 
 .pagination {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 20px;
+}
+
+.total {
+  color: #999;
+  font-size: 14px;
 }
 
 .meter-input {

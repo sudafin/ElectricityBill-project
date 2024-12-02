@@ -77,13 +77,19 @@
           批量删除
         </el-button>
       </div>
-      <EBPagination
-        :total="total"
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        @current-change="fetchPaymentList"
-        @size-change="fetchPaymentList(1)"
-      />
+      <div class="pagination">
+        <el-pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          :disabled="loading"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+          prev-text="上一页"
+          next-text="下一页"
+        ></el-pagination>
+        <div class="total">共 {{ total }} 条</div>
+      </div>
     </el-card>
     
     <el-drawer v-model="detailVisible" :title="'支付详情 #' + currentPayment.orderNo" size="40%" direction="rtl">
@@ -305,6 +311,19 @@ const exportPayments = () => {
 .search-filter .el-button .el-icon {
   margin-right: 4px;
 }
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.total {
+  color: #999;
+  font-size: 14px;
+}
+
 
 .actions {
   display: flex;
