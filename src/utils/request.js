@@ -10,7 +10,10 @@ const service = axios.create({
   timeout: 5000,
   withCredentials: true,
   headers: {
+    //json数据
     'Content-Type': 'application/json;charset=utf-8',
+    //表单数据
+    'Content-Type': 'application/x-www-form-urlencoded',
   } // 设置请求头内容
 });
 // 请求拦截器
@@ -27,7 +30,6 @@ service.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-// 响应拦截器
 // 响应拦截器
 service.interceptors.response.use(
   (response) => {

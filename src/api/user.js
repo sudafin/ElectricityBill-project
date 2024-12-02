@@ -1,35 +1,5 @@
 import request from '@/utils/request';
 
-export function getUserList(userPageQuery) {
-  return request({
-    url: '/user/page',
-    method: 'get',
-    params: userPageQuery,
-  });
-}
-
-export function createUser(data) {
-  return request({
-    url: '/user/create',
-    method: 'post',
-    data,
-  });
-}
-
-export function updateUser(data) {
-  return request({
-    url: '/user/update',
-    method: 'put',
-    data,
-  });
-}
-
-export function deleteUser(id) {
-  return request({
-    url: `/user/delete/${id}`,
-    method: 'delete',
-  });
-}
 
 export function login(data) {
   return request({
@@ -60,10 +30,56 @@ export function getDashboardInfo() {
     method: 'get',
   });
 }
-export function getUseList(userPageQuery){
+export function getUserList(userPageQuery){
   return request({
     url: '/user/page',
     method: 'get',
     params: userPageQuery,
+  });
+}
+export function getUserDetail(id){
+  return request({
+    url: `/user/detail/${id}`,
+    method: 'get',
+  });
+}
+
+export function createUser(data){
+  return request({
+    url: '/user/create',
+    method: 'post',
+    data,
+  });
+}
+
+export function editUser(data){
+  return request({
+    url: '/user/edit',
+    method: 'put',
+    data,
+  });
+}
+
+export function deleteUser(userIds) {
+  return request({
+    url: '/user/delete',
+    method: 'delete', 
+    params: { userIds: userIds },
+  });
+}
+
+export function payUser(userId, money, paymentMethod){
+  return request({  
+    url: '/user/pay',
+    method: 'put',
+    params: { userId: userId, money: money, paymentMethod: paymentMethod },
+    
+  });
+}
+
+export function getUserBill(id){
+  return request({
+    url: `/user/bill/${id}`,
+    method: 'get',
   });
 }

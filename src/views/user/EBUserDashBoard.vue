@@ -95,7 +95,6 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="id" label="用户ID"></el-table-column>
         <el-table-column prop="username" label="用户姓名"></el-table-column>
         <el-table-column prop="phone" label="电话"></el-table-column>
         <el-table-column prop="meterNo" label="电表编号"></el-table-column>
@@ -115,6 +114,7 @@
           <template #default="{ row }">
             <el-button type="primary" link @click="showDetail(row.id)">详情</el-button>
             <el-button type="success" link @click="handlePayment(row)">缴费</el-button>
+            <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
             <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -143,7 +143,6 @@
         </div>
         <div class="drawer-body">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="用户ID">{{ currentUser.id }}</el-descriptions-item>
             <el-descriptions-item label="用户姓名">{{ currentUser.username }}</el-descriptions-item>
             <el-descriptions-item label="电话">{{ currentUser.phone }}</el-descriptions-item>
             <el-descriptions-item label="地址">{{ currentUser.address }}</el-descriptions-item>
@@ -154,13 +153,24 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="当前电费余额">{{ currentUser.balance }}</el-descriptions-item>
-            <el-descriptions-item label="用电量">{{ currentUser.electricityUsage }}</el-descriptions-item>
+            <el-descriptions-item label="当前剩余用电量">{{ currentUser.electricityUsage }}</el-descriptions-item>
           </el-descriptions>
           <el-divider></el-divider>
           <div class="payment-history">
-            <el-table :data="currentUser.paymentHistory" stripe>
-              <el-table-column prop="date" label="缴费日期"></el-table-column>
-              <el-table-column prop="amount" label="缴费金额"></el-table-column>
+            <h4>缴费记录</h4>
+            <el-table :data="currentUser.userPaymentRecordVOList" stripe>
+              <el-table-column prop="paymentTime" label="缴费时间" width="180"></el-table-column>
+              <el-table-column prop="paymentAmount" label="缴费金额" width="120"></el-table-column>
+              <el-table-column prop="accountStatus" label="支付状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.paymentStatus === '成功' ? 'success' : 'danger'">
+                    {{ row.paymentStatus }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="paymentMethod" label="支付方式" width="100"></el-table-column>
+              <el-table-column prop="operator" label="操作人员" width="120"></el-table-column>
+              <el-table-column prop="remark" label="备注"></el-table-column>
             </el-table>
           </div>
         </div>
@@ -174,14 +184,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Search, User, InfoFilled, Calendar, Plus, Delete, Odometer } from '@element-plus/icons-vue'
-import { getUserList } from '@/api/user';
+import { getUserList, getUserDetail, deleteUser } from '@/api/user';
 const router = useRouter();
 
 const searchText = ref('');
 const searchUserType = ref('');
 const searchAccountStatus = ref('');
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const loading = ref(false);
 const userList = ref([]);
 const total = ref(0);
@@ -189,21 +199,7 @@ const selectedUserIds = ref([]);
 const searchDateRange = ref([]);
 const searchMeterNo = ref('');
 
-const columns = [
-  { type: 'selection', width: '55' },
-  { prop: 'id', label: '用户ID' },
-  { prop: 'username', label: '用户姓名' },
-  { prop: 'phone', label: '电话' },
-  { prop: 'meterNo', label: '电表编号' },
-  { prop: 'address', label: '地址' },
-  { prop: 'userType', label: '用户类型' },
-  { prop: 'accountStatus', label: '账号状态', slotName: 'accountStatus' },
-  { prop: 'balance', label: '当前电费余额' },
-  { prop: 'electricityUsage', label: '用电量' },
-  { prop: 'lastPaymentDate', label: '最近缴费时间' },
-  { prop: 'actions', label: '操作', width: '200px', fixed: 'right' },
-];
-
+//获取用户列表
 const fetchUserList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   
@@ -213,8 +209,9 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     currentPage.value = page;
   }
 
+  //创建条件查询对象
   const userPageQuery = {
-    page: currentPage.value,
+    pageNo: currentPage.value,
     pageSize: pageSize.value,
     userType: searchUserType.value,
     accountStatus: searchAccountStatus.value,
@@ -224,93 +221,86 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     name: searchText.value && !isNaN(searchText.value) ? undefined : searchText.value,
     phone: searchText.value && isNaN(searchText.value) ? undefined : searchText.value
   };
-
+//分页查询
   try {
     const res = await getUserList(userPageQuery);
-
     userList.value = res.list;
     total.value = Number(res.total);
   } catch (err) {
     console.error(err);
     ElMessage.error('获取用户列表失败');
   }
-
   loading.value = false;
 };
 
-onMounted(() => {
-  fetchUserList(1); // 组件初始化时获取第一页数据
-});
+//获取用户详情
+const fetchUserDetail = async (userId) => {
+  const res = await getUserDetail(userId);
+  return res;
+};
 
 const detailVisible = ref(false);
 const currentUser = ref({});
 
-const showDetail = async (userId) => {
-  try {
-    const res = await getUserDetail(userId);
-    currentUser.value = {
-      ...res.data,
-      paymentHistory: [
-        { date: '2023-05-01', amount: 100 },
-        { date: '2023-04-01', amount: 80 },
-      ],
-    };
-    detailVisible.value = true;
-  } catch (err) {
-    console.error(err);
-    ElMessage.error('获取用户详情失败');
-  }
+//处理详情
+const showDetail  = async (userId) => {
+  const userDetail = await fetchUserDetail(userId);
+  currentUser.value = userDetail;
+  detailVisible.value = true;
 };
 
+//处理缴费
 const handlePayment = (row) => {
   router.push({ name: 'UserPayment', params: { id: row.id } });
 };
 
+//处理新增用户
 const handleCreate = () => {
   // 跳转到用户新增页面
   router.push({ name: 'UserForm' });
 };
 
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定删除该用吗?', '提示', {
+
+//删除单个用户
+const handleDelete = async (row) => {
+  ElMessageBox.confirm('确定删除该用户吗?', '提示', { 
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
     .then(async () => {
-      // 模拟删除用户
-      console.log('删除用户:', row);
-      await fetchUserList();
+      await deleteUser(row.id);
+      fetchUserList();
       ElMessage.success('删除成功');
     })
     .catch(() => {});
 };
 
+// 批量删除用户
 const tableRef = ref(null);
 
 const handleSelectionChange = (selectedRows) => {
   selectedUserIds.value = selectedRows.map((row) => row.id);
 };
-
-const handleBatchDelete = () => {
+const handleBatchDelete = async () => {
   ElMessageBox.confirm(`确定删除选中的 ${selectedUserIds.value.length} 个用户吗?`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(async () => {
-      // 模拟批量删除用户
-      console.log('批量删除用户:', selectedUserIds.value);
-      userList.value = userList.value.filter(item => !selectedUserIds.value.includes(item.id));
-      total.value = userList.value.length;
-      
-      // 更新 selectedUserIds,只保留还存在于 userList 中的行
-      selectedUserIds.value = selectedUserIds.value.filter(id => userList.value.some(item => item.id === id));
-      
-      ElMessage.success('删除成功');
-    })
-    .catch(() => {});
+  .then(async () => {
+    selectedUserIds.value = selectedUserIds.value.join(',');
+    const res = await deleteUser(selectedUserIds.value);
+    if(res.code === 200){
+      fetchUserList();
+    ElMessage.success('删除成功');
+  } else {
+      ElMessage.error('删除失败');
+    }
+  })
+  .catch(() => {});
 };
+
 
 // 添加搜索处理函数
 const handleSearch = () => {
@@ -322,9 +312,22 @@ const handleInputChange = () => {
   // 输入变化时不立即搜索，等待用户点击搜索按钮
 };
 
+// 分页
 const handlePageChange = (page) => {
   fetchUserList(page);
 };
+
+// 编辑用户
+const handleEdit = (row) => {
+  router.push({ 
+    name: 'UserEdit', 
+    params: { id: row.id }
+  });
+};
+
+onMounted(() => {
+  fetchUserList(1); // 组件初始化时获取第一页数据
+});
 </script>
 
 <style scoped>
@@ -470,6 +473,10 @@ const handlePageChange = (page) => {
 
 .payment-history {
   margin-top: 20px;
+}
+
+.payment-history h4 {
+  margin-bottom: 10px;
 }
 
 .search-date-range {

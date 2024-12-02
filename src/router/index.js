@@ -24,6 +24,7 @@ const routes = [
           { path: 'dashboard', name: 'UserDashboard', component: () => import('@/views/user/EBUserDashBoard.vue'), meta: { title: '用户费用' } },
           { path: 'payment/:id', name: 'UserPayment', component: () => import('@/views/user/EBUserPayment.vue'), meta: { title: '用户缴费' } },
           { path: 'form', name: 'UserForm', component: () => import('@/views/user/EBUserForm.vue'), meta: { title: '新增用户' } },
+          { path: 'edit/:id', name: 'UserEdit', component: () => import('@/views/user/EBUserForm.vue'), meta: { title: '编辑用户' } },
         ],
       },
       {
