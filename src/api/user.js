@@ -73,7 +73,6 @@ export function payUser(userId, money, paymentMethod){
     url: '/user/pay',
     method: 'put',
     params: { userId: userId, money: money, paymentMethod: paymentMethod },
-    
   });
 }
 

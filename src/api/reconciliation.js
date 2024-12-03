@@ -2,9 +2,9 @@ import request from '@/utils/request';
 
 export function getReconciliationList(params) {
   return request({
-    url: '/reconciliation/list',
+    url: '/reconciliation/page',
     method: 'get',
-    params,
+    params
   });
 }
 
@@ -15,10 +15,27 @@ export function getReconciliationDetail(id) {
   });
 }
 
-export function approveReconciliation(data) {
+/**
+ * 获取审批详情
+ * @param {*} id 
+ * @returns 
+ */
+export function approveReconciliationDetail(id) {
   return request({
-    url: '/reconciliation/approve',
-    method: 'post',
-    data,
+    url: `/reconciliation/approval/detail/${id}`,
+    method: 'get',
+  });
+} 
+/**
+ * 审批
+ * @param {*} id 
+ * @param {*} data 
+ * @returns 
+ */
+export function approveReconciliation(id, params) {
+  return request({
+    url: `/reconciliation/approve/${id}`,
+    method: 'put',
+    params,
   });
 } 

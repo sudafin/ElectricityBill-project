@@ -14,10 +14,10 @@
           <el-input v-model="approvalForm.username" disabled />
         </el-form-item>
         <el-form-item label="金额">
-          <el-input v-model="approvalForm.amount" disabled />
+          <el-input v-model="approvalForm.balance" disabled />
         </el-form-item>
         <el-form-item label="审批意见">
-          <el-input v-model="approvalForm.comment" type="textarea" />
+          <el-input v-model="approvalForm.comment" type="textarea" :disabled="approvalForm.isApproved" />
         </el-form-item>
         <el-form-item label="附件/证据">
           <el-upload
@@ -26,14 +26,31 @@
             :on-change="handleAttachmentChange"
             :file-list="approvalForm.attachments"
           >
-            <el-button type="primary">选择文件</el-button>
+            <el-button type="primary" :disabled="approvalForm.isApproved">选择文件</el-button>
           </el-upload>
         </el-form-item>
-        <el-form-item>
-          <el-button type="success" @click="approveReconciliation">通过</el-button>
-          <el-button type="danger" @click="rejectReconciliation">拒绝</el-button>
-          <el-button type="warning" @click="holdReconciliation">暂时搁置</el-button>
-          <el-button @click="cancelApproval">取消</el-button>
+        <el-form-item label="审批结果">
+          <div class="approval-actions">
+            <el-select
+              v-model="approvalForm.status"
+              placeholder="请选择审批结果"
+              :disabled="approvalForm.isApproved"
+              class="approval-select"
+            >
+              <el-option label="通过" value="通过" />
+              <el-option label="拒绝" value="拒绝" />
+              <el-option label="暂缓" value="暂缓" />
+            </el-select>
+            <el-button
+              type="primary"
+              @click="handleSubmit"
+              :disabled="approvalForm.isApproved"
+              class="submit-btn"
+            >
+              <el-icon><Check /></el-icon>
+              提交
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
       
@@ -43,10 +60,10 @@
       <div class="approval-history-wrapper">
         <el-table :data="approvalHistory" stripe max-height="200">
           <el-table-column prop="reconciliationNo" label="对账单号" width="120"></el-table-column>
-          <el-table-column prop="approver" label="审批人" width="100"></el-table-column>
-          <el-table-column prop="status" label="审批状态" width="100"></el-table-column>
+          <el-table-column prop="approvalOperator" label="审批人" width="100"></el-table-column>
+          <el-table-column prop="approvalStatus" label="审批状态" width="100"></el-table-column>
           <el-table-column prop="comment" label="审批意见" min-width="200"></el-table-column>
-          <el-table-column prop="approvalTime" label="审批时间" width="160"></el-table-column>
+          <el-table-column prop="approvalTime" label="审批时间" width="200"></el-table-column>
         </el-table>
       </div>
     </el-card>
@@ -54,86 +71,40 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-
+import { approveReconciliationDetail, approveReconciliation } from '@/api/reconciliation';
+import { ElMessage } from 'element-plus';
 const route = useRoute();
 const router = useRouter();
-const approvalForm = ref({
-  id: route.params.id,
-  reconciliationNo: 'R20230501001',
-  username: '张三',
-  amount: 1000,
-  comment: '',
-  attachments: [],
+const approvalForm = ref({});
+const approvalHistory = ref([]);
+onMounted(async () => {
+  const res = await approveReconciliationDetail(route.params.reconciliationNo);
+  approvalForm.value = res;
+  approvalHistory.value = res.approvalRecordList;
 });
 
-const approvalHistory = ref([
-  {
-    reconciliationNo: 'R20230501002',
-    approver: '李四',
-    status: '已通过',
-    comment: '审批通过,可以报销',
-    approvalTime: '2023-05-20 10:30:00',
-  },
-  {
-    reconciliationNo: 'R20230501003',
-    approver: '王五',
-    status: '已拒绝',
-    comment: '费用不合理,不予报销',
-    approvalTime: '2023-05-18 14:20:00',
-  },
-  {
-    reconciliationNo: 'R20230401001',
-    approver: '赵六',
-    status: '已通过',
-    comment: '审批通过,可以报销',
-    approvalTime: '2023-04-15 10:30:00',
-  },
-  {
-    reconciliationNo: 'R20230301001',
-    approver: '钱七',
-    status: '已拒绝',
-    comment: '费用不合理,不予报销',
-    approvalTime: '2023-03-10 14:20:00',
-  },
-  {
-    reconciliationNo: 'R20230201001',
-    approver: '孙八',
-    status: '已通过',
-    comment: '审批通过,可以报销',
-    approvalTime: '2023-02-05 09:15:00',
-  },
-  {
-    reconciliationNo: 'R20230101001',
-    approver: '周九',
-    status: '已通过',
-    comment: '审批通过,可以报销',
-    approvalTime: '2023-01-20 16:45:00',
-  },
-]);
-
 const handleAttachmentChange = (file, fileList) => {
-  approvalForm.value.attachments = fileList;
+  //先不用传附件使用提示框
+  ElMessage.warning('暂不支持上传附件');
 };
 
-const approveReconciliation = () => {
-  // 处理通过审批的逻辑
-  router.push({ name: 'Reconciliation' });
-};
-
-const rejectReconciliation = () => {
-  // 处理拒绝审批的逻辑
-  router.push({ name: 'Reconciliation' });
-};
-
-const holdReconciliation = () => {
-  // 处理暂时搁置审批的逻辑
-  router.push({ name: 'Reconciliation' });
-};
-
-const cancelApproval = () => {
-  router.push({ name: 'Reconciliation' });
+const handleSubmit = async  () => {
+  if(approvalForm.value.status === '' || approvalForm.value.comment === '') {
+    ElMessage.warning('请选择审批结果或填写审批意见');
+    return;
+  }
+  const params = {
+    status: approvalForm.value.status,
+    comment: approvalForm.value.comment,
+  }
+  const res = await approveReconciliation(route.params.reconciliationNo, params);
+  if(res.code === 200) {
+    ElMessage.success('审批成功');
+  } else {
+    ElMessage.error('审批失败');
+  }
 };
 </script>
 
@@ -198,5 +169,55 @@ h4 {
 
 .el-table__body-wrapper {
   overflow-y: auto;
+}
+
+.approval-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.approval-select {
+  width: 200px;
+}
+
+.submit-btn,
+.cancel-btn {
+  flex: 1;
+  max-width: 120px;
+}
+
+.submit-btn {
+  background-color: #409eff;
+  border-color: #409eff;
+  color: #fff;
+}
+
+.submit-btn:hover {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+}
+
+.cancel-btn {
+  background-color: #fff;
+  border-color: #dcdfe6;
+  color: #606266;
+}
+
+.cancel-btn:hover {
+  background-color: #f5f7fa;
+  border-color: #c6e2ff;
+  color: #409eff;
+}
+
+.submit-btn:active,
+.cancel-btn:active {
+  opacity: 0.8;
+}
+
+.submit-btn.is-disabled,
+.cancel-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style> 

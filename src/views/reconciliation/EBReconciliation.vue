@@ -64,7 +64,7 @@
                 range-separator="至"
                 start-placeholder="开始日期"
                 end-placeholder="结束日期"
-                @change="fetchReconciliationList"
+                value-format="YYYY-MM-DD"
                 class="filter-date-range"
               >
                 <template #prefix>
@@ -84,15 +84,27 @@
         </div>
       </template>
       <!-- 对账表格 -->
-      <EBTable :columns="columns" :data="reconciliationList">
-        <template #status="{ row }">
-          <el-tag :type="row.status === 'pending' ? 'warning' : 'success'">{{ row.status === 'pending' ? '待审批' : '已完成' }}</el-tag>
-        </template>
-        <template #actions="{ row }">
-          <el-button type="primary" link @click="showDetail(row)">详情</el-button>
-          <el-button type="primary" link @click="handleApproval(row)">审批</el-button>
-        </template>
-      </EBTable>
+      <el-table :data="reconciliationList" v-loading="loading">
+        <el-table-column prop="reconciliationNo" label="对账单号"></el-table-column>
+        <el-table-column prop="username" label="用户名"></el-table-column>
+        <el-table-column prop="meterNo" label="电表编号"></el-table-column>
+        <el-table-column prop="userType" label="用户类型"></el-table-column>
+        <el-table-column prop="balance" label="金额"></el-table-column>
+        <el-table-column prop="status" label="状态">
+          <template #default="{ row }">
+            <el-tag :type="row.reconciliationStatus === '未审批' ? 'info' : row.reconciliationStatus === '通过' ? 'success' : row.reconciliationStatus === '拒绝' ? 'danger' : 'warning'">
+                {{ row.reconciliationStatus }}
+              </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reconciliationTime" label="创建时间"></el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="showDetail(row)">详情</el-button>
+            <el-button type="primary" link @click="handleApproval(row)">审批</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
@@ -120,36 +132,50 @@
             <el-descriptions-item label="对账单号">{{ currentReconciliation.reconciliationNo }}</el-descriptions-item>
             <el-descriptions-item label="用户名">{{ currentReconciliation.username }}</el-descriptions-item>
             <el-descriptions-item label="电表编号">{{ currentReconciliation.meterNo }}</el-descriptions-item>
-            <el-descriptions-item label="用户类型">{{ currentReconciliation.userType }}</el-descriptions-item>
-            <el-descriptions-item label="金额">{{ currentReconciliation.amount }}</el-descriptions-item>
-            <el-descriptions-item label="用电量">{{ currentReconciliation.electricityUsage }} kWh</el-descriptions-item>
+            <el-descriptions-item label="用户类型">{{ currentReconciliation.userType}}</el-descriptions-item>
+            <el-descriptions-item label="金额">{{ currentReconciliation.balance }}</el-descriptions-item>
+            <el-descriptions-item label="用电量">{{ currentReconciliation.electricityUsage }}</el-descriptions-item>
             <el-descriptions-item label="状态">
-              <el-tag :type="currentReconciliation.status === 'pending' ? 'warning' : 'success'">
-                {{ currentReconciliation.status === 'pending' ? '待审批' : '已完成' }}
+              <el-tag :type="currentReconciliation.reconciliationStatus === '未审批' ? 'info' : currentReconciliation.reconciliationStatus === '通过' ? 'success' : currentReconciliation.reconciliationStatus === '拒绝' ? 'danger' : 'warning'">
+                {{ currentReconciliation.reconciliationStatus }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="审批人">
-              {{ currentReconciliation.status === 'pending' ? '待审批' : currentReconciliation.approver }}
+              <template v-if="currentReconciliation.reconciliationStatus !== '待审批'">
+                {{ currentReconciliation.approvalOperator }}
+              </template>
+              <template v-else >
+                暂未审批
+              </template>
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ currentReconciliation.createTime }}</el-descriptions-item>
             <el-descriptions-item label="审批时间">{{ currentReconciliation.approvalTime }}</el-descriptions-item>
+            <el-descriptions-item label="支付状态">
+              <el-tag :type="currentReconciliation.paymentStatus === '未支付' ? 'info' : currentReconciliation.paymentStatus === '已支付' ? 'success' : 'warning'">
+                {{ currentReconciliation.paymentStatus }}
+              </el-tag>
+            </el-descriptions-item>
           </el-descriptions>
           
           <el-divider></el-divider>
           
           <div class="comment-section">
             <h4>审批意见</h4>
-            <p>{{ currentReconciliation.comment || '暂无审批意见' }}</p>
+            <p>{{ currentReconciliation.approvalComment || '暂无审批意见' }}</p>
           </div>
           
           <el-divider></el-divider>
           
           <h4>支付信息</h4>
-          <el-table :data="currentReconciliation.paymentHistory" stripe>
-            <el-table-column prop="date" label="支付日期"></el-table-column>
-            <el-table-column prop="amount" label="支付金额"></el-table-column>
-            <el-table-column prop="method" label="支付方式"></el-table-column>
+          <el-table :data="currentReconciliation.userPaymentRecordVOList" stripe>
+            <el-table-column prop="paymentTime" label="支付日期"></el-table-column>
+            <el-table-column prop="paymentAmount" label="支付金额"></el-table-column>
+            <el-table-column prop="paymentMethod" label="支付方式"></el-table-column>
+            <el-table-column prop="paymentStatus" label="支付状态"></el-table-column>
+            <el-table-column prop="operator" label="支付人"></el-table-column>
+            <el-table-column prop="remark" label="备注"></el-table-column>
           </el-table>
+
         </div>
       </div>
     </el-drawer>
@@ -157,75 +183,88 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import EBTable from '@/components/EBTable.vue';
 import { Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
+import { getReconciliationList, getReconciliationDetail} from '@/api/reconciliation';
 
 const router = useRouter();
 const searchText = ref('');
 const searchStatus = ref('');
 const dateRange = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const total = ref(0);
 const searchUserType = ref('');
 const searchMeterNo = ref('');
 const detailVisible = ref(false);
 const currentReconciliation = ref({});
-
-const reconciliationList = ref([
-  { id: 1, reconciliationNo: 'R20230501001', username: '张三', meterNo: 'M20230501001', userType: '居民用户', amount: 1000, electricityUsage: 500, status: 'pending', approver: '', comment: '', createTime: '2023-05-01 10:00:00', approvalTime: '', paymentHistory: [
-    { date: '2023-04-01', amount: 500, method: '支付宝' },
-    { date: '2023-03-01', amount: 800, method: '微信' },
-  ], },
-  { id: 2, reconciliationNo: 'R20230501002', username: '李四', meterNo: 'M20230501002', userType: '商业用户', amount: 2000, status: 'completed', approver: '王五', createTime: '2023-05-01 11:00:00', approvalTime: '2023-05-01 12:00:00' },
-]);
+const loading = ref(false);
+const reconciliationList = ref([]);
 
 const columns = [
   { prop: 'reconciliationNo', label: '对账单号' },
   { prop: 'username', label: '用户名' },
   { prop: 'meterNo', label: '电表编号' },
   { prop: 'userType', label: '用户类型' },
-  { prop: 'amount', label: '金额' },
+  { prop: 'balance', label: '金额' },
   { prop: 'status', label: '状态', slotName: 'status' },
+  { prop: 'reconciliationTime', label: '创建时间' },
   { prop: 'actions', label: '操作', slotName: 'actions', width: '120px' },
 ];
 
-const fetchReconciliationList = async (page = currentPage.value) => {
-  currentPage.value = page;
-  // 模拟从后端获取数据,添加搜索条件
-  let mockData = reconciliationList.value;
-  if (searchStatus.value) {
-    mockData = mockData.filter(item => item.status === searchStatus.value);
-  }
-  if (searchUserType.value) {
-    mockData = mockData.filter(item => item.userType === searchUserType.value);
-  }
-  if (searchText.value) {
-    mockData = mockData.filter(item =>
-      item.reconciliationNo.includes(searchText.value) ||
-      item.username.includes(searchText.value)
-    );
-  }
-  if (searchMeterNo.value) {
-    mockData = mockData.filter(item =>
-      item.meterNo.toLowerCase().includes(searchMeterNo.value.toLowerCase())
-    );
-  }
-  // 添加时间范围筛选
-  if (dateRange.value && dateRange.value.length === 2) {
-    const [startDate, endDate] = dateRange.value;
-    mockData = mockData.filter(item => {
-      const date = new Date(item.date);
-      return date >= new Date(startDate) && date <= new Date(endDate);
-    });
-  }
-  total.value = mockData.length;
-};
 
+const fetchReconciliationList = async (page = currentPage.value,shouldResetPage = false) => {
+  loading.value = true;
+  if(shouldResetPage){
+    currentPage.value = 1;
+  }else{
+    currentPage.value = page;
+  }
+  //创建条件查询对象
+  const reconciliationPageQuery = {
+  pageNo: currentPage.value,
+  pageSize: pageSize.value,
+  reconciliationNo: searchText.value && /^\d+$/.test(searchText.value) ? searchText.value : undefined,
+  username: searchText.value && /^[\u4e00-\u9fa5]+$/.test(searchText.value) ? searchText.value : undefined,
+  reconciliationStatus: searchStatus.value,
+  userType: searchUserType.value,
+  meterNo: searchMeterNo.value,
+  startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+  endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+}
+//获取数据
+  try{
+    // 模拟从后端获取数据,添加搜索条件
+    const res = await getReconciliationList(reconciliationPageQuery);
+    reconciliationList.value = res.list;
+    total.value = Number(res.total);
+  } catch (err) {
+    console.error(err);
+    ElMessage.error('获取对账单列表失败');
+  }finally{
+    loading.value = false;
+  }
+};
+onMounted(()=>{
+  fetchReconciliationList(1,true);
+})
 const handleSearch = () => {
-  fetchReconciliationList(1);
+  fetchReconciliationList(1,true);
+};
+const handlePageChange = (page) => {
+  fetchReconciliationList(page);
+}
+
+const fetchReconciliationDetail = async (id) => {
+  const res = await getReconciliationDetail(id);
+  return res;
+};
+const showDetail = async (row) => {
+  const detail = await fetchReconciliationDetail(row.reconciliationNo);
+  currentReconciliation.value = detail;
+  detailVisible.value = true;
 };
 
 const exportReconciliationList = () => {
@@ -233,13 +272,10 @@ const exportReconciliationList = () => {
 };
 
 const handleApproval = (row) => {
-  router.push({ name: 'Approval', params: { id: row.id } });
+  router.push({ name: 'Approval', params: { reconciliationNo: row.reconciliationNo } });
 };
 
-const showDetail = (row) => {
-  currentReconciliation.value = { ...row };
-  detailVisible.value = true;
-};
+
 </script>
 
 <style scoped>

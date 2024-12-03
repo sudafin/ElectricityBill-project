@@ -242,7 +242,6 @@ const fetchUserDetail = async (userId) => {
 const detailVisible = ref(false);
 const currentUser = ref({});
 
-//处理详情
 const showDetail  = async (userId) => {
   const userDetail = await fetchUserDetail(userId);
   currentUser.value = userDetail;
@@ -254,7 +253,6 @@ const handlePayment = (row) => {
   router.push({ name: 'UserPayment', params: { id: row.id } });
 };
 
-//处理新增用户
 const handleCreate = () => {
   // 跳转到用户新增页面
   router.push({ name: 'UserForm' });

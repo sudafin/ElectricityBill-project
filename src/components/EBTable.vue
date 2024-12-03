@@ -5,6 +5,7 @@
       v-bind="$attrs"
       :data="data"
       @selection-change="handleSelectionChange"
+      :loading="loading"
     >
       <el-table-column v-if="selection" type="selection" width="55"></el-table-column>
       <el-table-column
@@ -43,6 +44,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['selection-change']);
@@ -52,6 +57,7 @@ const tableRef = ref(null);
 const handleSelectionChange = (selection) => {
   emit('selection-change', selection);
 };
+
 </script>
 
 <style scoped>
