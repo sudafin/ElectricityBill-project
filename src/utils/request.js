@@ -32,9 +32,7 @@ service.interceptors.response.use(
   (response) => {
     const res = response.data;
     // 直接判断响应状态码
-    if (res.code === 0 || response.status === 200) {
-      return res.data || res;
-    } else if (response.status === 401) {
+     if (res.code === 401) {
       // token 失效,提示用户重新登录
       ElMessageBox.confirm('登录状态已过期,您可以继续留在该页面,或者重新登录', '系统提示', {
         confirmButtonText: '重新登录',
@@ -47,15 +45,22 @@ service.interceptors.response.use(
         router.push('/login');
       });
       return Promise.reject(new Error('登录状态已过期'));
+    }else if(res.code === 403){
+      ElMessage.error("账号被禁用");
+      return Promise.reject(new Error(res.msg));
+    }else if(res.code === 0 || response.status === 200){
+      return res.data || res;
     } else {
       // 其他错误状态码的处理
-      ElMessage.error(res.message || '请求失败');
-      return Promise.reject(new Error(res.message || '请求失败'));
+      ElMessage.error(res.msg || '请求失败');
+      return Promise.reject(new Error(res.msg || '请求失败'));
     }
+    
   },
   (error) => {
     // 处理请求错误
     if(error.status === 401){
+      ElMessage.error("登录状态已过期");
       const token = getToken();
       if (token) {
       removeToken();

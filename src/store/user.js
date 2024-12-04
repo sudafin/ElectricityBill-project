@@ -13,6 +13,7 @@ export const useUserStore = defineStore('user', {
     async login(loginForm) {
       try {
         const res = await login(loginForm);
+        console.log(res);
         this.token = res.token;
         this.adminInfo = res.adminDTO;
         setToken(res.token);

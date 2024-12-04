@@ -101,7 +101,6 @@ const handleLogin = async () => {
         });
         router.push('/dashboard');
       } catch (error) {
-        ElMessage.error('登录失败,请检查账号和密码');
       }
     } else {
       ElMessage.error('请填写正确的账号和密码');

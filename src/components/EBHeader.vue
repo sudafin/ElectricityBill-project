@@ -29,7 +29,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
-
+import { ElMessage } from 'element-plus'
 const router = useRouter()
 const userStore = useUserStore()
 // 使用假数据替换用户名和角色
@@ -42,6 +42,7 @@ const adminInfo = ref({
 const handleLogout = async () => {
   try {
     await userStore.logout()
+    ElMessage.success('退出登录成功')
     router.push('/login')
   } catch (error) {
     console.error('退出登录失败:', error)

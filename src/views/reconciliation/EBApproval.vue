@@ -102,6 +102,7 @@ const handleSubmit = async  () => {
   const res = await approveReconciliation(route.params.reconciliationNo, params);
   if(res.code === 200) {
     ElMessage.success('审批成功');
+    router.push('/reconciliation');
   } else {
     ElMessage.error('审批失败');
   }

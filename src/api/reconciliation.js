@@ -32,10 +32,10 @@ export function approveReconciliationDetail(id) {
  * @param {*} data 
  * @returns 
  */
-export function approveReconciliation(id, params) {
+export function approveReconciliation(id, data) {
   return request({
     url: `/reconciliation/approve/${id}`,
     method: 'put',
-    params,
+    data,
   });
 } 

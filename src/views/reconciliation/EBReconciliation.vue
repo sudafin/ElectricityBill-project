@@ -134,8 +134,7 @@
             <el-descriptions-item label="电表编号">{{ currentReconciliation.meterNo }}</el-descriptions-item>
             <el-descriptions-item label="用户类型">{{ currentReconciliation.userType}}</el-descriptions-item>
             <el-descriptions-item label="金额">{{ currentReconciliation.balance }}</el-descriptions-item>
-            <el-descriptions-item label="用电量">{{ currentReconciliation.electricityUsage }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
+            <el-descriptions-item label="审批状态">
               <el-tag :type="currentReconciliation.reconciliationStatus === '未审批' ? 'info' : currentReconciliation.reconciliationStatus === '通过' ? 'success' : currentReconciliation.reconciliationStatus === '拒绝' ? 'danger' : 'warning'">
                 {{ currentReconciliation.reconciliationStatus }}
               </el-tag>
@@ -143,9 +142,6 @@
             <el-descriptions-item label="审批人">
               <template v-if="currentReconciliation.reconciliationStatus !== '待审批'">
                 {{ currentReconciliation.approvalOperator }}
-              </template>
-              <template v-else >
-                暂未审批
               </template>
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ currentReconciliation.createTime }}</el-descriptions-item>
@@ -185,9 +181,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import EBTable from '@/components/EBTable.vue';
 import { Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
 import { getReconciliationList, getReconciliationDetail} from '@/api/reconciliation';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const searchText = ref('');
@@ -219,7 +215,7 @@ const fetchReconciliationList = async (page = currentPage.value,shouldResetPage 
   loading.value = true;
   if(shouldResetPage){
     currentPage.value = 1;
-  }else{
+  }else {
     currentPage.value = page;
   }
   //创建条件查询对象
@@ -241,7 +237,6 @@ const fetchReconciliationList = async (page = currentPage.value,shouldResetPage 
     reconciliationList.value = res.list;
     total.value = Number(res.total);
   } catch (err) {
-    console.error(err);
     ElMessage.error('获取对账单列表失败');
   }finally{
     loading.value = false;
