@@ -6,7 +6,7 @@
           <span>{{ isEdit ? '编辑通知' : '新增通知' }}</span>
         </div>
       </template>
-      <EBForm
+      <el-form
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -23,31 +23,36 @@
             :autosize="{ minRows: 3, maxRows: 8 }"
           ></el-input>
         </el-form-item>
-        <el-form-item label="类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择通知类型">
-            <el-option label="系统通知" value="system"></el-option>
-            <el-option label="审批通知" value="approval"></el-option>
+        <el-form-item label="类型" prop="type" >
+          <el-select v-model="form.type" placeholder="请选择通知类型" style="width: 200px;">
+            <el-option label="系统通知" value="系统通知"></el-option>
+            <el-option label="审批通知" value="审批通知"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio label="普通">普通</el-radio>
-            <el-radio label="重点">重点</el-radio>
+        <el-form-item label="级别" prop="level">
+          <el-radio-group v-model="form.level">
+            <el-radio :value="'普通'">普通</el-radio>
+            <el-radio :value="'重点'">重点</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="发送对象" prop="recipients">
-          <el-select v-model="form.recipients" multiple placeholder="请选择发送对象">
-            <el-option label="全体用户" value="all"></el-option>
-            <el-option label="管理员" value="admin"></el-option>
-            <el-option label="运营人员" value="operator"></el-option>
-            <el-option label="客服人员" value="customer_service"></el-option>
+        <el-form-item label="到期时间" prop="expireTime">
+          <el-date-picker v-model="form.expireTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择到期时间"  unlink-panels></el-date-picker>
+        </el-form-item>
+        <el-form-item label="发送对象" prop="senderList">
+          <el-select v-model="form.senderList" multiple placeholder="请选择发送对象" style="width: 360px;">
+            <el-option label="系统管理员" value="系统管理员"></el-option>
+            <el-option label="运营人员" value="运营人员"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitForm">保存</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button type="primary" @click="submitForm">
+            <el-icon><Check /></el-icon>
+            保存</el-button>
+          <el-button @click="resetForm">
+            <el-icon><RefreshRight /></el-icon>
+            重置</el-button>
         </el-form-item>
-      </EBForm>
+      </el-form>
     </el-card>
   </div>
 </template>
@@ -55,56 +60,58 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import EBForm from '@/components/EBForm.vue';
+import { createNotification } from '@/api/notification';
+import { ElMessage } from 'element-plus';
 
-const route = useRoute();
+
 const router = useRouter();
 
-const isEdit = ref(!!route.params.id);
 const form = reactive({
   title: '',
   content: '',
   type: '',
-  status: '普通',
-  recipients: [],
+  level: '',
+  senderList: [],
+  expireTime: '',
 });
 const rules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
   type: [{ required: true, message: '请选择通知类型', trigger: 'change' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
-  recipients: [{ required: true, message: '请选择发送对象', trigger: 'change' }],
+  level: [{ required: true, message: '请选择级别', trigger: 'change' }],
+  senderList: [{ required: true, message: '请选择发送对象', trigger: 'change' }],
+  expireTime: [{ required: true, message: '请选择到期时间', trigger: 'change' }],
 };
 
 const formRef = ref(null);
 
 const submitForm = async () => {
-  await formRef.value.validate();
-  
-  // 模拟提交表单
   console.log('提交表单', form);
+  formRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        const res = await createNotification(form);
+        if(res.code === 200){
+          ElMessage.success('新增通知成功');
+          router.push({ name: 'NotificationList' });
+        } else if(res.code === 400) {
+          ElMessage.error('参数错误,请检查输入');
+        } else {
+          ElMessage.error('新增通知失败');
+        }
+      } catch(err) {
+        console.error(err);
+        ElMessage.error('系统错误,请稍后重试');
+      }
+    }
+  });
   
-  router.push({ name: 'NotificationList' });
 };
 
 const resetForm = () => {
   formRef.value.resetFields();
 };
 
-// 编辑时填充表单数据
-if (isEdit.value) {
-  // 模拟通知详情数据
-  const mockData = {
-    id: route.params.id,
-    title: '关于系统升级的通知',
-    content: '为了提供更好的服务,我们将于2023年7月1日对系统进行升级,升级期间可能会影响部分功能的使用,请您提前做好准备。',
-    type: 'system',
-    status: '重点',
-    recipients: ['all'],
-  };
-  
-  Object.assign(form, mockData);
-}
 </script>
 
 <style scoped>

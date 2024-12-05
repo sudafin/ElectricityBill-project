@@ -5,13 +5,34 @@
         <div class="header">
           <el-button type="primary" @click="handleCreate">新增通知</el-button>
           <div class="search-filter">
-            <el-input v-model="searchText" placeholder="搜索通知" clearable @clear="fetchNotificationList" @keyup.enter="fetchNotificationList"></el-input>
-            <el-select v-model="selectedType" placeholder="通知类型" clearable @change="fetchNotificationList">
+            <el-input v-model="searchText" placeholder="搜索通知" clearable @clear="fetchNotificationList" class="search-input"></el-input>
+            <el-select v-model="selectedType" placeholder="通知类型" clearable
+            class="status-select" >
               <el-option label="全部" value=""></el-option>
-              <el-option label="系统通知" value="system"></el-option>
-              <el-option label="审批通知" value="approval"></el-option>
+              <el-option label="系统通知" value="系统通知"></el-option>
+              <el-option label="审批通知" value="审批通知"></el-option>
             </el-select>
+            <el-date-picker
+                v-model="dateRange"
+                type="daterange"
+                unlink-panels
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+                class="filter-date-range"
+              >
+                <template #prefix>
+                  <el-icon><Calendar /></el-icon>
+              </template>
+            </el-date-picker>
+            <div class="action-buttons">
+            <el-button type="primary" @click="handleSearch">
+              <el-icon><Search /></el-icon>搜索
+            </el-button>
+            </div>
           </div>
+          
         </div>
       </template>
       <el-table
@@ -23,33 +44,28 @@
         <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column label="标题" width="150">
           <template #default="{ row }">
-            <el-tooltip :content="row.title" placement="top">
-              <span class="table-cell" :class="{ 'unread': !row.read }">{{ row.title }}</span>
-            </el-tooltip>
+              <span class="table-cell" :class="{ 'unread': !row.readStatus }">{{ row.title }}</span>
           </template>
         </el-table-column>
         <el-table-column label="内容">
           <template #default="{ row }">
-            <el-tooltip :content="row.content" placement="top">
               <span class="table-cell">{{ row.content }}</span>
-            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column label="类型" width="120">
           <template #default="{ row }">
-            <span>{{ getNotificationTypeName(row.type) }}</span>
+            <span>{{ row.type }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="row.level === '重点' ? 'warning' : row.level === '过期' ? 'danger' : row.level === '普通' ? 'success' : 'info'">
+              {{ row.level }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="创建时间" width="180">
           <template #default="{ row }">
-            <el-tooltip :content="row.createdAt" placement="top">
-              <span class="table-cell">{{ row.createdAt }}</span>
-            </el-tooltip>
+              <span class="table-cell">{{ row.createTime }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
@@ -62,7 +78,7 @@
         </el-table-column>
       </el-table>
       <div class="batch-actions">
-        <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedRows.length">批量删除</el-button>
+        <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedNotificationIds.length">批量删除</el-button>
       </div>
       <div class="pagination">
         <el-pagination
@@ -92,27 +108,30 @@
           <div class="info-section">
             <div class="info-item">
               <span class="label">发送者:</span>
-              <span class="value">{{ currentNotification.sender?.name }}</span>
+              <span class="value">{{ currentNotification.senderName }}</span>
             </div>
             <div class="info-item">
-              <span class="label">职位:</span>
-              <span class="value">{{ currentNotification.sender?.position }}</span>
+              <span class="label">角色名:</span>
+              <span class="value">{{ currentNotification.senderRole }}</span>
             </div>
             <el-divider></el-divider>
             <div class="info-item">
-              <span class="label">类型:</span>
-              <span class="value">{{ getNotificationTypeName(currentNotification.type) }}</span>
+              <span class="label">通知类型:</span>
+              <span class="value">{{ currentNotification.type }}</span>
             </div>
             <div class="info-item">
-              <span class="label">时间:</span>
-              <span class="value">{{ currentNotification.createdAt }}</span>
+              <span class="label">创建时间:</span>
+              <span class="value">{{ currentNotification.createTime }}</span>
             </div>
             <div class="info-item">
-              <span class="label">状态:</span>
+              <span class="label">过期时间:</span>
+              <span class="value">{{ currentNotification.expireTime }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">通知状态:</span>
               <span class="value">
-                <el-tag :type="getStatusType(currentNotification.status)">
-                  {{ currentNotification.status }}
-                </el-tag>
+                <el-tag :type="currentNotification.level === '重点' ? 'warning' : currentNotification.level === '过期' ? 'danger' : currentNotification.level === '普通' ? 'success' : 'info'">
+                  {{ currentNotification.level }}</el-tag>
               </span>
             </div>
           </div>
@@ -127,21 +146,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import EBTable from '@/components/EBTable.vue';
-import EBPagination from '@/components/EBPagination.vue';
+import { getNotificationList, deleteNotification ,fetchNotificationDetail} from '@/api/notification';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Download, Search, Close, Calendar } from '@element-plus/icons-vue';
 
 const router = useRouter();
-
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const loading = ref(false);
 const searchText = ref('');
 const selectedType = ref('');
 const selectedRows = ref([]);
 const detailVisible = ref(false);
 const currentNotification = ref({});
+const dateRange = ref([]);
+const notificationList = ref([]);
+const total = ref(0);
+
 
 const columns = [
   { type: 'selection', width: '55' },
@@ -153,121 +176,94 @@ const columns = [
   { prop: 'actions', label: '操作', width: '120', fixed: 'right' },
 ];
 
-// 假数据
-const mockData = [
-  { 
-    id: 1, 
-    title: '系统维护通知', 
-    content: '系统将于2023年6月1日凌晨2点至4点进行维护,届时系统将无法访问,请提前做好相关工作安排。', 
-    type: 'system', 
-    status: '重点', 
-    createdAt: '2023-05-28 10:00:00', 
-    read: false,
-    sender: {
-      name: '系统管理员',
-      position: '系统运维'
-    }
-  },
-  { 
-    id: 2, 
-    title: '新功能上线公告', 
-    content: '新的用户管理功能已经上线,您可以在用户管理页面中体验新功能。', 
-    type: 'system', 
-    status: '普通', 
-    createdAt: '2023-05-25 15:30:00', 
-    read: true,
-    sender: {
-      name: '张工',
-      position: '产品经理'
-    }
-  },
-  { id: 3, title: '关于系统升级的通知', content: '为了提供更好的服务,我们将于2023年7月1日对系统进行升级,升级期间可能会影响部分功能的使用,请您提前做好准备。', type: 'system', status: '过期', createdAt: '2023-05-23 09:15:00', read: false },
-  { id: 4, title: '审批结果通知', content: '您提交的采购申请已经通过审批,请及时处理后续事宜。', type: 'approval', status: '普通', createdAt: '2023-05-18 11:45:00', read: true },
-];
-
-const notificationList = ref(mockData);
-const total = ref(mockData.length);
-
-const unreadCount = computed(() => {
-  return notificationList.value.filter(item => !item.read).length;
-});
-
-const fetchNotificationList = () => {
-  // 根据搜索条件和筛选条件获取通知列表
-  let list = mockData;
-  if (searchText.value) {
-    list = list.filter(item => item.title.includes(searchText.value) || item.content.includes(searchText.value));
+const fetchNotificationList = async (page = currentPage.value,shouldResetPage = false) => {
+  loading.value = true;
+  if(shouldResetPage){
+    currentPage.value = 1;
+  }else {
+    currentPage.value = page;
   }
-  if (selectedType.value) {
-    list = list.filter(item => item.type === selectedType.value);
+  try{
+    const res = await getNotificationList({
+    pageNo: currentPage.value,
+    pageSize: pageSize.value,
+    title: searchText.value,
+    type: selectedType.value,
+    startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+    endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+  })
+    total.value = Number(res.total);
+    notificationList.value = res.list;
+  } catch (err) {
+    ElMessage.error('获取通知列表失败');
+  } finally {
+    loading.value = false;
   }
-  notificationList.value = list;
-  total.value = list.length;
 };
 
+onMounted(()=>{
+  fetchNotificationList(1,true);
+})
+const handleSearch = () => {
+  fetchNotificationList(1,true);
+};
+const handlePageChange = (page) => {
+  fetchNotificationList(page);
+}
+
+const showDetail = async (row) => {
+  const detail = await fetchNotificationDetail(row.id);
+  currentNotification.value = detail;
+  detailVisible.value = true;
+};
+
+
+const handleDelete = async (row) => {
+  ElMessageBox.confirm(`确定删除通知 ${row.title} 吗?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+  .then(async () => {
+    const res = await deleteNotification(row.id);
+    if(res.code === 200){ 
+      fetchNotificationList(1,true);
+      ElMessage.success('删除成功');
+    }else {
+      ElMessage.error('删除失败');
+    }
+  })
+  .catch(() => {});
+}
+
+
+const selectedNotificationIds = ref([]);
+const handleSelectionChange = (selectedRows) => {
+  selectedNotificationIds.value = selectedRows.map((row) => row.id);
+};
+const handleBatchDelete = async () => {
+ElMessageBox.confirm(`确定删除选中的 ${selectedNotificationIds.value.length} 个通知吗?`, '提示', {
+  confirmButtonText: '确定',
+  cancelButtonText: '取消',
+    type: 'warning',
+  })
+  .then(async () => {
+    selectedNotificationIds.value = selectedNotificationIds.value.join(',');
+    const res = await deleteNotification(selectedNotificationIds.value);
+    if(res.code === 200){
+      fetchNotificationList(1,true);
+      ElMessage.success('删除成功');
+    }else {
+      ElMessage.error('删除失败');
+    }
+  })
+  .catch(() => {});
+};
 const handleCreate = () => {
   router.push({ name: 'NotificationCreate' });
 };
 
-const handleRead = (row) => {
-  row.read = !row.read;
-};
 
-const handleDelete = (row) => {
-  notificationList.value = notificationList.value.filter(item => item.id !== row.id);
-  total.value = notificationList.value.length;
-};
-
-const handleSelectionChange = (selection) => {
-  selectedRows.value = selection;
-};
-
-const handleBatchRead = () => {
-  selectedRows.value.forEach(row => {
-    row.read = true;
-  });
-};
-
-const handleBatchDelete = () => {
-  const ids = selectedRows.value.map(row => row.id);
-  notificationList.value = notificationList.value.filter(item => !ids.includes(item.id));
-  total.value = notificationList.value.length;
-  
-  // 更新 selectedRows,只保留还存在于 notificationList 中的行
-  selectedRows.value = selectedRows.value.filter(row => notificationList.value.some(item => item.id === row.id));
-};
-
-const showDetail = (row) => {
-  currentNotification.value = row;
-  detailVisible.value = true;
-  
-  // 将通知标记为已读
-  row.read = true;
-};
-
-const getNotificationTypeName = (type) => {
-  switch (type) {
-    case 'system':
-      return '系统通知';
-    case 'approval':
-      return '审批通知';
-    default:
-      return '';
-  }
-};
-
-const getStatusType = (status) => {
-  switch (status) {
-    case '普通':
-      return '';
-    case '重点':
-      return 'warning';
-    case '过期':
-      return 'danger';
-    default:
-      return '';
-  }
-};
 </script>
 
 <style scoped>
@@ -287,11 +283,25 @@ const getStatusType = (status) => {
   align-items: center;
   margin-bottom: 20px;
 }
-
+.search-input {
+  width: 200px;
+  flex-shrink: 0;
+}
 .search-filter {
   display: flex;
   gap: 10px;
+
 }
+.status-select {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.filter-date-range {
+  width: 300px;
+  flex-shrink: 0;
+}
+
 
 .el-button {
   min-width: 88px;
@@ -420,6 +430,7 @@ const getStatusType = (status) => {
 .info-item .value {
   color: #303133;
   font-size: 14px;
+  margin-left: 10px;
 }
 
 .el-divider {

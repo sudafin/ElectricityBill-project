@@ -2,7 +2,7 @@ import request from '@/utils/request';
 
 export function getNotificationList(params) {
   return request({
-    url: '/notification/list',
+    url: '/notification/page',
     method: 'get',
     params,
   });
@@ -16,17 +16,17 @@ export function createNotification(data) {
   });
 }
 
-export function updateNotification(data) {
+export function deleteNotification(ids) {
   return request({
-    url: '/notification/update',
-    method: 'put',
-    data,
-  });
-}
-
-export function deleteNotification(id) {
-  return request({
-    url: `/notification/delete/${id}`,
+    url: '/notification/delete',
     method: 'delete',
+    params: { ids: ids },
   });
 } 
+
+export function fetchNotificationDetail(id) {
+  return request({
+    url: `/notification/detail/${id}`,
+    method: 'get',
+  });
+}

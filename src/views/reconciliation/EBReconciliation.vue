@@ -251,7 +251,6 @@ const handleSearch = () => {
 const handlePageChange = (page) => {
   fetchReconciliationList(page);
 }
-
 const fetchReconciliationDetail = async (id) => {
   const res = await getReconciliationDetail(id);
   return res;
