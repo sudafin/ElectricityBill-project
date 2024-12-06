@@ -94,7 +94,8 @@ const handleSelect = (index) => {
 };
 </script>
 
-<style scoped>
+<!-- 这里需要修改element-plus的样式,所以不能加scoped,因为scoped只对当前组件的样式生效 -->
+<style lang="scss">
 .eb-sidebar {
   position: relative;
   z-index: 1;
@@ -169,8 +170,15 @@ const handleSelect = (index) => {
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(17, 5, 5, 0.2) !important;
 }
+//  .el-popper.is-pure {
+//     background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
+//     backdrop-filter: blur(12px);
+//     border: 1px solid rgba(255, 255, 255, 0.2);
+//     box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+//     color: #333;
+// }
 
 :deep(.el-sub-menu__title),
 :deep(.el-menu-item) {

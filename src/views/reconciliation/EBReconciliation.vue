@@ -92,7 +92,7 @@
         <el-table-column prop="balance" label="金额"></el-table-column>
         <el-table-column prop="status" label="状态">
           <template #default="{ row }">
-            <el-tag :type="row.reconciliationStatus === '未审批' ? 'info' : row.reconciliationStatus === '通过' ? 'success' : row.reconciliationStatus === '拒绝' ? 'danger' : 'warning'">
+            <el-tag :type="row.reconciliationStatus === '待审批' ? 'info' : row.reconciliationStatus === '通过' ? 'success' : row.reconciliationStatus === '拒绝' ? 'danger' : row.reconciliationStatus === '退回' ? 'warning' : row.reconciliationStatus === '暂缓' ? 'info' : 'warning'">
                 {{ row.reconciliationStatus }}
               </el-tag>
           </template>

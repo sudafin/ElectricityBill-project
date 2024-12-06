@@ -6,26 +6,27 @@
           <div class="search-filter">
             <el-input
               v-model="searchText"
-              placeholder="搜索订单号、用户名、支付流水号"
+              placeholder="搜索支付单号"
               clearable
-              @clear="fetchPaymentList"
-              @keyup.enter="fetchPaymentList"
+              @clear="fetchPaymentList(1,true)"
+              @keyup.enter="fetchPaymentList(1,true)"
+              style="width: 300px;"
             >
-              <template #append>
-                <el-button icon="Search" @click="fetchPaymentList"></el-button>
+              <template #prefix>
+                <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-select v-model="selectedStatus" placeholder="支付状态" clearable @change="fetchPaymentList">
+            <el-select v-model="selectedStatus" placeholder="支付状态" clearable style="width: 200px;">
               <el-option label="全部" value=""></el-option>
-              <el-option label="成功" value="success"></el-option>
-              <el-option label="失败" value="failed"></el-option>
-              <el-option label="待处理" value="pending"></el-option>
+              <el-option label="已支付" value="已支付"></el-option>
+              <el-option label="支付失败" value="失败"></el-option>
             </el-select>
-            <el-select v-model="selectedMethod" placeholder="支付方式" clearable @change="fetchPaymentList">
+            <el-select v-model="selectedMethod" placeholder="支付方式" clearable 
+            style="width: 200px;">
               <el-option label="全部" value=""></el-option>
-              <el-option label="支付宝" value="alipay"></el-option>
-              <el-option label="微信" value="wechat"></el-option>
-              <el-option label="银行卡" value="bankcard"></el-option>
+              <el-option label="支付宝" value="支付宝"></el-option>
+              <el-option label="微信" value="微信"></el-option>
+              <el-option label="银行卡" value="银行卡"></el-option>
             </el-select>
             <el-date-picker
               v-model="dateRange"
@@ -35,6 +36,9 @@
               end-placeholder="结束日期"
               @change="fetchPaymentList"
             ></el-date-picker>
+            <el-button type="primary" @click="handleSearch" >
+              <el-icon><Search /></el-icon>搜索
+            </el-button>
             <el-button type="success" @click="exportPayments">
               <el-icon><Download /></el-icon>
               导出报表
@@ -47,18 +51,19 @@
         v-loading="loading"
         :data="paymentList"
         @selection-change="handleSelectionChange"
+        @sort-change="handleSortChange"
       >
         <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="orderNo" label="订单号" sortable></el-table-column>
+        <el-table-column prop="paymentId" label="支付单号"  ></el-table-column>
         <el-table-column prop="username" label="用户名"></el-table-column>
-        <el-table-column prop="amount" label="支付金额" sortable></el-table-column>
+        <el-table-column prop="balance" label="支付金额" sortable sort-by="balance"></el-table-column>
         <el-table-column prop="paymentMethod" label="支付方式"></el-table-column>
         <el-table-column label="支付状态">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+            <el-tag :type="getStatusType(row.status)">{{ row.status}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="paymentDate" label="支付时间" sortable></el-table-column>
+        <el-table-column prop="paymentTime" label="支付时间" sortable></el-table-column>
         <el-table-column label="操作" width="120" align="center">
           <template #header>
             <div class="cell">操作</div>
@@ -72,7 +77,7 @@
         </el-table-column>
       </el-table>
       <div class="batch-actions">
-        <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedPayments.length">
+        <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedPaymentIds.length">
           <el-icon><Delete /></el-icon>
           批量删除
         </el-button>
@@ -92,174 +97,170 @@
       </div>
     </el-card>
     
-    <el-drawer v-model="detailVisible" :title="'支付详情 #' + currentPayment.orderNo" size="40%" direction="rtl">
+    <el-drawer v-model="detailVisible" :title="`支付详情 支付单号: ${currentPayment.paymentId}`" size="40%" direction="rtl">
       <!-- :payment="currentPayment" 父组件传递支付信息对象currentPayment给子组件payment对象, 该对象子组件需要通过defineProps定义接收
       @retry="handleRetry" @urge="handleUrge" @refund="handleRefund" ,
       retry,urge,refund是子组件向父组件传递的事件名称, 子组件需要通过defineEmits定义接收,父组件通过函数handleRetry,handleUrge,handleRefund来接收事件传递的信息,如果有数据参数,需要通过函数参数接收数据
       -->
-      <EBPaymentDetail :payment="currentPayment" @retry="handleRetry" @urge="handleUrge" @refund="handleRefund"></EBPaymentDetail>
+      <EBPaymentDetail :payment="currentPayment" @refund="handleRefund"></EBPaymentDetail>
     </el-drawer>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
-import { Download, Delete } from '@element-plus/icons-vue';
-import EBPagination from '@/components/EBPagination.vue';
+import { onMounted, ref } from 'vue';
+import { ElMessageBox,ElMessage } from 'element-plus';
+import { Download, Delete, Search } from '@element-plus/icons-vue';
 import EBPaymentDetail from './EBPaymentDetail.vue';
+import { getPaymentList, deletePayment,getPaymentDetail,refundPayment } from '@/api/payment';
 
 const searchText = ref('');
 const selectedStatus = ref('');
 const selectedMethod = ref('');
 const dateRange = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const loading = ref(false);
 const detailVisible = ref(false);
 const currentPayment = ref({});
-const selectedPayments = ref([]);
+const selectedPaymentIds = ref([]);
+const paymentList = ref([]);
+const total = ref(0);
 
-// 假数据
-const mockData = [
-  { id: 1, orderNo: 'P202306010001', username: '张三', userId: 'U001', amount: 100, paymentMethod: '支付宝', transactionNo: 'T001', status: 'success', paymentDate: '2023-06-01 10:00:00', billNo: 'B001' },
-  { id: 2, orderNo: 'P202306020001', username: '李四', userId: 'U002', amount: 200, paymentMethod: '微信', transactionNo: 'T002', status: 'failed', failureReason: '余额不足', paymentDate: '2023-06-02 15:30:00', billNo: 'B002' },
-  { id: 3, orderNo: 'P202306030001', username: '王五', userId: 'U003', amount: 150, paymentMethod: '银行卡', transactionNo: 'T003', status: 'pending', paymentDate: '2023-06-03 09:15:00', billNo: 'B003' },
-  { id: 4, orderNo: 'P202306040001', username: '赵六', userId: 'U004', amount: 80, paymentMethod: '支付宝', transactionNo: 'T004', status: 'success', paymentDate: '2023-06-04 14:20:00', billNo: 'B004' },
-  { id: 5, orderNo: 'P202306050001', username: '钱七', userId: 'U005', amount: 120, paymentMethod: '微信', transactionNo: 'T005', status: 'success', paymentDate: '2023-06-05 11:45:00', billNo: 'B005' },
-];
+const fetchPaymentList =async (page = currentPage.value,
+shouldResetPage =false) => {
+  loading.value = true;
+  if(shouldResetPage){
+    currentPage.value = 1;
+  }else{
+    currentPage.value = page;
+  }
+try{
+  const res = await  getPaymentList({
+    pageNo: currentPage.value,
+    pageSize: pageSize.value,
+    paymentId: searchText.value,
+    status: selectedStatus.value,
+    paymentMethod: selectedMethod.value,
+    startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+    endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+  })
+  paymentList.value = res.list;
+  total.value = Number(res.total);
+} catch (err) {
+  ElMessage.error('获取支付列表失败');
+} finally {
+    loading.value = false;
+  } 
+};
+onMounted(()=>{
+  fetchPaymentList(1,true);
+})
 
-const paymentList = ref(mockData);
-const total = ref(mockData.length);
-
-const fetchPaymentList = () => {
-  // 根据搜索条件和筛选条件获取支付记录
-  let list = mockData;
-  if (searchText.value) {
-    const searchRegex = new RegExp(searchText.value, 'i');
-    list = list.filter(item => searchRegex.test(item.orderNo) || searchRegex.test(item.username) || searchRegex.test(item.transactionNo));
-  }
-  if (selectedStatus.value) {
-    list = list.filter(item => item.status === selectedStatus.value);
-  }
-  if (selectedMethod.value) {
-    list = list.filter(item => item.paymentMethod === selectedMethod.value);
-  }
-  if (dateRange.value && dateRange.value.length === 2) {
-    const [startDate, endDate] = dateRange.value;
-    list = list.filter(item => {
-      const paymentDate = new Date(item.paymentDate);
-      return paymentDate >= startDate && paymentDate <= endDate;
-    });
-  }
-  paymentList.value = list;
-  total.value = list.length;
+const handleSearch = () => {
+  fetchPaymentList(1,true);
 };
 
+const handlePageChange = (page) => {
+  fetchPaymentList(page);
+}
+
 const handleSortChange = ({ prop, order }) => {
-  if (order) {
+  //根据点击的排序字段和顺序排序
+  if(order.includes('ascending')){
     paymentList.value.sort((a, b) => {
       const valueA = a[prop];
       const valueB = b[prop];
-      return order === 'ascending' ? valueA - valueB : valueB - valueA;
+      return valueA - valueB;
     });
   } else {
-    fetchPaymentList();
+    paymentList.value.sort((a, b) => {
+      const valueA = a[prop];
+      const valueB = b[prop];
+      return valueB - valueA;
+    });
   }
 };
 
-const showDetail = (payment) => {
-  currentPayment.value = payment;
+const showDetail =async (payment) => {
+  const detail = await getPaymentDetail(payment.paymentId);
+  currentPayment.value = detail;
   detailVisible.value = true;
 };
 
-const handleRetry = () => {
-  // 重新支付
-  console.log('重新支付:', currentPayment.value);
+
+const handleRefund = async() => {
+try{
+  const res = await refundPayment(currentPayment.value.paymentId);
+  if(res.code === 200){
+    fetchPaymentList(1,true);
+    ElMessage.success("退款成功")
+  }else if(res.code === 400){
+    ElMessage.error(res.msg);
+  }else{
+    ElMessage.error('退款失败');
+  }
+} catch (err) {
+  ElMessage.error('网络失败');
+}
 };
 
-const handleUrge = () => {
-  // 催促处理
-  console.log('催促处理:', currentPayment.value);
-};
-
-const handleRefund = () => {
-  // 退款
-  ElMessageBox.prompt('请输入退款理由', '退款', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputPattern: /^.{1,100}$/,
-    inputErrorMessage: '退款理由不能为空且不超过100个字符',
-  })
-    .then(({ value }) => {
-      console.log('退款:', currentPayment.value, '退款理由:', value);
-    })
-    .catch(() => {});
-};
-
-const handleDelete = (payment) => {
+const handleDelete = async (row) => {
   ElMessageBox.confirm('确定删除该支付记录吗?', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
-      // 模拟删除支付记录
-      console.log('删除支付记录:', payment);
-      paymentList.value = paymentList.value.filter(item => item.id !== payment.id);
-      total.value = paymentList.value.length;
-      ElMessage.success('删除成功');
+    .then(async() => {
+      const res = await deletePayment(row.paymentId)
+      if(res.code ===200){
+        fetchPaymentList(1,true);
+        ElMessage.success("删除成功")
+      }else{
+        ElMessage.error('删除失败');
+      }
     })
     .catch(() => {});
 };
 
-const handleSelectionChange = (selection) => {
-  selectedPayments.value = selection;
+const handleSelectionChange = (selectionRows) => {
+  selectedPaymentIds.value = selectionRows.map(row => row.paymentId);
 };
 
-const handleBatchDelete = () => {
-  ElMessageBox.confirm(`确定删除选中的 ${selectedPayments.value.length} 条支付记录吗?`, '提示', {
+const handleBatchDelete = async () => {
+  ElMessageBox.confirm(`确定删除选中的 ${selectedPaymentIds.value.length} 条支付记录吗?`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
-      // 模拟批量删除支付记录
-      console.log('批量删除支付记录:', selectedPayments.value);
-      const ids = selectedPayments.value.map(item => item.id);
-      paymentList.value = paymentList.value.filter(item => !ids.includes(item.id));
-      total.value = paymentList.value.length;
-      selectedPayments.value = [];
-      ElMessage.success('删除成功');
+    .then(async () => {
+      selectedPaymentIds.value  = selectedPaymentIds.value.join(',');
+      const res = await deletePayment(selectedPaymentIds.value);
+      if(res.code ===200){
+        fetchPaymentList(1,true);
+        ElMessage.success("删除成功")
+      }else{
+        ElMessage.error('删除失败');
+      }
     })
-    .catch(() => {});
+    .catch(() => {
+      ElMessage.error('网络错误');
+    });
 };
 
 const getStatusType = (status) => {
   switch (status) {
-    case 'success':
+    case '已支付':
       return 'success';
-    case 'failed':
+    case '失败':
       return 'danger';
-    case 'pending':
+    case '退款':
       return 'warning';
     default:
       return 'info';
   }
 };
 
-const getStatusText = (status) => {
-  switch (status) {
-    case 'success':
-      return '成功';
-    case 'failed':
-      return '失败';
-    case 'pending':
-      return '待处理';
-    default:
-      return '';
-  }
-};
 
 const exportPayments = () => {
   // 导出支付报表

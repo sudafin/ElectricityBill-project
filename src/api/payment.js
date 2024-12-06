@@ -2,7 +2,7 @@ import request from '@/utils/request';
 
 export function getPaymentList(params) {
   return request({
-    url: '/payment/list',
+    url: '/payment/page',
     method: 'get',
     params,
   });
@@ -15,10 +15,18 @@ export function getPaymentDetail(id) {
   });
 }
 
-export function createPayment(data) {
+export function deletePayment(Ids) {
   return request({
-    url: '/payment/create',
-    method: 'post',
-    data,
+    url: `/payment/delete`,
+    method: 'delete',
+    params: {
+      ids: Ids
+    }
   });
-} 
+}
+export function refundPayment(id) {
+  return request({
+    url: `/payment/refund/${id}`,
+    method: 'put',
+  });
+}

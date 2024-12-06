@@ -6,48 +6,65 @@
         <span class="value">{{ payment.username }}</span>
       </div>
       <div class="info-item">
-        <span class="label">用户ID:</span>
-        <span class="value">{{ payment.userId }}</span>
+        <span class="label">用户状态:</span>
+        <span class="value">{{ payment.userStatus }}</span>
       </div>
       <el-divider></el-divider>
       <div class="info-item">
-        <span class="label">订单号:</span>
-        <span class="value">{{ payment.orderNo }}</span>
+        <span class="label">支付单号:</span>
+        <span class="value">{{ payment.paymentId }}</span>
       </div>
       <div class="info-item">
-        <span class="label">支付金额:</span>
-        <span class="value">{{ payment.amount }} 元</span>
+        <span class="label">支付金额:</span>  
+        <span class="value">{{ payment.balance }} 元</span>
       </div>
       <div class="info-item">
         <span class="label">支付方式:</span>
         <span class="value">{{ payment.paymentMethod }}</span>
       </div>
       <div class="info-item">
-        <span class="label">支付流水号:</span>
-        <span class="value">{{ payment.transactionNo }}</span>
-      </div>
-      <el-divider></el-divider>
-      <div class="info-item">
         <span class="label">支付状态:</span>
         <span class="value">
-          <el-tag :type="getStatusType(payment.status)">{{ getStatusText(payment.status) }}</el-tag>
+          <el-tag :type="getStatusType(payment.status)">{{ payment.status }}</el-tag>
         </span>
       </div>
-      <div class="info-item" v-if="payment.status === 'failed'">
-        <span class="label">失败原因:</span>
-        <span class="value">{{ payment.failureReason }}</span>
+      <div class="info-item">
+        <span class="label">支付时间:</span>
+        <span class="value">{{ payment.paymentTime }}</span>
       </div>
       <el-divider></el-divider>
       <div class="info-item">
-        <span class="label">关联账单:</span>
-        <span class="value">{{ payment.billNo }}</span>
+        <span class="label">关联对账:</span>
+        <template v-if="payment.reconciliationId">
+          <span class="value">{{ payment.reconciliationId }}</span>
+        </template>
+        <template v-else>
+          <span class="value">无</span>
+        </template>
       </div>
+      <div class="info-item">
+        <span class="label">对账状态:</span>
+        <template v-if="payment.reconciliationStatus">
+        <span class="value">{{ payment.reconciliationStatus }}</span>
+        </template>
+        <template v-else>
+          <span class="value">待审批</span>
+        </template>
+      </div>
+      <div class="info-item">
+        <span class="label">审批备注:</span>
+        <template v-if="payment.reconciliationRemark">
+          <span class="value">{{ payment.reconciliationRemark }}</span>
+        </template>
+        <template v-else>
+          <span class="value">无</span>
+        </template>
+      </div>
+
     </div>
     <div class="actions">
       <!-- $emit 向父组件传递事件 refund表示发送的事件名称  -->
-      <el-button v-if="payment.status === 'success'" type="danger" @click="$emit('refund')">退款</el-button>
-      <el-button v-if="payment.status === 'failed'" type="primary" @click="$emit('retry')">重新支付</el-button>
-      <el-button v-if="payment.status === 'pending'" type="warning" @click="$emit('urge')">催促处理</el-button>
+      <el-button v-if="payment.status === '已支付'" type="danger" @click="$emit('refund')">退款</el-button>
     </div>
   </div>
 </template>
@@ -63,34 +80,22 @@ const props = defineProps({
   },
 });
 
-// 定义 emits 向父组件传递事件 retry、urge、refund分别表示重新支付、催促处理、退款的事件
-const emit = defineEmits(['retry', 'urge', 'refund']);
+// 定义 emits 向父组件传递事件 refund表示退款的事件
+const emit = defineEmits(['refund']);
 
 const getStatusType = (status) => {
   switch (status) {
-    case 'success':
+    case '已支付':
       return 'success';
-    case 'failed':
+    case '失败':
       return 'danger';
-    case 'pending':
+    case '退款':
       return 'warning';
     default:
       return 'info';
   }
 };
 
-const getStatusText = (status) => {
-  switch (status) {
-    case 'success':
-      return '成功';
-    case 'failed':
-      return '失败';
-    case 'pending':
-      return '待处理';
-    default:
-      return '';
-  }
-};
 </script>
 
 <style scoped>
