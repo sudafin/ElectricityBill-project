@@ -10,23 +10,103 @@
       <div class="dialog-header">
         <div class="header-content">
           <div class="title">
-            {{ isEdit ? (activeTab === 'role' ? '编辑角色' : '编辑人员') : 
+            {{ isEdit ? '编辑和查看' : 
                         (activeTab === 'role' ? '新增角色' : '新增人员') }}
           </div>
           <div class="subtitle">
-            {{ isEdit ? (activeTab === 'role' ? '修改角色信息及权限' : '修改用户账号信息') :
-                        (activeTab === 'role' ? '配置角色信息及权限' : '创建新用户账号') }}
+            {{ isEdit ? '修改和查看管理员信息' :
+                        (activeTab === 'role' ? '配置角色信息及权限' : '创建新管理员账号') }}
           </div>
         </div>
-      </div>
+      </div>  
     </template>
 
     <el-tabs v-model="activeTab" class="custom-tabs">
+      <el-tab-pane name="admin" >
+        <template #label>
+          <div class="tab-label">
+            <el-icon><Avatar /></el-icon>
+            <span>{{ isEdit ? '编辑管理员' : '新增管理员' }}</span>
+          </div>
+        </template>
+        <el-form
+          ref="adminFormRef"
+          :model="adminForm"
+          :rules="adminRules"
+          label-width="120px"
+          class="glass-form"
+        >
+          <el-form-item label="账号" prop="account">
+            <el-input 
+              v-model="adminForm.account" 
+              placeholder="请输入账号"
+              class="glass-input"
+            >
+              <template #prefix>
+                <el-icon><User /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item 
+            label="密码" 
+            prop="password"
+          >
+            <el-input 
+              v-model="adminForm.password" 
+              type="password" 
+              placeholder="请输入密码"
+              class="glass-input"
+              show-password
+            >
+              <template #prefix>
+                <el-icon><Lock /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item 
+            label="确认密码" 
+            prop="confirmPassword"
+          >
+            <el-input 
+              v-model="adminForm.confirmPassword" 
+              type="password" 
+              placeholder="请再次输入密码"
+              class="glass-input"
+              show-password
+            >
+              <template #prefix>
+                <el-icon><Key /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="角色" prop="role">
+            <el-select 
+              v-model="adminForm.role" 
+              placeholder="请选择角色"
+              class="glass-select"
+            >
+              <el-option 
+                v-for="(option, index) in roleOptions" 
+                :key="index"
+                :label="option.label" 
+                :value="option.value"
+              >
+                <div class="select-option">
+                  <el-icon>
+                    <component :is="option.icon" />
+                  </el-icon>
+                  <span>{{ option.label }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
       <el-tab-pane name="role">
         <template #label>
           <div class="tab-label">
             <el-icon><UserFilled /></el-icon>
-            <span>{{ isEdit ? '编辑角色' : '新增角色' }}</span>
+            <span>{{ isEdit ? '管理员权限信息' : '新增角色' }}</span>
           </div>
         </template>
         <el-form
@@ -55,9 +135,10 @@
               class="glass-input"
               type="textarea"
               :rows="3"
+              :disabled="isEdit"
             />
           </el-form-item>
-          <el-form-item label="权限设置" prop="permissions">
+          <el-form-item label="权限设置" prop="permissionItem" >
             <div class="permission-tree-container">
               <el-tree
                 ref="permissionTree"
@@ -73,93 +154,12 @@
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane name="user">
-        <template #label>
-          <div class="tab-label">
-            <el-icon><Avatar /></el-icon>
-            <span>{{ isEdit ? '编辑人员' : '新增人员' }}</span>
-          </div>
-        </template>
-        <el-form
-          ref="userFormRef"
-          :model="userForm"
-          :rules="userRules"
-          label-width="120px"
-          class="glass-form"
-        >
-          <el-form-item label="用户名" prop="username">
-            <el-input 
-              v-model="userForm.username" 
-              placeholder="请输入用户名"
-              class="glass-input"
-            >
-              <template #prefix>
-                <el-icon><User /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item 
-            v-if="!isEdit" 
-            label="密码" 
-            prop="password"
-          >
-            <el-input 
-              v-model="userForm.password" 
-              type="password" 
-              placeholder="请输入密码"
-              class="glass-input"
-              show-password
-            >
-              <template #prefix>
-                <el-icon><Lock /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item 
-            v-if="!isEdit" 
-            label="确认密码" 
-            prop="confirmPassword"
-          >
-            <el-input 
-              v-model="userForm.confirmPassword" 
-              type="password" 
-              placeholder="请再次输入密码"
-              class="glass-input"
-              show-password
-            >
-              <template #prefix>
-                <el-icon><Key /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item label="角色" prop="role">
-            <el-select 
-              v-model="userForm.role" 
-              placeholder="请选择角色"
-              class="glass-select"
-            >
-              <el-option 
-                v-for="(option, index) in roleOptions" 
-                :key="index"
-                :label="option.label" 
-                :value="option.value"
-              >
-                <div class="select-option">
-                  <el-icon>
-                    <component :is="option.icon" />
-                  </el-icon>
-                  <span>{{ option.label }}</span>
-                </div>
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </el-tab-pane>
+
     </el-tabs>
 
-    <template #footer>
+    <template #footer v-if="!isInfo">
       <div class="dialog-footer">
-        <el-button class="glass-button" @click="closeDialog">
+        <el-button class="glass-button" @click="closeDialog" >
           <el-icon><Close /></el-icon>
           取消
         </el-button>
@@ -185,154 +185,33 @@ import {
   Management,
   Operation,
   Close,
-  Check
+  Check,
+  Monitor
 } from '@element-plus/icons-vue';
+import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/role';
+import { getPublicKey } from '@/api/user';
+import { encryptWithRSA } from '@/utils/encrypt';
+
 
 const props = defineProps({
   visible: Boolean,
-  permissionList: Array,
   editData: Object,
+  permissions: Array,
 });
-
-const emit = defineEmits(['update:visible', 'success']);
+//success是一个自定义事件，用来通知父组件刷新列表,父组件通过@success="handleRoleUserFormSuccess"监听
+const emit = defineEmits(['update:visible','success']);
 
 const dialogVisible = ref(false);
-const activeTab = ref('role');
+const activeTab = ref('admin');
 const isEdit = ref(false);
-
+const permissionList = ref([]);
 const roleFormRef = ref(null);
-const userFormRef = ref(null);
+const adminFormRef = ref(null);
 const permissionTree = ref(null);
-
-// 表单数据
-const roleForm = reactive({
-  roleName: '',
-  roleDesc: '',
-  permissions: [],
-});
-
-const userForm = reactive({
-  userId: '',
-  userNo: '',
-  username: '',
-  password: '',
-  confirmPassword: '',
-  role: '',
-  createTime: '',
-});
-
-// 重置表单函数 - 移到前面
-const resetForm = () => {
-  if (roleFormRef.value) {
-    roleFormRef.value.resetFields();
-  }
-  if (userFormRef.value) {
-    userFormRef.value.resetFields();
-  }
-  if (permissionTree.value) {
-    permissionTree.value.setCheckedKeys([]);
-  }
-  
-  // 重置角色表单
-  Object.assign(roleForm, {
-    roleName: '',
-    roleDesc: '',
-    permissions: [],
-  });
-  
-  // 重置用户表单
-  Object.assign(userForm, {
-    userId: '',
-    userNo: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    role: '',
-    createTime: '',
-  });
-  
-  activeTab.value = 'role';
-  isEdit.value = false;
-};
-
-// 监听编辑数据变化
-watch(
-  () => props.editData,
-  (newVal) => {
-    if (newVal) {
-      isEdit.value = true;
-      console.log('编辑数据:', newVal);
-
-      if (newVal.roleInfo) {
-        // 角色编辑
-        activeTab.value = 'role';
-        Object.assign(roleForm, {
-          roleName: newVal.roleInfo.roleName || '',
-          roleDesc: newVal.roleInfo.roleDesc || '',
-          permissions: newVal.roleInfo.permissions || [],
-        });
-        nextTick(() => {
-          if (permissionTree.value) {
-            permissionTree.value.setCheckedKeys(newVal.roleInfo.permissions || []);
-          }
-        });
-      }
-
-      // 用户编辑 - 始终设置用户信息
-      Object.assign(userForm, {
-        userId: newVal.userId || '',
-        userNo: newVal.userNo || '',
-        username: newVal.username || '',
-        role: newVal.role || '',
-        createTime: newVal.createTime || '',
-        // 编辑时不需要密码字段
-        password: '',
-        confirmPassword: '',
-      });
-
-      console.log('表单数据:', activeTab.value === 'role' ? roleForm : userForm);
-    } else {
-      isEdit.value = false;
-      resetForm();
-    }
-  },
-  { immediate: true }
-);
-
-// 对话框相关方法
-const open = () => {
-  dialogVisible.value = true;
-};
-
-const closeDialog = () => {
-  dialogVisible.value = false;
-};
-
-// 监听对话框显示状态
-watch(
-  () => props.visible,
-  (val) => {
-    dialogVisible.value = val;
-  }
-);
-
-watch(dialogVisible, (val) => {
-  emit('update:visible', val);
-  if (!val) {
-    resetForm();
-  }
-});
-
-defineExpose({
-  open,
-});
+const isInfo = ref(false);
 
 // 角色选项数据
-const roleOptions = [
-  { label: '管理员', value: 'admin', icon: 'Management' },
-  { label: '运营', value: 'operator', icon: 'Operation' }
-];
-
+const roleOptions = ref([]);
 // 角色规则 - 根据编辑状态动态设置规则
 const roleRules = computed(() => ({
   roleName: [
@@ -353,20 +232,32 @@ const roleRules = computed(() => ({
     }
   ],
   roleDesc: [{ required: true, message: '请输入角色描述', trigger: 'blur' }],
-  permissions: [{ required: true, message: '请选择权限', trigger: 'change' }],
+  permissionsTree: 
+  //只要一个以上的处理框就可以
+  { required: true, message: '请选择权限', trigger: 'change' }
 }));
 
-// 用户规则
-const userRules = computed(() => ({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+// 管理员规则
+const adminRules = computed(() => ({
+  account: [
+    { required: true, message: '请输入账号', trigger: 'blur' },
+    { min: 8, max: 16, message: '账号长度应为8-16位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '账号应包含数字和字母', trigger: 'blur' },
+  ],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-  ...(isEdit.value ? {} : {
-    password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  
+    password: [
+      { required: true, message: '请输入密码', trigger: 'blur' },
+      { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
+      { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
+    ],
     confirmPassword: [
       { required: true, message: '请再次输入密码', trigger: 'blur' },
+      { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
+      { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
       {
         validator: (rule, value, callback) => {
-          if (value !== userForm.password) {
+          if (value !== adminForm.password) {
             callback(new Error('两次输入的密码不一致'));
           } else {
             callback();
@@ -375,54 +266,230 @@ const userRules = computed(() => ({
         trigger: 'blur',
       },
     ],
-  }),
 }));
 
-// 权限树属性
+
+// 表单数据
+const roleForm = reactive({
+  roleName: '',
+  roleDesc: '',
+});
+
+const adminForm = reactive({
+  adminId: '',
+  account: '',
+  password: '',
+  confirmPassword: '',
+  adminRole: '',
+});
+
+// 重置表单函数 - 移到前面
+const resetForm = () => {
+  if (roleFormRef.value) {
+    roleFormRef.value.resetFields();
+  }
+  if (adminFormRef.value) {
+    adminFormRef.value.resetFields();
+  }
+  if (permissionTree.value) {
+    permissionTree.value.setCheckedKeys([]);
+  }
+  
+  // 重置角色表单
+  Object.assign(roleForm, {
+    roleName: '',
+    roleDesc: '',
+  });
+  
+  // 重置管理员表单
+  Object.assign(adminForm, {
+    adminId: '',
+    account: '',
+    password: '',
+    confirmPassword: '',
+    role: '',
+  });
+  
+  activeTab.value = 'admin';
+  isEdit.value = false;
+};
+
+// 监听编辑数据变化
+watch(
+  () => props.editData,
+  // newVal不为空,说明是编辑状态
+  (newVal) => {
+    if (newVal) {
+      isEdit.value = true;
+        // 角色编辑
+      activeTab.value = 'admin';
+      // 用户编辑 - 始终设置用户信息
+      Object.assign(adminForm, { 
+        adminId: newVal.adminId || '',
+        account: newVal.account || '',
+        role: newVal.role || '',
+      });
+      Object.assign(roleForm, {
+        roleName: newVal.role || '',
+        roleDesc: newVal.roleDesc || '',
+      });
+      if (permissionTree.value) {
+        permissionTree.value.setCheckedKeys(props.permissionList.map(item => item.permissionId));
+      }
+    } else {
+      isEdit.value = false;
+      resetForm();
+    }
+  },
+  { immediate: true }
+);
+
+//监视activeTab
+watch(activeTab, (val) => {
+  permissionList.value= props.permissions;
+  
+  if(val === 'role'){
+    //如果现在role页面且处于编辑状态那么说明正在查看权限信息,需要把权限选择框禁用
+    if(isEdit.value){
+      // 将原来的数据加上disable字段,有在permission的children里面的数据也有disabled字段
+      const newPermissionList = props.permissions.map(item => {
+        //增减disable字段,因为后端没有穿过来同时需要在permissionTree去声明这个字段
+        const newItem = {
+          ...item,
+          disabled: true
+        };
+        if (item.children && item.children.length > 0) {
+          newItem.children = item.children.map(child => ({
+            ...child,
+            disabled: true
+          }));
+        }
+        return newItem;
+      });
+      permissionList.value = newPermissionList;
+      //将选项全选
+      const getAllPermissionIds = (list) => {
+        let ids = [];
+        list.forEach(item => {
+          ids.push(item.permissionId);
+          if (item.children && item.children.length > 0) {
+            ids = ids.concat(getAllPermissionIds(item.children));
+          }
+        });
+        return ids;
+      };
+      permissionTree.value.setCheckedKeys(getAllPermissionIds(permissionList.value));
+      isInfo.value = true;
+    }else{
+      isInfo.value = false;
+    }
+  }else{
+    isInfo.value = false;
+  }
+  
+},
+{ immediate: true });
+
+// 权限树属性设置
 const permissionProps = {
   children: 'children',
   label: 'permissionName',
+  disabled: 'disabled',
 };
 
+
+const closeDialog = () => {
+  dialogVisible.value = false;
+};
+
+// 监听对话框显示状态
+watch(
+  () => props.visible,
+  (val) => {
+    dialogVisible.value = val;
+  }
+);
+
+watch(dialogVisible, (val) => {
+  emit('update:visible', val);
+  if (!val) {
+    resetForm();
+  }
+});
+
+// 获取角色列表
+getRoleList().then(res=>{
+  roleOptions.value = res;
+});
+
 // 修改提交表单方法
-const submitForm = () => {
+const submitForm = async () => {
   if (activeTab.value === 'role') {
-    roleFormRef.value.validate((valid) => {
+    roleFormRef.value.validate(async (valid) => {
       if (valid) {
         const role = {
-          ...roleForm,
-          permissions: permissionTree.value.getCheckedKeys(),
+          isRole : true,
+          role: roleForm.roleName,
+          roleDesc: roleForm.roleDesc,
+          permissionIdList: [ ...permissionTree.value.getHalfCheckedKeys(),...permissionTree.value.getCheckedKeys()],
         };
-        console.log(isEdit.value ? '编辑角色:' : '新增角色:', role);
-        ElMessage.success(isEdit.value ? '编辑角色成功' : '新增角色成功');
-        emit('success', 'role', role, isEdit.value);
-        closeDialog();
+        const res = await createRoleOrAdmin(role);  
+        if(res.code === 200){
+          ElMessage.success(isEdit.value ? '编辑角色成功' : '新增角色成功');
+          emit('success', 'execSuccess', role, isEdit.value);
+          closeDialog();
+        }else{
+          ElMessage.error(res.msg);
+        }
       }
     });
-  } else if (activeTab.value === 'user') {
-    userFormRef.value.validate((valid) => {
-      if (valid) {
-        // 构造提交数据，只包含必要字段
-        const submitData = {
-          ...(isEdit.value ? {
-            userId: props.editData.userId,
-            userNo: props.editData.userNo,
-            createTime: props.editData.createTime,
-          } : {}),
-          username: userForm.username,
-          role: userForm.role,
-          ...(isEdit.value ? {} : {
-            password: userForm.password,
-            confirmPassword: userForm.confirmPassword,
-          }),
-        };
-        console.log(isEdit.value ? '编辑人员:' : '新增人员:', submitData);
-        ElMessage.success(isEdit.value ? '编辑人员成功' : '新增人员成功');
-        emit('success', 'user', submitData, isEdit.value);
-        closeDialog();
+  } else if (activeTab.value === 'admin') {
+    adminFormRef.value.validate(async (valid) => {
+        if(isEdit.value){
+          if (valid) {
+            const publicKey = await getPublicKey();
+            // 构造提交数据，只包含必要字段
+            const submitData = {
+              account: adminForm.account,
+              role: adminForm.role,
+              password: encryptWithRSA(adminForm.password, publicKey),
+            };
+            const res = await editAdmin(props.editData.adminId,submitData);
+            if(res.code === 200){   
+              //TODO 因为后端每次重新启动公钥就会刷新,所以需要重新获取公钥
+              ElMessage.success(isEdit.value ? '编辑管理员成功' : '新增管理员成功');
+              //emit用来通知父组件刷新列表第一个参数是自定义事件名，第二个后面是参数数据
+              emit('success',"execSuccess", submitData, isEdit.value);
+              closeDialog();
+            }else{
+              ElMessage.error(res.message);
+            }
+          }
+        }else{
+          if (valid) {
+            const publicKey = await getPublicKey();
+            // 构造提交数据，只包含必要字段
+            const submitData = {
+              isRole : false,
+              account: adminForm.account,
+              role: adminForm.role,
+              password: encryptWithRSA(adminForm.password, publicKey),
+              permissionList: permissionList.value,
+              roleDesc: roleForm.roleDesc,
+            };
+            const res = await createRoleOrAdmin(submitData);
+            if(res.code === 200){
+              ElMessage.success(isEdit.value ? '编辑管理员成功' : '新增管理员成功');
+              emit('success',"execSuccess", submitData, isEdit.value);
+              closeDialog();
+            } else {
+              ElMessage.error(res.msg);
+            }
+          }
       }
     });
   }
+
 };
 </script>
 

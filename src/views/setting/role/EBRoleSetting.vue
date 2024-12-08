@@ -7,7 +7,7 @@
             <div class="search-input-wrapper">
               <el-input
                 v-model="searchText"
-                placeholder="搜索用户名 | 编号"
+                placeholder="搜索用户名"
                 clearable
                 class="search-input glass-input"
               >
@@ -21,7 +21,7 @@
               v-model="searchRole"
               clearable
               placeholder="角色"
-              @change="fetchUserList"
+              @change="fetchAdminList"
               class="filter-select glass-select"
             >
               <el-option label="全部" value=""></el-option>
@@ -43,16 +43,14 @@
               range-separator="至"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
-              :shortcuts="dateShortcuts"
               class="date-picker glass-date-picker"
-              @change="fetchUserList"
+              @change="fetchAdminList"
             />
           </div>
           <div class="action-buttons">
             <el-button 
               type="primary" 
-              class="action-button"
-              @click="fetchUserList"
+              @click="handleSearch"
             >
               <el-icon><Search /></el-icon>
               搜索
@@ -81,39 +79,43 @@
 
       <el-table
         ref="tableRef"
-        :data="userList"
+        :data="adminList"
         :loading="loading"
         @selection-change="handleSelectionChange"
-        class="glass-table"
       >
-        <el-table-column type="selection" width="55" align="center" />
-        <el-table-column prop="userNo" label="用户编号" min-width="100" />
-        <el-table-column prop="username" label="用户名" min-width="100" />
-        <el-table-column prop="role" label="角色" min-width="100">
+        <el-table-column type="selection" width="55"  />
+        <el-table-column prop="adminId" label="用户编号"  />
+        <el-table-column prop="account" label="用户名"  />
+        <el-table-column prop="role" label="角色" >
           <template #default="{ row }">
             <el-tag 
-              :type="row.role === 'admin' ? 'danger' : 'primary'"
-              class="glass-tag"
+              :type="row.role === '系统管理员' ? 'danger' : 
+              row.role === '运营人员' ? 'primary' : row.role === '操作员' ? 'success' : 'info'"
             >
-              {{ row.role === 'admin' ? '管理员' : '运营' }}
+              {{ row.role}}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" min-width="100">
+        <el-table-column prop="status" label="状态">
           <template #default="{ row }">
-            {{ formatDate(row.createTime) }}
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+              {{ row.status === 1 ? '启用' : '禁用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间">
+          <template #default="{ row }">
+            {{ row.createTime }}
           </template>
         </el-table-column>
         <el-table-column 
           label="操作" 
-          width="200" 
-          fixed="right" 
-          align="center"
+          align="center" 
         >
           <template #default="{ row }">
             <div class="operation-buttons">
               <el-button 
-                type="primary" 
+               type="primary" 
                 link
                 @click="handleEdit(row)"
               >
@@ -125,6 +127,13 @@
                 @click="handleDelete(row)"
               >
                 删除
+              </el-button>
+              <el-button 
+                type="primary" 
+                link
+                @click="handleUpdateStatus(row)"
+              >
+                {{ row.status === 1 ? '禁用' : '启用' }}
               </el-button>
             </div>
           </template>
@@ -149,31 +158,11 @@
     <!-- 新增/编辑角色人员表单 -->
     <EBRoleUserForm
       v-model:visible="roleUserFormVisible"
-      :permission-list="permissionList"
       :edit-data="editData"
+      :permissions="permissions"
       @success="handleRoleUserFormSuccess"
     />
 
-    <!-- 删除确认框 -->
-    <el-dialog
-      v-model="deleteDialogVisible"
-      title="确认删除"
-      width="400px"
-      class="glass-dialog"
-    >
-      <div class="delete-confirm">
-        <el-icon class="warning-icon"><Warning /></el-icon>
-        <p>确定要删除选中的用户吗？此操作不可恢复。</p>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button class="glass-button" @click="deleteDialogVisible = false">取消</el-button>
-          <el-button class="glass-button-danger" type="danger" @click="confirmDelete">
-            确定删除
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -189,204 +178,163 @@ import {
   Operation 
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from '../role/EBRoleUserForm.vue';
+import { getAdminList,deleteAdmin,updateStatus,getPermissionList,getAdminDetail } from '@/api/role';
 
 // 表格数据
 const loading = ref(false);
-const userList = ref([]);
+const adminList = ref([]);
 const selectedRows = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const total = ref(0);
 const editData = ref(null);
-const deleteDialogVisible = ref(false);
-const itemToDelete = ref(null);
 
 // 搜索条件
 const searchText = ref('');
 const searchRole = ref('');
-
-// 角色选项
-const roleOptions = [
-  { label: '管理员', value: 'admin', icon: 'Management' },
-  { label: '运营', value: 'operator', icon: 'Operation' }
-];
-
+// 添加日期范围数据
+const dateRange = ref([]);
 // 表单显示控制
 const roleUserFormVisible = ref(false);
 
-// 权限列表数据
-const permissionList = ref([
-  { permissionId: '1', permissionName: '用户管理', children: [
-    { permissionId: '1-1', permissionName: '用户列表' },
-    { permissionId: '1-2', permissionName: '添加用户' },
-  ]},
-  { permissionId: '2', permissionName: '角色管理', children: [
-    { permissionId: '2-1', permissionName: '角色列表' },
-    { permissionId: '2-2', permissionName: '添加角色' },
-  ]},
-]);
-
-// 格式化日期
-const formatDate = (date) => {
-  if (!date) return '';
-  return new Date(date).toLocaleString();
-};
-
-// 添加日期范围数据
-const dateRange = ref([]);
-
-// 日期快捷选项
-const dateShortcuts = [
-  {
-    text: '最近一周',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-      return [start, end];
-    },
-  },
-  {
-    text: '最近一个月',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
-      return [start, end];
-    },
-  },
-  {
-    text: '最近三个',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
-      return [start, end];
-    },
-  },
+// 角色选项
+const roleOptions = [
+  { label: '系统管理员', value: '系统管理员', icon: 'Management' },
+  { label: '运营人员', value: '运营人员', icon: 'Operation' },
+  {label:"操作员", value:"操作员", icon:"Operation"}
 ];
 
+
+
 // 获取用户列表
-const fetchUserList = async () => {
+const fetchAdminList = async (page = currentPage.value,
+shouldResetPage = false) => {
   loading.value = true;
+  if(shouldResetPage){
+    currentPage.value = 1;
+  }else{
+    currentPage.value = page;
+  }
   try {
     // 构建查询参数
-    const params = {
-      keyword: searchText.value,
+    const res = await getAdminList({  
+      //searchText判断是数字还是中文
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      account: searchText.value,
       role: searchRole.value,
-      startDate: dateRange.value?.[0],
-      endDate: dateRange.value?.[1],
-      page: currentPage.value,
-      pageSize: pageSize.value
-    };
+      startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+      endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+    });
     
-    console.log('查询参数:', params);
-    
-    // 模拟分页数据
-    const mockData = Array(10).fill().map((_, index) => ({
-      userId: `${index + 1}`,
-      userNo: `USER${String((currentPage.value - 1) * pageSize.value + index + 1).padStart(4, '0')}`,
-      username: `用户${(currentPage.value - 1) * pageSize.value + index + 1}`,
-      role: index % 2 === 0 ? 'admin' : 'operator',
-      createTime: new Date(Date.now() - Math.random() * 10000000000)
-    }));
-    userList.value = mockData;
-    total.value = 50;
+    adminList.value = res.list;
+    total.value = Number(res.total); 
   } catch (error) {
-    console.error('获取用户列表失败:', error);
-    ElMessage.error('获取用户列表失败');
+    ElMessage.error('获取管理员列表失败');
   } finally {
     loading.value = false;
   }
 };
+onMounted(()=>{
+  fetchAdminList(1,true);
+})
+const handleSearch = () => {
+  fetchAdminList(1,true);
+}
+const handlePageChange = (page) => {
+  fetchAdminList(page);
+}
 
-// 表格选择事件
-const handleSelectionChange = (rows) => {
-  selectedRows.value = rows;
+
+// 删除单个用户
+const handleDelete = async (row) => {
+  ElMessageBox.confirm('确定删除该管理员吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(async() => {
+      const res = await deleteAdmin(row.adminId)
+      if(res.code ===200){
+        fetchAdminList(1,true);
+        ElMessage.success("删除成功")
+      }else{
+        ElMessage.error('删除失败');
+      }
+    })
+    .catch(() => {});
 };
+// 表格选择事件
+const handleSelectionChange = (selectionRows) => {
+  selectedRows.value = selectionRows.map(row => row.adminId);
+};
+// 批量删除
+const handleBatchDelete = async () => {
+  ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 条管理员吗?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(async () => {
+      selectedRows.value  = selectedRows.value.join(',');
+      const res = await deleteAdmin(selectedRows.value);
+      if(res.code ===200){
+        fetchAdminList(1,true);
+        ElMessage.success("删除成功")
+      }else{
+        ElMessage.error('删除失败');
+      }
+    })
+    .catch(() => {
+      ElMessage.error('网络错误');
+    });
+};
+
+
+const permissions = ref([]);
 
 // 新增角色/人员
-const handleCreate = () => {
-  editData.value = null;
+const handleCreate = async () => {
+  const res = await getPermissionList();    
+  permissions.value = res;
   roleUserFormVisible.value = true;
+  
 };
 
-// 编辑用户
-const handleEdit = (row) => {
-  // 分别构造用户信息和角色信息
+// 编辑管理员
+const handleEdit = async (row) => {
+  // 分别构造管理员信息
   const editDataObj = {
     // 用户基本信息
-    userId: row.userId,
-    userNo: row.userNo,
-    username: row.username,
+    adminId: row.adminId,
+    account: row.account,
     role: row.role,
-    createTime: row.createTime,
-    
-    // 角色信息（根据角色类型设置不同的权限）
-    roleInfo: {
-      roleName: row.role === 'admin' ? '管理员' : '运营',
-      roleDesc: row.role === 'admin' ? 
-        '系统管理员，拥有所有权限' : 
-        '运营人员，负责日常运营管理',
-      permissions: row.role === 'admin' ? 
-        ['1-1', '1-2', '2-1', '2-2'] : // 管理员默认权限
-        ['1-1', '2-1'], // 运营人员默认权限
-    }
+    roleDesc: row.roleDesc,
   };
-  
+  const res = await getAdminDetail(row.adminId);
+  permissions.value = res.permissionList;
   editData.value = editDataObj;
   roleUserFormVisible.value = true;
 };
 
-// 删除单个用户
-const handleDelete = (row) => {
-  itemToDelete.value = row;
-  deleteDialogVisible.value = true;
-};
-
-// 批量删除
-const handleBatchDelete = () => {
-  if (selectedRows.value.length === 0) {
-    ElMessage.warning('请选择要删除的用户');
-    return;
+const handleUpdateStatus = async (row) => {
+  const res = await updateStatus(row.adminId);
+  if(res.code === 200){
+    fetchAdminList(1,true);
+    ElMessage.success("更新状态成功");
+  }else{
+    ElMessage.error("更新状态失败");
   }
-  itemToDelete.value = selectedRows.value;
-  deleteDialogVisible.value = true;
-};
+}
 
-// 确认删除
-const confirmDelete = async () => {
-  try {
-    // 模拟删除操作
-    ElMessage.success('删除成功');
-    deleteDialogVisible.value = false;
-    fetchUserList();
-  } catch (error) {
-    console.error('删除失败:', error);
-    ElMessage.error('删除失败');
-  }
-};
 
-// 分页事件处理
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  fetchUserList();
-};
-
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-  fetchUserList();
-};
-
-// 表单提交成功回调
+// 子组件通知父组件编辑成功
 const handleRoleUserFormSuccess = (type, data, isEdit) => {
-  console.log(`${isEdit ? '编辑' : '新增'}${type === 'role' ? '角色' : '人员'}成功:`, data);
-  fetchUserList();
-};
+  if(type === 'execSuccess'){
+    fetchAdminList(1,true);
+  }
+}
 
-onMounted(() => {
-  fetchUserList();
-});
 </script>
 
 <style scoped>
@@ -412,8 +360,9 @@ onMounted(() => {
 .header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 15px;
   flex-wrap: nowrap;
+  margin-bottom: 20px;
 }
 
 .search-area {
@@ -518,78 +467,6 @@ onMounted(() => {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* 表格样式 */
-.glass-table {
-  margin-top: 24px;
-  width: 100% !important;
-}
-
-.glass-table :deep(.el-table__inner-wrapper) {
-  width: 100% !important;
-}
-
-/* 表格单元格样式 */
-.glass-table :deep(.el-table__cell) {
-  padding: 12px 0;
-}
-
-/* 表格行样式 */
-.glass-table :deep(.el-table__row) {
-  width: 100%;
-}
-
-/* 调整表格内容对齐方式 */
-.glass-table :deep(.el-table .cell) {
-  padding: 0 16px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 24px;
-}
-
-/* 表格头部样式 */
-.glass-table :deep(.el-table__header) {
-  width: 100% !important;
-}
-
-/* 确保表格内容区域宽度100% */
-.glass-table :deep(.el-table__body) {
-  width: 100% !important;
-}
-
-/* 优化标签样式 */
-.glass-tag {
-  min-width: 65px;
-  text-align: center;
-}
-
-/* 操作按钮样式优化 */
-.glass-table :deep(.el-button--link) {
-  padding: 4px 8px;
-  margin: 0 4px;
-}
-
-/* 表格样式 */
-.glass-table :deep(.el-table__header) {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-}
-
-.glass-table :deep(.el-table__row) {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.glass-table :deep(.el-table__row:hover) {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-/* 标签样式 */
-.glass-tag {
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
 
 /* 分页样式 */
 .pagination {
@@ -957,9 +834,8 @@ onMounted(() => {
 /* 操作列样式优化 */
 .operation-buttons {
   display: flex;
-  align-items: center;
+  gap: 8px;
   justify-content: center;
-  gap: 12px;
 }
 
 /* 操作按钮样式 */
