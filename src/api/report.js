@@ -1,9 +1,9 @@
 import request from '@/utils/request';
 
-export function fetchReportDataAPI({ startDate, endDate }) {
+export function getReportData(reportType,startDate, endDate) {
   return request({
     url: '/report',
     method: 'get',
-    params: { startDate, endDate },
+    params: { reportType: reportType, startDate: startDate, endDate: endDate },
   });
 } 

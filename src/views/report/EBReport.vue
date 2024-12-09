@@ -13,8 +13,7 @@
                 range-separator="至"
                 start-placeholder="开始日期"
                 end-placeholder="结束日期"
-                value-format="YYYY-MM-DD"
-                lang="zh-CN"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 @change="fetchReportData"
                 class="filter-date-range"
               >
@@ -30,7 +29,7 @@
                 range-separator="至"
                 start-placeholder="开始月份"
                 end-placeholder="结束月份"
-                value-format="YYYY-MM"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 format="YYYY 年 MM 月"
                 lang="zh-CN"
                 @change="fetchReportData"
@@ -48,7 +47,7 @@
                 range-separator="至"
                 start-placeholder="开始年份"
                 end-placeholder="结束年份"
-                value-format="YYYY"
+                value-format="YYYY-MM-DD HH:mm:ss"
                 format="YYYY 年"
                 lang="zh-CN"
                 @change="fetchReportData"
@@ -59,16 +58,13 @@
                 </template>
               </el-date-picker>
               <el-radio-group v-model="reportType" @change="handleReportTypeChange">
-                <el-radio-button label="daily">日报</el-radio-button>
-                <el-radio-button label="monthly">月报</el-radio-button>
-                <el-radio-button label="yearly">年报</el-radio-button>
+                <el-radio-button :value="'daily'">日报</el-radio-button>
+                <el-radio-button :value="'monthly'">月报</el-radio-button>
+                <el-radio-button :value="'yearly'">年报</el-radio-button>
               </el-radio-group>
             </div>
           </div>
           <div class="action-buttons">
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>搜索
-            </el-button>
             <el-button type="success" @click="exportReport">
               <el-icon><Download /></el-icon>导出报表
             </el-button>
@@ -113,15 +109,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useReportStore } from '@/store/report';
 import EBDailyReport from './EBDailyReport.vue';
 import EBMonthlyReport from './EBMonthlyReport.vue';
 import EBYearlyReport from './EBYearlyReport.vue';
 import EBReportDetail from './EBReportDetail.vue';
 import { Calendar, Search, Download } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage,ElMessageBox } from 'element-plus';
+import { getReportData } from '@/api/report';
 
-const reportStore = useReportStore();
 const loading = ref(false);
 const dateRange = ref([]);
 const monthRange = ref([]);
@@ -144,7 +139,7 @@ const dailyElectricityUsageOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05', '2024-01-06', '2024-01-07']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -152,7 +147,7 @@ const dailyElectricityUsageOption = ref({
   },
   series: [
     {
-      data: [1200, 1350, 980, 1500, 1100, 1600, 1400],
+      data: [],
       type: 'bar',
       name: '用电量',
       itemStyle: {
@@ -176,7 +171,7 @@ const dailyFeeAmountOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05', '2024-01-06', '2024-01-07']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -184,7 +179,7 @@ const dailyFeeAmountOption = ref({
   },
   series: [
     {
-      data: [600, 675, 490, 750, 550, 800, 700],
+      data: [],
       type: 'line',
       name: '费用金额',
       smooth: true,
@@ -228,7 +223,7 @@ const monthlyElectricityUsageOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -236,7 +231,7 @@ const monthlyElectricityUsageOption = ref({
   },
   series: [
     {
-      data: [12000, 13500, 9800, 15000, 11000, 16000],
+      data: [],
       type: 'bar',
       name: '用电量',
       itemStyle: {
@@ -260,7 +255,7 @@ const monthlyFeeAmountOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2024-01', '2024-02', '2024-03', '2024-04', '2024-05', '2024-06']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -268,7 +263,7 @@ const monthlyFeeAmountOption = ref({
   },
   series: [
     {
-      data: [6000, 6750, 4900, 7500, 5500, 8000],
+      data: [],
       type: 'line',
       name: '费用金额',
       smooth: true,
@@ -312,7 +307,7 @@ const yearlyElectricityUsageOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2020', '2021', '2022', '2023', '2024']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -320,7 +315,7 @@ const yearlyElectricityUsageOption = ref({
   },
   series: [
     {
-      data: [120000, 135000, 98000, 150000, 110000],
+      data: [],
       type: 'bar',
       name: '用电量',
       itemStyle: {
@@ -344,7 +339,7 @@ const yearlyFeeAmountOption = ref({
   },
   xAxis: {
     type: 'category',
-    data: ['2020', '2021', '2022', '2023', '2024']
+    data: []
   },
   yAxis: {
     type: 'value',
@@ -352,7 +347,7 @@ const yearlyFeeAmountOption = ref({
   },
   series: [
     {
-      data: [60000, 67500, 49000, 75000, 55000],
+      data: [],
       type: 'line',
       name: '费用金额',
       smooth: true,
@@ -382,28 +377,31 @@ const yearlyFeeAmountOption = ref({
   ]
 });
 
+//根据报表类型选择对应的组件
 const currentElectricityUsageComponent = computed(() => {
   return reportType.value === 'daily' ? EBDailyReport
     : reportType.value === 'monthly' ? EBMonthlyReport
     : EBYearlyReport;
 });
 
+//根据报表类型选择对应的组件
 const currentFeeAmountComponent = computed(() => {
   return reportType.value === 'daily' ? EBDailyReport
     : reportType.value === 'monthly' ? EBMonthlyReport
     : EBYearlyReport;
 });
 
-const handleSearch = () => {
-  fetchReportData();
-};
 
+
+// 记录上一次的报表类型和日期范围
 const prevReportType = ref(reportType.value);
 const prevDateRange = ref(dateRange.value);
 const prevMonthRange = ref(monthRange.value);
 const prevYearRange = ref(yearRange.value);
 
+//获取报表数据
 const fetchReportData = async () => {
+  // 如果报表类型为日报且日期范围为空，或者报表类型为月报且月份范围为空，或者报表类型为年报且年份范围为空，则返回
   if (
     (reportType.value === 'daily' && !dateRange.value) ||
     (reportType.value === 'monthly' && !monthRange.value) ||
@@ -412,6 +410,7 @@ const fetchReportData = async () => {
     return;
   }
   
+  // 如果报表类型和日期范围与上一次相同，则返回
   if (
     reportType.value === prevReportType.value &&
     (
@@ -423,47 +422,26 @@ const fetchReportData = async () => {
     return;
   }
   
+  // 加载中
   loading.value = true;
   try {
+    // 根据报表类型生成报表数据
     if (reportType.value === 'daily') {
+      // 获取日期范围
       const [startDate, endDate] = dateRange.value;
-      const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24) + 1;
-      reportData.value = Array.from({ length: days }, (_, i) => {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        return {
-          date: date.toISOString().slice(0, 10),
-          electricityUsage: Math.floor(Math.random() * 1000) + 500,
-          feeAmount: Math.floor(Math.random() * 500) + 300
-        };
-      });
-      console.log('Generated daily report data:', reportData.value);
+      // 从后端生成报表数据
+      const res = await getReportData(reportType.value,startDate, endDate);
+      reportData.value = res;
     } else if (reportType.value === 'monthly') {
       const [startMonth, endMonth] = monthRange.value;
-      const startDate = new Date(`${startMonth}-01`);
-      const endDate = new Date(`${endMonth}-01`);
-      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + endDate.getMonth() - startDate.getMonth() + 1;
-      reportData.value = Array.from({ length: months }, (_, i) => {
-        const date = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-        return {
-          date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-          electricityUsage: Math.floor(Math.random() * 10000) + 5000,
-          feeAmount: Math.floor(Math.random() * 5000) + 3000
-        };
-      });
-      console.log('Generated monthly report data:', reportData.value);
+      //从后端生成报表数据
+      const res = await getReportData(reportType.value,startMonth, endMonth);
+      reportData.value = res;
     } else if (reportType.value === 'yearly') {
       const [startYear, endYear] = yearRange.value;
-      const years = Number(endYear) - Number(startYear) + 1;
-      reportData.value = Array.from({ length: years }, (_, i) => {
-        const date = new Date(Number(startYear) + i, 0, 1);
-        return {
-          date: date.getFullYear().toString(),
-          electricityUsage: Math.floor(Math.random() * 100000) + 50000,
-          feeAmount: Math.floor(Math.random() * 50000) + 30000
-        };
-      });
-      console.log('Generated yearly report data:', reportData.value);
+      //从后端生成报表数据
+      const res = await getReportData(reportType.value,startYear, endYear);
+      reportData.value = res;
     }
     
     // 更新图表配置
@@ -480,6 +458,7 @@ const fetchReportData = async () => {
 };
 
 const updateChartOptions = () => {
+  //将日期与数据添加到对应的图表中
   if (reportType.value === 'daily') {
     dailyElectricityUsageOption.value = {
       ...dailyElectricityUsageOption.value,
@@ -513,7 +492,8 @@ const updateChartOptions = () => {
       ...monthlyElectricityUsageOption.value,
       xAxis: {
         type: 'category',
-        data: reportData.value.map(item => item.date)
+        //前端传过来2024-06-10 将日期设置为YYYY-MM
+        data: reportData.value.map(item => item.date.split(' ')[0].split('-')[0]+'-'+item.date.split(' ')[0].split('-')[1])
       },
       series: [
         {
@@ -527,7 +507,8 @@ const updateChartOptions = () => {
       ...monthlyFeeAmountOption.value,
       xAxis: {
         type: 'category',
-        data: reportData.value.map(item => item.date)
+        //将日期设置为YYYY-MM
+        data: reportData.value.map(item => item.date.split(' ')[0].split('-')[0]+'-'+item.date.split(' ')[0].split('-')[1])
       },
       series: [
         {
@@ -541,7 +522,8 @@ const updateChartOptions = () => {
       ...yearlyElectricityUsageOption.value,
       xAxis: {
         type: 'category',
-        data: reportData.value.map(item => item.date)
+        //后端传过了2024-06-10，将日期设置为YYYY
+        data: reportData.value.map(item => item.date.split(' ')[0].split('-')[0])
       },
       series: [
         {
@@ -555,7 +537,8 @@ const updateChartOptions = () => {
       ...yearlyFeeAmountOption.value,
       xAxis: {
         type: 'category',
-        data: reportData.value.map(item => item.date)
+        //将日期设置为YYYY
+        data: reportData.value.map(item => item.date.split(' ')[0].split('-')[0])
       },
       series: [
         {
@@ -567,6 +550,7 @@ const updateChartOptions = () => {
   }
 };
 
+//切换报表类型
 const handleReportTypeChange = (type) => {
   reportType.value = type;
   fetchReportData();
@@ -578,10 +562,28 @@ onMounted(() => {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 6);
+  // 将日期范围设置为默认值 YYYY-MM-DD HH:mm:ss
   dateRange.value = [
-    start.toISOString().split('T')[0],
-    end.toISOString().split('T')[0]
+    start.toISOString().split('T')[0] + ' 00:00:00',
+    end.toISOString().split('T')[0] + ' 23:59:59'
   ];
+  //近三个月
+  const startMonth = new Date();
+  startMonth.setMonth(startMonth.getMonth() - 2);
+  const endMonth = new Date();
+  monthRange.value = [
+    startMonth.toISOString().split('T')[0] + ' 00:00:00',
+    endMonth.toISOString().split('T')[0] + ' 23:59:59'
+  ];
+  //近三年
+  const startYear = new Date();
+  startYear.setFullYear(startYear.getFullYear() - 2);
+  const endYear = new Date();
+  yearRange.value = [
+    startYear.toISOString().split('T')[0] + ' 00:00:00',
+    endYear.toISOString().split('T')[0] + ' 23:59:59'
+  ];
+  // 获取报表数据
   fetchReportData();
 });
 
