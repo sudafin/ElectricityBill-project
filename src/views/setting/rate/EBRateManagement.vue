@@ -418,11 +418,11 @@ const submitRateForm = async (type) => {
 // 参数设置表单提交
 const submitParamForm = async () => {
   try {
-    await settingStore.updateParams({
-      paymentRemindDays: paramForm.paymentRemindDays,
-      abnormalUsageThreshold: paramForm.abnormalUsageThreshold,
-      reportGenerateCycle: paramForm.reportGenerateCycle,
-    });
+    //不用请求后端直接假数据生成,按照输入的数据生成
+    currentSettings.paymentRemindDays = paramForm.paymentRemindDays;
+    currentSettings.abnormalUsageThreshold = paramForm.abnormalUsageThreshold;
+    currentSettings.reportGenerateCycle = paramForm.reportGenerateCycle;
+    currentSettings.lastUpdateTime = new Date().toISOString();
     ElMessage.success('参数设置保存成功');
     fetchCurrentSettings();
   } catch (error) {
