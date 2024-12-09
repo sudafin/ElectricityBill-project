@@ -41,7 +41,7 @@
           </div>
           <div class="info-item">
             <div class="info-label">报表生成周期</div>
-            <div class="info-value">{{ formatReportCycle(currentSettings.reportGenerateCycle) }}</div>
+            <div class="info-value" style="width: 200px;">{{ formatReportCycle(currentSettings.reportGenerateCycle) }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">最后更新时间</div>
@@ -73,108 +73,198 @@
       </div>
 
       <div class="setting-content">
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="rules"
-          label-width="150px"
-          class="glass-form"
-        >
-          <!-- 费率设置部分 -->
-          <transition name="fade-transform" mode="out-in">
-            <div v-show="activeSection === 'rate'" class="form-section">
-              <el-form-item label="住宅费率" prop="houseFeeRate">
-                <el-input 
-                  v-model.number="form.houseFeeRate"
-                  class="glass-input"
-                >
-                  <template #prefix>
-                    <el-icon><House /></el-icon>
-                  </template>
-                  <template #append>元/度</template>
-                </el-input>
-              </el-form-item>
-              <el-form-item label="商业费率" prop="businessFeeRate">
-                <el-input 
-                  v-model.number="form.businessFeeRate"
-                  class="glass-input"
-                >
-                  <template #prefix>
-                    <el-icon><Shop /></el-icon>
-                  </template>
-                  <template #append>元/度</template>
-                </el-input>
-              </el-form-item>
-            </div>
-          </transition>
+        <!-- 费率设置部分 -->
+        <transition name="fade-transform" mode="out-in">
+          <div v-show="activeSection === 'rate'" class="form-section">
+            <div class="rate-forms">
+              <el-form
+                ref="rateFormRef"
+                :model="rateForm"
+                :rules="rateRules"
+                label-width="120px"
+                class="glass-form"
+              >
+                <!-- 住宅费率 -->
+                <el-form-item label="住宅费率" prop="houseFeeRate">
+                  <div class="rate-input">
+                    <el-input 
+                      v-model="rateForm.houseFeeRate"
+                      class="glass-input"
+                      placeholder="请输入住宅费率"
+                    >
+                      <template #prefix>
+                        <el-icon><House /></el-icon>
+                      </template>
+                      <template #append>元/度</template>
+                    </el-input>
+                    <div class="rate-buttons">
+                      <el-button
+                        type="primary"
+                        class="glass-button-primary"
+                        @click="submitRateForm('houseFeeRate')"
+                      >
+                        <el-icon><Check /></el-icon>
+                        保存
+                      </el-button>
+                      <el-button 
+                        class="glass-button" 
+                        @click="resetRateForm"
+                      >
+                        <el-icon><RefreshRight /></el-icon>
+                        重置
+                      </el-button>
+                    </div>
+                  </div>
+                </el-form-item>
 
-          <!-- 参数设置部分 -->
-          <transition name="fade-transform" mode="out-in">
-            <div v-show="activeSection === 'param'" class="form-section">
+                <!-- 商业费率 -->
+                <el-form-item label="商业费率" prop="businessFeeRate">
+                  <div class="rate-input">
+                    <el-input 
+                      v-model="rateForm.businessFeeRate"
+                      class="glass-input"
+                      placeholder="请输入商业费率"
+                    >
+                      <template #prefix>
+                        <el-icon><Shop /></el-icon>
+                      </template>
+                      <template #append>元/度</template>
+                    </el-input>
+                    <div class="rate-buttons">
+                      <el-button
+                        type="primary"
+                        class="glass-button-primary"
+                        @click="submitRateForm('businessFeeRate')"
+                      >
+                        <el-icon><Check /></el-icon>
+                        保存
+                      </el-button>
+                      <el-button 
+                        class="glass-button" 
+                        @click="resetRateForm"
+                      >
+                        <el-icon><RefreshRight /></el-icon>
+                        重置
+                      </el-button>
+                    </div>
+                  </div>
+                </el-form-item>
+              </el-form>
+            </div>
+          </div>
+        </transition>
+
+        <!-- 参数设置部分 -->
+        <transition name="fade-transform" mode="out-in">
+          <div v-show="activeSection === 'param'" class="form-section">
+            <el-form
+              ref="paramFormRef"
+              :model="paramForm"
+              :rules="paramRules"
+              label-width="150px"
+              class="glass-form"
+            >
               <el-form-item label="缴费提醒时间" prop="paymentRemindDays">
-                <el-input 
-                  v-model.number="form.paymentRemindDays"
-                  class="glass-input"
-                >
-                  <template #prefix>
-                    <el-icon><Bell /></el-icon>
-                  </template>
-                  <template #append>天</template>
-                </el-input>
+                <div class="param-input">
+                  <el-input 
+                    v-model.number="paramForm.paymentRemindDays"
+                    class="glass-input"
+                  >
+                    <template #prefix>
+                      <el-icon><Bell /></el-icon>
+                    </template>
+                    <template #append>天</template>
+                  </el-input>
+                  <div class="param-buttons">
+                    <el-button
+                      type="primary"
+                      class="glass-button-primary"
+                      @click="submitParamForm"
+                    >
+                      <el-icon><Check /></el-icon>
+                      保存
+                    </el-button>
+                    <el-button 
+                      class="glass-button" 
+                      @click="resetParamForm"
+                    >
+                      <el-icon><RefreshRight /></el-icon>
+                      重置
+                    </el-button>
+                  </div>
+                </div>
               </el-form-item>
               <el-form-item label="异常用电提醒阈值" prop="abnormalUsageThreshold">
-                <el-input 
-                  v-model.number="form.abnormalUsageThreshold"
-                  class="glass-input"
-                >
-                  <template #prefix>
-                    <el-icon><Warning /></el-icon>
-                  </template>
-                  <template #append>度</template>
-                </el-input>
+                <div class="param-input">
+                  <el-input 
+                    v-model.number="paramForm.abnormalUsageThreshold"
+                    class="glass-input"
+                  >
+                    <template #prefix>
+                      <el-icon><Warning /></el-icon>
+                    </template>
+                    <template #append>度</template>
+                  </el-input>
+                  <div class="param-buttons">
+                    <el-button
+                      type="primary"
+                      class="glass-button-primary"
+                      @click="submitParamForm"
+                    >
+                      <el-icon><Check /></el-icon>
+                      保存
+                    </el-button>
+                    <el-button 
+                      class="glass-button" 
+                      @click="resetParamForm"
+                    >
+                      <el-icon><RefreshRight /></el-icon>
+                      重置
+                    </el-button>
+                  </div>
+                </div>
               </el-form-item>
               <el-form-item label="报表生成周期" prop="reportGenerateCycle">
-                <el-select 
-                  v-model="form.reportGenerateCycle" 
-                  placeholder="请选择报表生成周期"
-                  class="glass-select"
-                >
-                  <el-option 
-                    v-for="(option, index) in cycleOptions" 
-                    :key="index"
-                    :label="option.label"
-                    :value="option.value"
+                <div class="param-input">
+                  <el-select 
+                    v-model="paramForm.reportGenerateCycle" 
+                    placeholder="请选择报表生成周期"
+                    style="width: 200px;"
                   >
-                    <div class="select-option">
-                      <el-icon><Calendar /></el-icon>
-                      <span>{{ option.label }}</span>
-                    </div>
-                  </el-option>
-                </el-select>
+                    <el-option 
+                      v-for="(option, index) in cycleOptions" 
+                      :key="index"
+                      :label="option.label"
+                      :value="option.value"
+                    >
+                      <div class="select-option">
+                        <el-icon><Calendar /></el-icon>
+                        <span>{{ option.label }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                  <div class="param-buttons">
+                    <el-button
+                      type="primary"
+                      class="glass-button-primary"
+                      @click="submitParamForm"
+                    >
+                      <el-icon><Check /></el-icon>
+                      保存
+                    </el-button>
+                    <el-button 
+                      class="glass-button" 
+                      @click="resetParamForm"
+                    >
+                      <el-icon><RefreshRight /></el-icon>
+                      重置
+                    </el-button>
+                  </div>
+                </div>
               </el-form-item>
-            </div>
-          </transition>
-
-          <el-form-item>
-            <div class="form-buttons">
-              <el-button 
-                class="glass-button" 
-                @click="resetForm"
-              >
-                <el-icon><RefreshRight /></el-icon>
-                重置
-              </el-button>
-              <el-button 
-                type="primary" 
-                class="glass-button-primary"
-                @click="submitForm"
-              >
-                <el-icon><Check /></el-icon>
-                保存
-              </el-button>
-            </div>
-          </el-form-item>
-        </el-form>
+            </el-form>
+          </div>
+        </transition>
       </div>
     </el-card>
   </div>
@@ -182,7 +272,6 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
-import { useSettingStore } from '@/store/setting';
 import { ElMessage } from 'element-plus';
 import {
   Money,
@@ -196,16 +285,63 @@ import {
   Warning,
   Calendar
 } from '@element-plus/icons-vue';
+import { getRateList, updateRate } from '@/api/rate';
 
 // 当前设置信息
 const currentSettings = reactive({
+  houseFeeId:0,
+  businessFeeId:0,
   houseFeeRate: 0,
   businessFeeRate: 0,
+  paymentRemindDays: "7",
+  abnormalUsageThreshold: "100",
+  reportGenerateCycle: 'daily',
+  lastUpdateTime: "2025/12/12",
+});
+// 添加切换状态
+const activeSection = ref('rate');
+
+// 修改周期选项配置
+const cycleOptions = [
+  { label: '日报', value: 'daily' },
+  { label: '周报', value: 'weekly' },
+  { label: '月报', value: 'monthly' }
+];
+
+// 定义 rateForm
+const rateForm = reactive({
+  houseFeeRate: '',
+  businessFeeRate: '',
+});
+// 参数设置表单数据
+const paramForm = reactive({
   paymentRemindDays: 0,
   abnormalUsageThreshold: 0,
   reportGenerateCycle: '',
-  lastUpdateTime: null,
 });
+
+// 定义费率表单验证规则
+const rateRules = {
+  houseFeeRate: [
+    { required: true, message: '请输入住宅费率', trigger: 'blur' },
+  ],
+  businessFeeRate: [
+    { required: true, message: '请输入商业费率', trigger: 'blur' },
+  ],
+};
+
+// 定义参数设置表单验证规则
+const paramRules = {
+  paymentRemindDays: [
+    { required: true, message: '请输入缴费提醒时间', trigger: 'blur' },
+  ],
+  abnormalUsageThreshold: [
+    { required: true, message: '请输入异常用电提醒阈值', trigger: 'blur' },
+  ],
+  reportGenerateCycle: [
+    { required: true, message: '请选择报表生成周期', trigger: 'change' }
+  ],
+};
 
 // 格式化报表周期显示
 const formatReportCycle = (cycle) => {
@@ -226,97 +362,88 @@ const formatDate = (date) => {
 // 获取当前设置信息
 const fetchCurrentSettings = async () => {
   try {
-    const [feeData, paramData] = await Promise.all([
-      settingStore.fetchFeeRate(),
-      settingStore.fetchParams()
-    ]);
-    
-    Object.assign(currentSettings, {
-      ...feeData.data,
-      ...paramData.data,
-      lastUpdateTime: new Date()
+    const res = await getRateList();
+    res.forEach(item => {
+      if(item.rateName === '居民电价') {
+        currentSettings.houseFeeRate = item.rateValue;
+        currentSettings.houseFeeId = item.rateId;
+      } else if(item.rateName === '商业电价') {
+        currentSettings.businessFeeRate = item.rateValue;
+        currentSettings.businessFeeId = item.rateId;
+      }
     });
   } catch (error) {
-   
+    console.log(error);
   }
 };
 
-// 在提交成功后更新当前设置信息
-const submitForm = async () => {
-  try {
-    await formRef.value.validate();
-    await Promise.all([
-      settingStore.updateFeeRate({
-        houseFeeRate: form.houseFeeRate,
-        businessFeeRate: form.businessFeeRate,
-      }),
-      settingStore.updateParams({
-        paymentRemindDays: form.paymentRemindDays,
-        abnormalUsageThreshold: form.abnormalUsageThreshold,
-        reportGenerateCycle: form.reportGenerateCycle,
-      }),
-    ]);
-    ElMessage.success('保存成功');
-    // 更新当前设置信息
-    fetchCurrentSettings();
-  } catch (error) {
-    ElMessage.error('保存失败');
-  }
-};
 
 // 初始化时获取当前设置信息
 fetchCurrentSettings();
 
-// 修改表单数据结构
-const form = reactive({
-  // 费率设置部分
-  houseFeeRate: 0,
-  businessFeeRate: 0,
-  rateName: '', // 添加费率名称字段
-  
-  // 参数设置部分
-  paymentRemindDays: 0,
-  abnormalUsageThreshold: 0,
-  reportGenerateCycle: '',
-});
 
-// 修改验证规则
-const rules = {
-  // 费率验证规则
-  rateName: [
-    { required: true, message: '请输入费率名称', trigger: 'blur' }
-  ],
-  houseFeeRate: [
-    { required: true, message: '请输入住宅费率', trigger: 'blur' },
-    { type: 'number', message: '费率必须为数字', trigger: ['blur', 'change'] },
-  ],
-  businessFeeRate: [
-    { required: true, message: '请输入商业费率', trigger: 'blur' },
-    { type: 'number', message: '费率必须为数字', trigger: ['blur', 'change'] },
-  ],
-  // 参数验证规则
-  paymentRemindDays: [
-    { required: true, message: '请输入缴费提醒时间', trigger: 'blur' },
-    { type: 'number', message: '提醒时间必须为数字', trigger: ['blur', 'change'] },
-  ],
-  abnormalUsageThreshold: [
-    { required: true, message: '请输入异常用电提醒阈值', trigger: 'blur' },
-    { type: 'number', message: '阈值必须为数字', trigger: ['blur', 'change'] },
-  ],
-  reportGenerateCycle: [
-    { required: true, message: '请选择报表生成周期', trigger: 'change' }
-  ],
+
+// 费率表单提交
+const submitRateForm = async (type) => {
+  try {
+    let res = null;
+    if(type === 'houseFeeRate'){
+      let houseFeeRate = Number(rateForm.houseFeeRate).toFixed(2);
+      //转换错误
+      if(isNaN(houseFeeRate)){
+        ElMessage.error('住宅费率输入错误');
+        return;
+      }
+      res = await updateRate(currentSettings.houseFeeId,houseFeeRate);
+    }else{
+      let businessFeeRate = Number(rateForm.businessFeeRate).toFixed(2);
+      //转换错误
+      if(isNaN(businessFeeRate)){
+        ElMessage.error('商业费率输入错误');
+        return;
+      }
+      res = await updateRate(currentSettings.businessFeeId,businessFeeRate);
+    }
+    if(res.code === 200){
+      ElMessage.success('费率保存成功');
+      fetchCurrentSettings();
+    }else{
+      ElMessage.error('费率保存失败');
+    }
+  } catch (error) {
+    ElMessage.error('费率保存失败');
+  }
 };
 
-// 添加切换状态
-const activeSection = ref('rate');
+// 参数设置表单提交
+const submitParamForm = async () => {
+  try {
+    await settingStore.updateParams({
+      paymentRemindDays: paramForm.paymentRemindDays,
+      abnormalUsageThreshold: paramForm.abnormalUsageThreshold,
+      reportGenerateCycle: paramForm.reportGenerateCycle,
+    });
+    ElMessage.success('参数设置保存成功');
+    fetchCurrentSettings();
+  } catch (error) {
+    ElMessage.error('参数设置保存失败');
+  }
+};
 
-// 修改周期选项配置
-const cycleOptions = [
-  { label: '日报', value: 'daily' },
-  { label: '周报', value: 'weekly' },
-  { label: '月报', value: 'monthly' }
-];
+
+// 重置费率表单
+const resetRateForm = () => {
+  rateForm.houseFeeRate = '';
+  rateForm.businessFeeRate = '';
+};
+
+
+// 重置参数设置表单
+const resetParamForm = () => {
+  paramForm.paymentRemindDays = 0;
+  paramForm.abnormalUsageThreshold = 0;
+  paramForm.reportGenerateCycle = '';
+};
 </script>
 
 <style scoped>
@@ -385,6 +512,7 @@ const cycleOptions = [
   font-size: 14px;
   color: #606266;
   margin-bottom: 8px;
+  width: 100px;
 }
 
 .info-value {
@@ -467,5 +595,39 @@ const cycleOptions = [
 .select-option .el-icon {
   font-size: 16px;
   color: #409eff;
+}
+
+.rate-forms {
+  margin-bottom: 24px;
+}
+
+.rate-input {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rate-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.rate-buttons .el-button {
+  width: 100px;
+}
+
+.param-input {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.param-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.param-buttons .el-button {
+  width: 100px;
 }
 </style> 
