@@ -214,7 +214,7 @@ import {
   Delete,
   Warning
 } from '@element-plus/icons-vue';
-import { getLogList, detailLog, deleteLog } from '@/api/log';
+import { getLogList, detailLog, deleteLog, getLogReport } from '@/api/log';
 // 搜索和筛选条件
 const searchText = ref('');
 const filterForm = reactive({
@@ -338,8 +338,21 @@ const handleSearch = () => {
 };
 
 // 导出日志
-const handleExport = () => {
-  ElMessage.success('日志导出成功');
+const handleExport = async () => {
+  const res = await getLogReport();
+  // 创建 Blob 对象并下载
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'system_logs.xlsx';
+  link.click();
+  window.URL.revokeObjectURL(url);
+  if(res.size > 0){
+    ElMessage.success('日志导出成功');
+  }else{
+    ElMessage.error('日志导出失败');
+  }
 };
 
 // 查看详情

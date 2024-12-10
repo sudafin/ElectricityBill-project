@@ -182,7 +182,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
-import { getReconciliationList, getReconciliationDetail} from '@/api/reconciliation';
+import { getReconciliationList, getReconciliationDetail, getReconciliationReport } from '@/api/reconciliation';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
@@ -261,8 +261,21 @@ const showDetail = async (row) => {
   detailVisible.value = true;
 };
 
-const exportReconciliationList = () => {
-  // 处理导出逻辑
+const exportReconciliationList = async () => {
+  const res = await getReconciliationReport();
+  // 创建 Blob 对象并下载
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'reconciliation_details.xlsx';
+  link.click();
+  window.URL.revokeObjectURL(url);
+  if(res.size > 0){
+    ElMessage.success('对账单报表导出成功');
+  }else{
+    ElMessage.error('对账单报表导出失败');
+  }
 };
 
 const handleApproval = (row) => {

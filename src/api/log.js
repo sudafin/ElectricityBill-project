@@ -24,3 +24,13 @@ export function deleteLog(ids) {
   });
 }
 
+//获取报表excel
+export function getLogReport() {
+  return request({
+    url: '/log/export',
+    method: 'get',
+    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+  });
+}
+
+

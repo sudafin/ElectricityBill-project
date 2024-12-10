@@ -30,3 +30,12 @@ export function refundPayment(id) {
     method: 'put',
   });
 }
+
+//获取报表excel
+export function getPaymentReport() {
+  return request({
+    url: '/payment/export',
+    method: 'get',
+    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+  });
+}

@@ -115,7 +115,7 @@ import EBYearlyReport from './EBYearlyReport.vue';
 import EBReportDetail from './EBReportDetail.vue';
 import { Calendar, Search, Download } from '@element-plus/icons-vue';
 import { ElMessage,ElMessageBox } from 'element-plus';
-import { getReportData } from '@/api/report';
+import { getReportData, getReportExcel } from '@/api/report';
 
 const loading = ref(false);
 const dateRange = ref([]);
@@ -588,9 +588,35 @@ onMounted(() => {
 });
 
 // 导出报表
-const exportReport = () => {
-  // 这里可以实现导出逻辑，比如导出 Excel
-  ElMessage.success('报表导出成功');
+const exportReport = async () => {
+  let res =null
+  if (reportType.value === 'daily') {
+      // 获取日期范围
+      const [startDate, endDate] = dateRange.value;
+      // 从后端生成报表数据
+      res = await getReportExcel(reportType.value,startDate, endDate);
+    } else if (reportType.value === 'monthly') {
+      const [startMonth, endMonth] = monthRange.value;
+      //从后端生成报表数据
+      res = await getReportExcel(reportType.value,startMonth, endMonth);
+    } else if (reportType.value === 'yearly') {
+      const [startYear, endYear] = yearRange.value;
+      //从后端生成报表数据
+      res = await getReportExcel(reportType.value,startYear, endYear);
+    }
+  // 创建 Blob 对象并下载
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'report.xlsx';
+  link.click();
+  window.URL.revokeObjectURL(url);
+  if(res.size > 0){
+    ElMessage.success('报表导出成功');
+  }else{
+    ElMessage.error('报表导出失败');
+  }
 };
 </script>
 

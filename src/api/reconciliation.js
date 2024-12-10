@@ -39,3 +39,12 @@ export function approveReconciliation(id, data) {
     data,
   });
 } 
+
+//获取报表excel
+export function getReconciliationReport() {
+  return request({
+    url: '/reconciliation/export',
+    method: 'get',
+    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+  });
+}

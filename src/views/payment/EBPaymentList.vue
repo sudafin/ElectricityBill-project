@@ -113,7 +113,7 @@ import { onMounted, ref } from 'vue';
 import { ElMessageBox,ElMessage } from 'element-plus';
 import { Download, Delete, Search } from '@element-plus/icons-vue';
 import EBPaymentDetail from './EBPaymentDetail.vue';
-import { getPaymentList, deletePayment,getPaymentDetail,refundPayment } from '@/api/payment';
+import { getPaymentList, deletePayment,getPaymentDetail,refundPayment,getPaymentReport } from '@/api/payment';
 
 const searchText = ref('');
 const selectedStatus = ref('');
@@ -263,9 +263,21 @@ const getStatusType = (status) => {
 };
 
 
-const exportPayments = () => {
-  // 导出支付报表
-  console.log('导出支付报表');
+const exportPayments = async () => {
+  const res = await getPaymentReport();
+  // 创建 Blob 对象并下载
+  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'payment_details.xlsx';
+  link.click();
+  window.URL.revokeObjectURL(url);
+  if(res.size > 0){
+    ElMessage.success('支付报表导出成功');
+  }else{
+    ElMessage.error('支付报表导出失败');
+  }
 };
 </script>
 
