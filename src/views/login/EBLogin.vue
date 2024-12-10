@@ -81,7 +81,7 @@ onMounted(async () => {
     const publicKey = await fetchPublicKey();
     userStore.setPublicKey(publicKey);
   } catch (error) {
-    ElMessage.error('获取公钥失败,请刷新页面重试');
+    ElMessage.error('网络出现问题,请刷新页面重试');
   }
 });
 

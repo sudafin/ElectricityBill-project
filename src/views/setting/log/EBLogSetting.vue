@@ -6,7 +6,7 @@
           <div class="search-area">
             <el-input
               v-model="searchText"
-              placeholder="搜索用户名/操作描述"
+              placeholder="搜索用户名"
               clearable
               class="search-input glass-input"
             >
@@ -50,6 +50,7 @@
               start-placeholder="开始日期"
               end-placeholder="结束日期"
               :shortcuts="dateShortcuts"
+              value-format="YYYY-MM-DD"
               class="date-picker glass-date-picker"
             />
 
@@ -87,14 +88,15 @@
         :data="logList"
         :loading="loading"
         class="glass-table"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column prop="timestamp" label="操作时间" width="180" sortable>
+        <el-table-column prop="createTime" label="操作时间" width="180" sortable>
           <template #default="{ row }">
-            {{ formatDate(row.timestamp) }}
+            {{ formatDate(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="username" label="操作用户" width="140" />
+        <el-table-column prop="operatorName" label="操作用户" width="140" />
         <el-table-column prop="operationType" label="操作类型" width="140">
           <template #default="{ row }">
             <el-tag 
@@ -118,8 +120,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作" width="80" align="center">
           <template #default="{ row }">
+            <div class="operation-buttons">
             <el-button 
               type="primary" 
               link
@@ -127,6 +130,14 @@
             >
               详情
             </el-button>
+            <el-button 
+                type="danger" 
+                link
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -155,10 +166,10 @@
     >
       <el-descriptions :column="2" border>
         <el-descriptions-item label="操作时间" :span="2">
-          {{ formatDate(logDetail.timestamp) }}
+          {{ formatDate(logDetail.createTime) }}
         </el-descriptions-item>
         <el-descriptions-item label="操作用户">
-          {{ logDetail.username }}
+          {{ logDetail.operatorName }}
         </el-descriptions-item>
         <el-descriptions-item label="IP地址">
           {{ logDetail.ip }}
@@ -183,33 +194,19 @@
 
       <div class="log-params">
         <div class="param-title">请求参数：</div>
-        <pre class="param-content">{{ formatJson(logDetail.params) }}</pre>
+        <pre class="param-content">{{ logDetail.requestParams ? JSON.stringify(JSON.parse(logDetail.requestParams), null, 2) : '' }}</pre>
+        <div class="param-title">返回参数：</div>
+        <pre class="param-content">{{ logDetail.responseData ? JSON.stringify(JSON.parse(logDetail.responseData), null, 2) : '' }}</pre>
+        <div class="param-title">错误信息：</div>
+        <pre class="param-content">{{ logDetail.errorMsg ? logDetail.errorMsg : '无' }}</pre>
       </div>
     </el-dialog>
 
-    <!-- 清理日志确认框 -->
-    <el-dialog
-      v-model="clearDialogVisible"
-      title="清理日志"
-      width="400px"
-      class="glass-dialog"
-    >
-      <div class="clear-confirm">
-        <el-icon class="warning-icon"><Warning /></el-icon>
-        <p>确定要清理选中的日志记录吗？此操作不可恢复。</p>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="clearDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmClear">确定清理</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Search,
@@ -217,7 +214,7 @@ import {
   Delete,
   Warning
 } from '@element-plus/icons-vue';
-
+import { getLogList, detailLog, deleteLog } from '@/api/log';
 // 搜索和筛选条件
 const searchText = ref('');
 const filterForm = reactive({
@@ -229,24 +226,39 @@ const filterForm = reactive({
 
 // 操作类型选项
 const operationTypes = [
-  { label: '新增', value: 'create' },
-  { label: '修改', value: 'update' },
-  { label: '删除', value: 'delete' },
-  { label: '查询', value: 'query' },
-  { label: '登录', value: 'login' },
-  { label: '导出', value: 'export' }
+  { label: '新增', value: '新增' },
+  { label: '修改', value: '修改' },
+  { label: '删除', value: '删除' },
+  { label: '查询', value: '查询' },
+  { label: '登录', value: '登录' },
+  { label: '导出', value: '导出' },
+  { label: '审批', value: '审批' }
 ];
 
 // 模块类型选项
 const moduleTypes = [
-  { label: '用户管理', value: 'user' },
-  { label: '角色权限', value: 'role' },
-  { label: '费率管理', value: 'rate' },
-  { label: '数据统计', value: 'report' },
-  { label: '对账审批', value: 'reconciliation' },
-  { label: '通知提醒', value: 'notification' },
-  { label: '支付管理', value: 'payment' }
+  { label: '用户管理', value: '用户管理' },
+  { label: '角色权限', value: '角色权限' },
+  { label: '费率管理', value: '费率管理' },
+  { label: '数据统计', value: '数据统计' },
+  { label: '对账审批', value: '对账审批' },
+  { label: '通知提醒', value: '通知提醒' },
+  { label: '支付管理', value: '支付管理' }
 ];
+// 获取操作类型标签样式
+const getOperationTypeTag = (type) => {
+  const typeMap = {
+    '新增': 'success',
+    '修改': 'warning',
+    '删除': 'danger',
+    '查询': 'info',
+    '登录': 'primary',
+    '导出': 'success',
+    '审批': 'warning'
+  };
+  return typeMap[type] || 'info';
+};
+
 
 // 日期快捷选项
 const dateShortcuts = [
@@ -283,57 +295,38 @@ const dateShortcuts = [
 const loading = ref(false);
 const logList = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(5);
 const total = ref(0);
 
 // 详情弹窗
 const dialogVisible = ref(false);
 const logDetail = ref({});
 
-// 清理日志
-const clearDialogVisible = ref(false);
-const handleClearLogs = () => {
-  clearDialogVisible.value = true;
-};
-
-const confirmClear = async () => {
-  try {
-    await ElMessageBox.confirm('此操作将永久删除选中的日志记录, 是否继续?', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    });
-    // 执行清理操作
-    ElMessage.success('日志清理成功');
-    clearDialogVisible.value = false;
-    fetchLogList();
-  } catch (error) {
-    console.error('清理日志失败:', error);
-  }
-};
-
 // 获取日志列表
-const fetchLogList = async () => {
+const fetchLogList = async (page = currentPage.value,
+shouldResetPage = false) => {
   loading.value = true;
+  if(shouldResetPage){
+    currentPage.value = 1;
+  }else{
+    currentPage.value = page;
+  }
   try {
-    // 模拟API调用
-    const mockData = Array(10).fill().map((_, index) => ({
-      id: index + 1,
-      timestamp: new Date(Date.now() - Math.random() * 10000000000),
-      username: `用户${index + 1}`,
-      operationType: operationTypes[Math.floor(Math.random() * operationTypes.length)].label,
-      module: moduleTypes[Math.floor(Math.random() * moduleTypes.length)].label,
-      description: `操作描述${index + 1}`,
-      ip: `192.168.1.${index + 1}`,
-      status: Math.random() > 0.3 ? 'success' : 'fail',
-      params: { key: 'value' },
-      beforeData: { id: 1, name: 'old' },
-      afterData: { id: 1, name: 'new' },
-    }));
-    logList.value = mockData;
-    total.value = 100;
+    // 构建查询参数
+    const res = await getLogList({  
+      //searchText判断是数字还是中文
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      operatorName: searchText.value,
+      operationType: filterForm.operationType,
+      module: filterForm.module,
+      startDate: filterForm.dateRange && filterForm.dateRange.length === 2 ? filterForm.dateRange[0] : undefined,
+      endDate: filterForm.dateRange && filterForm.dateRange.length === 2 ? filterForm.dateRange[1] : undefined,
+    });
+    logList.value = res.list;
+    total.value = Number(res.total);
   } catch (error) {
-    ElMessage.error('获取日志列���失败');
+    ElMessage.error('获取日志列表失败');
   } finally {
     loading.value = false;
   }
@@ -341,8 +334,7 @@ const fetchLogList = async () => {
 
 // 搜索
 const handleSearch = () => {
-  currentPage.value = 1;
-  fetchLogList();
+  fetchLogList(1, true);
 };
 
 // 导出日志
@@ -351,20 +343,15 @@ const handleExport = () => {
 };
 
 // 查看详情
-const handleDetail = (row) => {
-  logDetail.value = row;
+const handleDetail = async (row) => {
+  const res = await detailLog(row.id);
+  logDetail.value = res;
   dialogVisible.value = true;
 };
 
 // 分页事件
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  fetchLogList();
-};
-
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-  fetchLogList();
+const handlePageChange = (page) => {
+  fetchLogList(page);
 };
 
 // 格式化日期
@@ -373,30 +360,53 @@ const formatDate = (date) => {
   return new Date(date).toLocaleString();
 };
 
-// 格式化JSON
-const formatJson = (json) => {
-  try {
-    return JSON.stringify(json, null, 2);
-  } catch (e) {
-    return json;
-  }
+// 删除日志
+const handleDelete = async (row) => {
+  ElMessageBox.confirm(`确定要删除这条日志吗?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+  .then(async () => {
+    const res = await deleteLog(row.id);
+    if(res.code === 200){
+      ElMessage.success('删除日志成功');
+      fetchLogList();
+    }else{
+      ElMessage.error('删除日志失败');
+    }
+  })
+  .catch(() => {});
 };
 
-// 获取操作类型标签样式
-const getOperationTypeTag = (type) => {
-  const typeMap = {
-    '新增': 'success',
-    '修改': 'warning',
-    '删除': 'danger',
-    '查询': 'info',
-    '登录': 'primary',
-    '导出': ''
-  };
-  return typeMap[type] || 'info';
+const selectedRows = ref([]);
+const handleSelectionChange = (selectionRows) => {
+  selectedRows.value = selectionRows.map(row => row.id);
+};
+// 清理日志
+const handleClearLogs = async () => {
+  ElMessageBox.confirm(`确定要清理选中的 ${selectedRows.value.length} 条日志吗？此操作不可恢复。`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  .then(async () => {
+    selectedRows.value  = selectedRows.value.join(',');
+    const res = await deleteLog(selectedRows.value);
+    if(res.code === 200){
+      ElMessage.success('清理日志成功');
+      fetchLogList();
+    }else{
+      ElMessage.error('清理日志失败');
+    }
+  })
+  .catch(() => {});
 };
 
 // 初始化
-fetchLogList();
+onMounted(() => {
+  fetchLogList();
+});
 </script>
 
 <style scoped>
@@ -521,6 +531,23 @@ fetchLogList();
   color: #2c3e50;
 }
 
+.param-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+.param-content {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 14px;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 .detail-content {
   background: #f8f9fa;
   padding: 12px;
@@ -634,5 +661,10 @@ fetchLogList();
     margin-left: 0;
     flex-wrap: nowrap;
   }
+}
+.operation-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
 </style> 

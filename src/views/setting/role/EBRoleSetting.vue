@@ -43,6 +43,7 @@
               range-separator="至"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
               class="date-picker glass-date-picker"
               @change="fetchAdminList"
             />
@@ -264,6 +265,7 @@ const handleDelete = async (row) => {
     })
     .catch(() => {});
 };
+
 // 表格选择事件
 const handleSelectionChange = (selectionRows) => {
   selectedRows.value = selectionRows.map(row => row.adminId);
