@@ -195,8 +195,13 @@
       <div class="log-params">
         <div class="param-title">请求参数：</div>
         <pre class="param-content">{{ logDetail.requestParams ? JSON.stringify(JSON.parse(logDetail.requestParams), null, 2) : '' }}</pre>
+        <!-- 请求体 -->
+        <div class="param-title">请求体：</div>
+        <pre class="param-content">{{ logDetail.requestBody ? JSON.stringify(JSON.parse(logDetail.requestBody), null, 2) : '' }}</pre>
+        <!-- 返回参数 -->
         <div class="param-title">返回参数：</div>
         <pre class="param-content">{{ logDetail.responseData ? JSON.stringify(JSON.parse(logDetail.responseData), null, 2) : '' }}</pre>
+        <!-- 错误信息 -->
         <div class="param-title">错误信息：</div>
         <pre class="param-content">{{ logDetail.errorMsg ? logDetail.errorMsg : '无' }}</pre>
       </div>

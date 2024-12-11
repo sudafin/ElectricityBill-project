@@ -596,10 +596,12 @@ const exportReport = async () => {
       // 从后端生成报表数据
       res = await getReportExcel(reportType.value,startDate, endDate);
     } else if (reportType.value === 'monthly') {
+      // 获取月份范围
       const [startMonth, endMonth] = monthRange.value;
       //从后端生成报表数据
       res = await getReportExcel(reportType.value,startMonth, endMonth);
     } else if (reportType.value === 'yearly') {
+      // 获取年份范围
       const [startYear, endYear] = yearRange.value;
       //从后端生成报表数据
       res = await getReportExcel(reportType.value,startYear, endYear);
