@@ -22,7 +22,7 @@ export function getReconciliationDetail(id) {
  */
 export function approveReconciliationDetail(id) {
   return request({
-    url: `/reconciliation/approval/detail/${id}`,
+    url: `/reconciliation/approve/detail/${id}`,
     method: 'get',
   });
 } 

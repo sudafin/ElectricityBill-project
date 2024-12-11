@@ -68,6 +68,11 @@ service.interceptors.response.use(
       }
       router.push('/login');
     }
+    if(error.status === 403){
+      ElMessage.error("该账号无权限操作");
+      //不用往后面传递错误信息
+      return Promise.reject(new Error(error.response.data.msg));
+    }
     return Promise.reject(error);
   }
 );

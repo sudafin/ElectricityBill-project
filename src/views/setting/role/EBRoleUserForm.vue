@@ -240,19 +240,19 @@ const roleRules = computed(() => ({
 // 管理员规则
 const adminRules = computed(() => ({
   account: [
-    { required: true, message: '请输入账号', trigger: 'blur' },
+    { required: !isEdit.value, message: '请输入账号', trigger: 'blur' },
     { min: 8, max: 16, message: '账号长度应为8-16位', trigger: 'blur' },
     { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '账号应包含数字和字母', trigger: 'blur' },
   ],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   
     password: [
-      { required: true, message: '请输入密码', trigger: 'blur' },
+      { required: !isEdit.value, message: '请输入密码', trigger: 'blur' },
       { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
       { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
     ],
     confirmPassword: [
-      { required: true, message: '请再次输入密码', trigger: 'blur' },
+      { required: !isEdit.value, message: '请再次输入密码', trigger: 'blur' },
       { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
       { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
       {
@@ -452,7 +452,8 @@ const submitForm = async () => {
             const submitData = {
               account: adminForm.account,
               role: adminForm.role,
-              password: encryptWithRSA(adminForm.password, publicKey),
+              // 如果编辑时密码为空，则不加密
+              password: isEdit.value ? adminForm.password : encryptWithRSA(adminForm.password, publicKey),
             };
             const res = await editAdmin(props.editData.adminId,submitData);
             if(res.code === 200){   
