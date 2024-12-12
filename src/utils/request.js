@@ -13,15 +13,26 @@ const service = axios.create({
     'Content-Type': 'application/json;charset=utf-8', // 默认使用JSON格式
   } // 设置请求头内容
 });
-// 请求拦截器
+// 请求拦截器设置成防抖
 service.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers['Authorization'] = `${token}`;
-    }
-    return config;
-  },
+  // 使用防抖处理请求
+  (() => {
+    let timer = null;
+    return (config) => {
+      return new Promise((resolve) => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+        timer = setTimeout(() => {
+          const token = getToken();
+          if (token) {
+            config.headers['Authorization'] = `${token}`;
+          }
+          resolve(config);
+        }, 500); // 500ms 防抖延迟
+      });
+    };
+  })(),
   (error) => {
     console.log(error);
     return Promise.reject(error);

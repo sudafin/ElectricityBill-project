@@ -81,7 +81,7 @@
       <el-table
         ref="tableRef"
         :data="adminList"
-        :loading="loading"
+        v-loading="loading"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55"  />
@@ -211,6 +211,7 @@ const roleOptions = [
 const fetchAdminList = async (page = currentPage.value,
 shouldResetPage = false) => {
   loading.value = true;
+
   if(shouldResetPage){
     currentPage.value = 1;
   }else{

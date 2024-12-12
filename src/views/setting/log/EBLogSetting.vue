@@ -86,7 +86,7 @@
 
       <el-table
         :data="logList"
-        :loading="loading"
+        v-loading="loading"
         class="glass-table"
         @selection-change="handleSelectionChange"
       >
