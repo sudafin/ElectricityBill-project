@@ -17,6 +17,15 @@ export function getPublicKey() {
   });
 }
 
+export function getCaptcha(uuid) {
+  return request({
+    url: '/admin/captcha',
+    method: 'get',
+    params: { key: uuid },
+    responseType: 'blob',
+  });
+}
+
 export function logout() {
   return request({
     url: '/admin/logout',

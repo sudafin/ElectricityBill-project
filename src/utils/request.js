@@ -56,6 +56,14 @@ service.interceptors.response.use(
         router.push('/login');
       });
       return Promise.reject(new Error('登录状态已过期'));
+    }else if(res.code === 4001){
+      //账号密码或验证码错误
+      ElMessage.error(res.msg);
+      return Promise.reject(new Error(res.msg));
+    }else if(res.code === 4002){
+      //验证码错误
+      ElMessage.error(res.msg);
+      return Promise.reject(new Error(res.msg));
     }else if(res.code === 403){
       ElMessage.error("账号被禁用");
       return Promise.reject(new Error(res.msg));

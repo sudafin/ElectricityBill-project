@@ -18,10 +18,26 @@
               <el-input
                 v-model="loginForm.password"
                 type="password"
-                placeholder="请输入密码"
+                            placeholder="请输入密码"
                 show-password
                 size="large"
               ></el-input>
+            </el-form-item>
+            <el-form-item prop="captcha">
+              <div class="captcha-container">
+                <el-input
+                  v-model="loginForm.captcha"
+                  placeholder="请输入验证码"
+                  size="large"
+                  style="width: calc(100% - 120px)"
+                ></el-input>
+                <img
+                  :src="captchaUrl"
+                  alt="验证码"
+                  class="captcha-img"
+                  @click="refreshCaptcha"
+                />
+              </div>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" class="login-button" @click="handleLogin" size="large">登录</el-button>
@@ -39,7 +55,8 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { ElMessage } from 'element-plus';
 import { encryptWithRSA } from '@/utils/encrypt';
-import { getPublicKey } from '@/api/user';
+import { getPublicKey,getCaptcha } from '@/api/user';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -47,6 +64,8 @@ const userStore = useUserStore();
 const loginForm = reactive({
   account: '',
   password: '',
+  captcha: '',
+  uuid: '',
 });
 
 const loginRules = {
@@ -60,9 +79,14 @@ const loginRules = {
     { min: 8, max: 16, message: '密码长度应为8-16位', trigger: 'blur' },
     { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '密码应包含数字和字母', trigger: 'blur' },
   ],
+  captcha: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+  ],
 };
 
 const loginFormRef = ref(null);
+
+const captchaUrl = ref('');
 
 // 获取公钥
 async function fetchPublicKey() {
@@ -75,11 +99,29 @@ async function fetchPublicKey() {
   }
 }
 
+// 获取验证码的方法
+const fetchCaptcha = async () => {
+  //生成uuid
+  const uuid = uuidv4();
+  loginForm.uuid = uuid;
+  const res = await getCaptcha(uuid);
+  //返回的是PNG格式的验证码图片，通过HTTP响应头content-type: image/png返回
+  captchaUrl.value = URL.createObjectURL(new Blob([res], { type: 'image/png' }));
+};
+
+// 刷新验证码
+const refreshCaptcha = () => {
+  loginForm.captcha = '';
+  loginForm.uuid = '';
+  fetchCaptcha();
+};
+
 // 在组件挂载时获取公钥
 onMounted(async () => {
   try {
     const publicKey = await fetchPublicKey();
     userStore.setPublicKey(publicKey);
+    fetchCaptcha(); // 获取验证码
   } catch (error) {
     ElMessage.error('网络出现问题,请刷新页面重试');
   }
@@ -88,7 +130,6 @@ onMounted(async () => {
 // 登录
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
-
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -98,6 +139,9 @@ const handleLogin = async () => {
         await userStore.login({
           account: loginForm.account,
           password: encryptedPassword,
+          //验证码
+          code: loginForm.captcha,
+          key: loginForm.uuid,
         });
         router.push('/dashboard');
       } catch (error) {
@@ -166,5 +210,17 @@ const handleLogin = async () => {
   width: 100%;
   background-color: #3f51b5;
   border-color: #3f51b5;
+}
+
+.captcha-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.captcha-img {
+  height: 40px;
+  cursor: pointer;
+  border-radius: 4px;
 }
 </style> 
