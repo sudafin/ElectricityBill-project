@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { login, logout } from '@/api/user';
-import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo } from '@/utils/auth';
+import { login, logout, refreshAccessToken } from '@/api/user';
+import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo,setRefreshToken, removeRefreshToken } from '@/utils/auth';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -13,11 +13,20 @@ export const useUserStore = defineStore('user', {
     async login(loginForm) {
       try {
         const res = await login(loginForm);
-        console.log(res);
-        this.token = res.token;
+        this.token = res.token;;
         this.adminInfo = res.adminDTO;
         setToken(res.token);
         setAdminInfo(res.adminDTO);
+        return Promise.resolve();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
+    async refreshLogin() {
+      try {
+        const res = await refreshAccessToken();
+        this.token = res;
+        setToken(res);
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);
@@ -28,8 +37,10 @@ export const useUserStore = defineStore('user', {
       try {
         await logout();
         this.token = '';
+        this.refreshToken = '';
         this.adminInfo = {};
         removeToken();
+        removeRefreshToken();
         removeAdminInfo();
         return Promise.resolve();
       } catch (error) {

@@ -40,6 +40,9 @@
               </div>
             </el-form-item>
             <el-form-item>
+              <el-checkbox v-model="loginForm.rememberMe">记住我</el-checkbox>
+            </el-form-item>
+            <el-form-item>
               <el-button type="primary" class="login-button" @click="handleLogin" size="large">登录</el-button>
             </el-form-item>
           </el-form>
@@ -64,6 +67,7 @@ const userStore = useUserStore();
 const loginForm = reactive({
   account: '',
   password: '',
+  rememberMe: false,
   captcha: '',
   uuid: '',
 });
@@ -142,6 +146,7 @@ const handleLogin = async () => {
           //验证码
           code: loginForm.captcha,
           key: loginForm.uuid,
+          rememberMe: loginForm.rememberMe
         });
         router.push('/dashboard');
       } catch (error) {
@@ -156,11 +161,12 @@ const handleLogin = async () => {
 <style scoped>
 .login-page {
   width: 100%;
-  height: 100vh;
+  height: 120vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-image: url('/src/assets/images/background.jpg');
+  
 }
 
 .login-container {
@@ -169,7 +175,7 @@ const handleLogin = async () => {
   padding: 60px;
   border-radius: 10px;
   box-shadow: 0px 14px 80px rgba(34, 35, 58, 0.2);
-  background-color: #ffffff;
+  background-color: #cfddf6;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -180,8 +186,8 @@ const handleLogin = async () => {
   max-width: 400px;
   padding: 40px;
   border-radius: 10px;
-  background: linear-gradient(to bottom right, #ffffff, #f3e5f5);
-  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to bottom right, #ffffff, #ffffff);
+  box-shadow: 0px 8px 20px rgba(135, 135, 135, 0.1);
 }
 
 .login-box-inner {

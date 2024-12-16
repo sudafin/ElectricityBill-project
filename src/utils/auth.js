@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 
 const TokenKey = 'token';
+const RefreshTokenKey = 'refresh';
 const AdminInfoKey = 'adminInfo';
 
 export function getToken() {
@@ -13,6 +14,14 @@ export function setToken(token) {
 
 export function removeToken() {
   return Cookies.remove(TokenKey);
+}
+
+export function setRefreshToken(refreshToken) {
+  return Cookies.set(RefreshTokenKey, refreshToken);
+}
+
+export function removeRefreshToken() {
+  return Cookies.remove(RefreshTokenKey);
 }
 
 export function getAdminInfo() {

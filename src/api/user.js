@@ -91,3 +91,11 @@ export function getUserBill(id){
     method: 'get',
   });
 }
+
+export function refreshAccessToken() {
+  return request({
+    url: '/admin/refresh',
+    method: 'get',
+    withCredentials: true
+  });
+}

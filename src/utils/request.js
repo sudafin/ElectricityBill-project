@@ -2,6 +2,8 @@ import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getToken, removeToken, removeAdminInfo } from '@/utils/auth';
 import router from '@/router';
+import { useUserStore } from '@/store/user';
+
 const BASE_URL = '/api';
 
 const service = axios.create({
@@ -43,20 +45,7 @@ service.interceptors.response.use(
   (response) => {
     const res = response.data;
     // 直接判断响应状态码
-     if (res.code === 401) {
-      // token 失效,提示用户重新登录
-      ElMessageBox.confirm('登录状态已过期,您可以继续留在该页面,或者重新登录', '系统提示', {
-        confirmButtonText: '重新登录',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        // 用户确认重新登录,清除 token 和用户信息,并跳转到登录页面
-        removeToken();
-        removeAdminInfo();
-        router.push('/login');
-      });
-      return Promise.reject(new Error('登录状态已过期'));
-    }else if(res.code === 4001){
+     if(res.code === 4001){
       //账号密码或验证码错误
       ElMessage.error(res.msg);
       return Promise.reject(new Error(res.msg));
@@ -76,17 +65,24 @@ service.interceptors.response.use(
     }
     
   },
-  (error) => {
-    // 处理请求错误
-    if(error.status === 401){
-      ElMessage.error("登录状态已过期");
-      const token = getToken();
-      if (token) {
-      removeToken();
-      removeAdminInfo();
+  async (error) => {
+    const { config, response } = error;
+    const userStore = useUserStore();
+    // 检查是否因为accessToken过期引起的401错误
+    if (response && response.status === 401 && !config._retry) {
+      config._retry = true; // 标记这个请求已经尝试过刷新token
+      try {
+        await userStore.refreshLogin(); // 尝试使用refreshToken获取新的accessToken
+        return service(config); // 重新发送失败的请求
+      } catch (refreshError) {
+        // refreshToken也无效或者获取新token失败
+        ElMessage.error('登录信息已过期，请重新登录');
+        userStore.logout(); // 清除本地登录状态
+        router.push('/login'); // 重定向到登录页面
+        return Promise.reject(refreshError);
       }
-      router.push('/login');
     }
+
     if(error.status  === 500){
       ElMessage.error("服务器内部错误");
       return Promise.reject(new Error("服务器内部错误"));
