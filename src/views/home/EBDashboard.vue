@@ -40,7 +40,7 @@
             <el-icon class="card-icon"><Help /></el-icon>
             <div class="card-detail">
               <p class="card-number">{{ abnormalBills }}</p>
-              <p class="card-desc">普通账单</p>
+              <p class="card-desc">支付账单</p>
             </div>
           </div>
         </el-card>
@@ -112,7 +112,6 @@ const fetchDashboardInfo = async()=>{
 // 在组件挂载时获取仪表盘信息
 onMounted(async () => {
   await fetchDashboardInfo();
-
     // 处理用电量数据 格式化为{date: '2024-11-29', value: 100}
     powerData.value = Array.from({length: 7}, (_, i) => {
       const date = new Date();
@@ -122,9 +121,13 @@ onMounted(async () => {
         value: electricityWeekUsageList.value[i] || 0
       };
 });
-    // 初始化用电量折线图
+    // 初始化用电量折线图,点击折线点能查看具体的数字
   const powerChartInstance = echarts.init(powerChart.value);
   powerChartInstance.setOption({
+    tooltip: {
+      trigger: 'axis',
+      formatter: '{b}<br/>{a}: {c} kWh'
+    },
     xAxis: {
       type: 'category',
       data: Array.from({length: 7}, (_, i) => {
@@ -134,11 +137,18 @@ onMounted(async () => {
       }),
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      name: '用电量(kWh)'
     },
     series: [{
       data: powerData.value.map(item => item.value),
-      type: 'line'
+      type: 'line',
+      name: '用电量',
+      symbol: 'circle',
+      symbolSize: 8,
+      itemStyle: {
+        color: '#409EFF'
+      },
     }]
   });
   
@@ -147,10 +157,15 @@ onMounted(async () => {
       name,
       value
     }));
-console.log("userTypeData", userTypeData.value);
-  // 初始化用户类型饼图
+
+
+  // 初始化用户类型饼图,点击饼图能查看具体的数字
   const userTypeChartInstance = echarts.init(userTypeChart.value);
   userTypeChartInstance.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)'
+    },
     series: [{
       name: '用户类型',
       type: 'pie',
@@ -160,7 +175,7 @@ console.log("userTypeData", userTypeData.value);
         itemStyle: {
           shadowBlur: 10,
           shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)'
+          shadowColor: 'rgba(0, 0, 0, 0.5)'          
         }
       }
     }]

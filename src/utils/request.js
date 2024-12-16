@@ -87,6 +87,10 @@ service.interceptors.response.use(
       }
       router.push('/login');
     }
+    if(error.status  === 500){
+      ElMessage.error("服务器内部错误");
+      return Promise.reject(new Error("服务器内部错误"));
+    }
     if(error.status === 403){
       ElMessage.error("该账号无权限操作");
       //不用往后面传递错误信息
