@@ -10,11 +10,11 @@
       <div class="dialog-header">
         <div class="header-content">
           <div class="title">
-            {{ isEdit ? '编辑和查看' : 
+            {{ isEdit ? '查看当前角色信息' : 
                         (activeTab === 'role' ? '新增角色' : '新增人员') }}
           </div>
           <div class="subtitle">
-            {{ isEdit ? '修改和查看管理员信息' :
+            {{ isEdit ? '查看当前角色信息' :
                         (activeTab === 'role' ? '配置角色信息及权限' : '创建新管理员账号') }}
           </div>
         </div>
@@ -26,7 +26,7 @@
         <template #label>
           <div class="tab-label">
             <el-icon><Avatar /></el-icon>
-            <span>{{ isEdit ? '编辑管理员' : '新增管理员' }}</span>
+            <span>{{ isEdit ? '查看管理员个人信息' : '新增管理员' }}</span>
           </div>
         </template>
         <el-form
@@ -41,6 +41,7 @@
               v-model="adminForm.account" 
               placeholder="请输入账号"
               class="glass-input"
+              :disabled="isEdit"
             >
               <template #prefix>
                 <el-icon><User /></el-icon>
@@ -57,6 +58,7 @@
               placeholder="请输入密码"
               class="glass-input"
               show-password
+              :disabled="isEdit"
             >
               <template #prefix>
                 <el-icon><Lock /></el-icon>
@@ -73,6 +75,7 @@
               placeholder="请再次输入密码"
               class="glass-input"
               show-password
+              :disabled="isEdit"
             >
               <template #prefix>
                 <el-icon><Key /></el-icon>
@@ -81,9 +84,10 @@
           </el-form-item>
           <el-form-item label="角色" prop="role">
             <el-select 
-              v-model="adminForm.role" 
+              v-model="adminForm.adminRole" 
               placeholder="请选择角色"
               class="glass-select"
+              :disabled="isEdit"
             >
               <el-option 
                 v-for="(option, index) in roleOptions" 
@@ -173,7 +177,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick, computed } from 'vue';
+import { ref, reactive, watch, nextTick, computed ,onMounted} from 'vue';
 import { ElMessage } from 'element-plus';
 import {
   UserFilled,
@@ -197,10 +201,10 @@ const props = defineProps({
   visible: Boolean,
   editData: Object,
   permissions: Array,
+  roleOptions: Array,
 });
 //success是一个自定义事件，用来通知父组件刷新列表,父组件通过@success="handleRoleUserFormSuccess"监听
 const emit = defineEmits(['update:visible','success']);
-
 const dialogVisible = ref(false);
 const activeTab = ref('admin');
 const isEdit = ref(false);
@@ -210,16 +214,14 @@ const adminFormRef = ref(null);
 const permissionTree = ref(null);
 const isInfo = ref(false);
 
-// 角色选项数据
-const roleOptions = ref([]);
-// 角色规则 - 根据编辑状态动态设置规则
+// 角色规则 - 根据查看状态动态设置规则
 const roleRules = computed(() => ({
   roleName: [
     { 
       required: true, 
       message: '请输入角色名称', 
       trigger: 'blur',
-      // 编辑时不验证角色名称
+      // 查看时不验证角色名称
       validator: (rule, value, callback) => {
         if (isEdit.value) {
           callback();
@@ -244,7 +246,7 @@ const adminRules = computed(() => ({
     { min: 8, max: 16, message: '账号长度应为8-16位', trigger: 'blur' },
     { pattern: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]+$/, message: '账号应包含数字和字母', trigger: 'blur' },
   ],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  adminRole: [{ required: true, message: '请选择角色', trigger: 'change' }],
   
     password: [
       { required: !isEdit.value, message: '请输入密码', trigger: 'blur' },
@@ -314,16 +316,16 @@ const resetForm = () => {
   isEdit.value = false;
 };
 
-// 监听编辑数据变化
+// 监听查看数据变化
 watch(
   () => props.editData,
-  // newVal不为空,说明是编辑状态
+  // newVal不为空,说明是查看状态
   (newVal) => {
     if (newVal) {
       isEdit.value = true;
-        // 角色编辑
+        // 角色查看
       activeTab.value = 'admin';
-      // 用户编辑 - 始终设置用户信息
+      // 用户查看 - 始终设置用户信息
       Object.assign(adminForm, { 
         adminId: newVal.adminId || '',
         account: newVal.account || '',
@@ -349,7 +351,7 @@ watch(activeTab, (val) => {
   permissionList.value= props.permissions;
   
   if(val === 'role'){
-    //如果现在role页面且处于编辑状态那么说明正在查看权限信息,需要把权限选择框禁用
+    //如果现在role页面且处于查看状态那么说明正在查看权限信息,需要把权限选择框禁用
     if(isEdit.value){
       // 将原来的数据加上disable字段,有在permission的children里面的数据也有disabled字段
       const newPermissionList = props.permissions.map(item => {
@@ -417,10 +419,7 @@ watch(dialogVisible, (val) => {
   }
 });
 
-// 获取角色列表
-getRoleList().then(res=>{
-  roleOptions.value = res;
-});
+
 
 // 修改提交表单方法
 const submitForm = async () => {
@@ -435,7 +434,7 @@ const submitForm = async () => {
         };
         const res = await createRoleOrAdmin(role);  
         if(res.code === 200){
-          ElMessage.success(isEdit.value ? '编辑角色成功' : '新增角色成功');
+          ElMessage.success(isEdit.value ? '查看角色成功' : '新增角色成功');
           emit('success', 'execSuccess', role, isEdit.value);
           closeDialog();
         }else{
@@ -452,13 +451,13 @@ const submitForm = async () => {
             const submitData = {
               account: adminForm.account,
               role: adminForm.role,
-              // 如果编辑时密码为空，则不加密
+              // 如果查看时密码为空，则不加密
               password: isEdit.value ? adminForm.password : encryptWithRSA(adminForm.password, publicKey),
             };
             const res = await editAdmin(props.editData.adminId,submitData);
             if(res.code === 200){   
               //TODO 因为后端每次重新启动公钥就会刷新,所以需要重新获取公钥
-              ElMessage.success(isEdit.value ? '编辑管理员成功' : '新增管理员成功');
+              ElMessage.success(isEdit.value ? '查看管理员成功' : '新增管理员成功');
               //emit用来通知父组件刷新列表第一个参数是自定义事件名，第二个后面是参数数据
               emit('success',"execSuccess", submitData, isEdit.value);
               closeDialog();
@@ -480,7 +479,7 @@ const submitForm = async () => {
             };
             const res = await createRoleOrAdmin(submitData);
             if(res.code === 200){
-              ElMessage.success(isEdit.value ? '编辑管理员成功' : '新增管理员成功');
+              ElMessage.success(isEdit.value ? '查看管理员成功' : '新增管理员成功');
               emit('success',"execSuccess", submitData, isEdit.value);
               closeDialog();
             } else {
@@ -490,8 +489,8 @@ const submitForm = async () => {
       }
     });
   }
-
 };
+
 </script>
 
 <style scoped>

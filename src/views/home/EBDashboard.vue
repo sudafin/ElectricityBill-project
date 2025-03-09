@@ -15,10 +15,10 @@
       <el-col :span="6">
         <el-card class="rounded-card" shadow="hover">
           <div class="card-content">
-            <el-icon class="card-icon"><Coin /></el-icon>
+            <el-icon class="card-icon"><Stopwatch /></el-icon>
             <div class="card-detail">
-              <p class="card-number">￥{{ totalFees }}</p>
-              <p class="card-desc">总电费</p>
+              <p class="card-number">{{ totalFees }}</p>
+              <p class="card-desc">总电力使用量</p>
             </div>
           </div>
         </el-card>
@@ -29,7 +29,7 @@
             <el-icon class="card-icon"><Wallet /></el-icon>
             <div class="card-detail">
               <p class="card-number">￥{{ totalIncome }}</p>
-              <p class="card-desc">总收入</p>
+              <p class="card-desc">总电费</p>
             </div>
           </div>
         </el-card>
@@ -79,7 +79,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import * as echarts from 'echarts';
-import { User, Coin, Wallet, Warning, Help } from '@element-plus/icons-vue'
+import { User, Wallet, Warning, Help, Stopwatch } from '@element-plus/icons-vue'
 import { getDashboardInfo } from '@/api/user';
 
 

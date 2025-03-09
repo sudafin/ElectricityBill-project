@@ -9,7 +9,7 @@ const BASE_URL = '/api';
 const service = axios.create({
   baseURL: BASE_URL,
   responseType: 'json',
-  timeout: 5000,
+  timeout: 500000,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json;charset=utf-8', // 默认使用JSON格式
@@ -81,13 +81,10 @@ service.interceptors.response.use(
         router.push('/login'); // 重定向到登录页面
         return Promise.reject(refreshError);
       }
-    }
-
-    if(error.status  === 500){
+    }else if(error.status  === 500){
       ElMessage.error("服务器内部错误");
       return Promise.reject(new Error("服务器内部错误"));
-    }
-    if(error.status === 403){
+    }else if(error.status === 403){ 
       ElMessage.error("该账号无权限操作");
       //不用往后面传递错误信息
       return Promise.reject(new Error(error.response.data.msg));

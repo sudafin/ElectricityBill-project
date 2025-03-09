@@ -21,7 +21,6 @@
               v-model="searchRole"
               clearable
               placeholder="角色"
-              @change="fetchAdminList"
               class="filter-select glass-select"
             >
               <el-option label="全部" value=""></el-option>
@@ -45,7 +44,6 @@
               end-placeholder="结束日期"
               value-format="YYYY-MM-DD"
               class="date-picker glass-date-picker"
-              @change="fetchAdminList"
             />
           </div>
           <div class="action-buttons">
@@ -120,7 +118,7 @@
                 link
                 @click="handleEdit(row)"
               >
-                编辑
+                查看
               </el-button>
               <el-button 
                 type="danger" 
@@ -161,6 +159,7 @@
       v-model:visible="roleUserFormVisible"
       :edit-data="editData"
       :permissions="permissions"
+      :role-options="roleOptions"
       @success="handleRoleUserFormSuccess"
     />
 
@@ -179,7 +178,7 @@ import {
   Operation 
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from '../role/EBRoleUserForm.vue';
-import { getAdminList,deleteAdmin,updateStatus,getPermissionList,getAdminDetail } from '@/api/role';
+import { getAdminList,deleteAdmin,updateStatus,getPermissionList,getAdminDetail,getRoleList } from '@/api/role';
 
 // 表格数据
 const loading = ref(false);
@@ -199,13 +198,12 @@ const dateRange = ref([]);
 const roleUserFormVisible = ref(false);
 
 // 角色选项
-const roleOptions = [
-  { label: '系统管理员', value: '系统管理员', icon: 'Management' },
-  { label: '运营人员', value: '运营人员', icon: 'Operation' },
-  {label:"操作员", value:"操作员", icon:"Operation"}
-];
-
-
+const roleOptions = ref([]);
+// 获取角色列表
+const getRoleOptions = async () => {
+  const res = await getRoleList();
+  roleOptions.value = res;
+};
 
 // 获取用户列表
 const fetchAdminList = async (page = currentPage.value,
@@ -237,8 +235,13 @@ shouldResetPage = false) => {
     loading.value = false;
   }
 };
-onMounted(()=>{
-  fetchAdminList(1,true);
+onMounted(async () => {
+  try {
+    await getRoleOptions();
+    await fetchAdminList(1, true);
+  } catch (error) {
+    console.error('初始化数据时出错:', error);
+  }
 })
 const handleSearch = () => {
   fetchAdminList(1,true);
@@ -301,10 +304,9 @@ const handleCreate = async () => {
   const res = await getPermissionList();    
   permissions.value = res;
   roleUserFormVisible.value = true;
-  
 };
 
-// 编辑管理员
+// 查看管理员
 const handleEdit = async (row) => {
   // 分别构造管理员信息
   const editDataObj = {

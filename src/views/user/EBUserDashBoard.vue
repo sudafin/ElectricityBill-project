@@ -21,7 +21,6 @@
                 v-model="searchUserType"
                 clearable
                 placeholder="用户类型"
-                @change="fetchUserList"
                 class="filter-select"
               >
                 <template #prefix>

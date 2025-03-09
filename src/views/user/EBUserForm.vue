@@ -45,6 +45,7 @@
           <el-button 
             class="glass-button" 
             @click="resetForm"
+            :disabled="isEdit"
           >
             <el-icon><RefreshRight /></el-icon>
             重置
@@ -267,7 +268,7 @@ const resetForm = () => {
 }
 
 .glass-button-primary {
-  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+  background: linear-gradient(135deg, #5abdff, #799af0) !important;
   border: none !important;
   box-shadow: 
     0 4px 10px rgba(52, 152, 219, 0.4),

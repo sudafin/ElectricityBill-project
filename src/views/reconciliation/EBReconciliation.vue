@@ -21,21 +21,19 @@
                 v-model="searchUserType"
                 clearable
                 placeholder="用户类型"
-                @change="fetchReconciliationList"
                 class="user-type-select"
               >
                 <template #prefix>
                   <el-icon><User /></el-icon>
                 </template>
-                <el-option label="全部" value=""></el-option>
-                <el-option label="居民" value="居民用户"></el-option>
-                <el-option label="商业" value="商业用户"></el-option>
+                <el-option label="全部类型" value=""></el-option>
+                <el-option label="居民类型" value="居民用户"></el-option>
+                <el-option label="商业类型" value="商业用户"></el-option>
               </el-select>
               <el-select
                 v-model="searchStatus"
                 clearable
                 placeholder="状态"
-                @change="fetchReconciliationList"
                 class="status-select"
               >
                 <template #prefix>

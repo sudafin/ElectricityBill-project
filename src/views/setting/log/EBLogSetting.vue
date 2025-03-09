@@ -63,7 +63,8 @@
                 <el-icon><Search /></el-icon>
                 搜索
               </el-button>
-              <el-button 
+            <!-- 导出时旋转 -->
+               <el-button 
                 type="success" 
                 class="action-button"
                 @click="handleExport"
@@ -83,7 +84,6 @@
           </div>
         </div>
       </template>
-
       <el-table
         :data="logList"
         v-loading="loading"
@@ -206,8 +206,19 @@
         <pre class="param-content">{{ logDetail.errorMsg ? logDetail.errorMsg : '无' }}</pre>
       </div>
     </el-dialog>
-
   </div>
+  <!-- 导出时页面等待 -->
+  <el-dialog
+    v-model="isExport"
+    title="导出中"
+    width="300px"
+    class="glass-dialog"
+  >
+    <!-- 设置旋转css -->
+    <div class="spin-container">
+      <el-icon><Loading /></el-icon>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -217,11 +228,15 @@ import {
   Search,
   Download,
   Delete,
+  Loading,
   Warning
 } from '@element-plus/icons-vue';
 import { getLogList, detailLog, deleteLog, getLogReport } from '@/api/log';
+
+
 // 搜索和筛选条件
 const searchText = ref('');
+const isExport = ref(false)
 const filterForm = reactive({
   operationType: '',
   module: '',
@@ -341,9 +356,9 @@ shouldResetPage = false) => {
 const handleSearch = () => {
   fetchLogList(1, true);
 };
-
 // 导出日志
 const handleExport = async () => {
+  isExport.value = true;
   const res = await getLogReport();
   // 创建 Blob 对象并下载
   const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -354,6 +369,7 @@ const handleExport = async () => {
   link.click();
   window.URL.revokeObjectURL(url);
   if(res.size > 0){
+    isExport.value = false;
     ElMessage.success('日志导出成功');
   }else{
     ElMessage.error('日志导出失败');
@@ -534,9 +550,12 @@ onMounted(() => {
 
 /* 详情弹窗 */
 .glass-dialog :deep(.el-dialog) {
+  /* 设置弹窗背景 */
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.6) !important;
 }
 
 .log-detail {
@@ -684,5 +703,10 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   justify-content: center;
+}
+.spin-container{
+  /* 让icon变大且旋转 */
+  animation: spin 2s linear infinite;
+  font-size: 24px; /* 增大icon大小 */
 }
 </style> 
