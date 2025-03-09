@@ -82,8 +82,8 @@ service.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }else if(error.status  === 500){
-      ElMessage.error("服务器内部错误");
-      return Promise.reject(new Error("服务器内部错误"));
+      ElMessage.error(error.response.data.msg);
+      return Promise.reject(new Error(error.response.data.msg));
     }else if(error.status === 403){ 
       ElMessage.error("该账号无权限操作");
       //不用往后面传递错误信息

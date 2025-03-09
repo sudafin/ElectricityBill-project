@@ -58,7 +58,6 @@
               placeholder="请输入密码"
               class="glass-input"
               show-password
-              :disabled="isEdit"
             >
               <template #prefix>
                 <el-icon><Lock /></el-icon>
@@ -75,7 +74,6 @@
               placeholder="请再次输入密码"
               class="glass-input"
               show-password
-              :disabled="isEdit"
             >
               <template #prefix>
                 <el-icon><Key /></el-icon>
@@ -87,7 +85,6 @@
               v-model="adminForm.adminRole" 
               placeholder="请选择角色"
               class="glass-select"
-              :disabled="isEdit"
             >
               <el-option 
                 v-for="(option, index) in roleOptions" 
@@ -178,6 +175,7 @@
 
 <script setup>
 import { ref, reactive, watch, nextTick, computed ,onMounted} from 'vue';
+import { useUserStore } from '@/store/user';
 import { ElMessage } from 'element-plus';
 import {
   UserFilled,
@@ -196,7 +194,7 @@ import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/role';
 import { getPublicKey } from '@/api/user';
 import { encryptWithRSA } from '@/utils/encrypt';
 
-
+const userStore = useUserStore()
 const props = defineProps({
   visible: Boolean,
   editData: Object,
@@ -420,7 +418,6 @@ watch(dialogVisible, (val) => {
 });
 
 
-
 // 修改提交表单方法
 const submitForm = async () => {
   if (activeTab.value === 'role') {
@@ -446,13 +443,11 @@ const submitForm = async () => {
     adminFormRef.value.validate(async (valid) => {
         if(isEdit.value){
           if (valid) {
-            const publicKey = await getPublicKey();
             // 构造提交数据，只包含必要字段
             const submitData = {
               account: adminForm.account,
-              role: adminForm.role,
-              // 如果查看时密码为空，则不加密
-              password: isEdit.value ? adminForm.password : encryptWithRSA(adminForm.password, publicKey),
+              role: adminForm.adminRole,
+              password: adminForm.password ? encryptWithRSA(adminForm.password, userStore.publicKey) : '',
             };
             const res = await editAdmin(props.editData.adminId,submitData);
             if(res.code === 200){   
@@ -461,8 +456,14 @@ const submitForm = async () => {
               //emit用来通知父组件刷新列表第一个参数是自定义事件名，第二个后面是参数数据
               emit('success',"execSuccess", submitData, isEdit.value);
               closeDialog();
+            }else if(res.code === 401){
+              await userStore.logout()
+              ElMessage.success(res.msg)
+              closeDialog();
+              //跳转到登录页面
+              router.push('/login');
             }else{
-              ElMessage.error(res.message);
+              ElMessage.error(res.msg);
             }
           }
         }else{
@@ -472,7 +473,7 @@ const submitForm = async () => {
             const submitData = {
               isRole : false,
               account: adminForm.account,
-              role: adminForm.role,
+              role: adminForm.adminRole,
               password: encryptWithRSA(adminForm.password, publicKey),
               permissionList: permissionList.value,
               roleDesc: roleForm.roleDesc,

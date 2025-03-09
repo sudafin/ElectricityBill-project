@@ -179,7 +179,10 @@ import {
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from '../role/EBRoleUserForm.vue';
 import { getAdminList,deleteAdmin,updateStatus,getPermissionList,getAdminDetail,getRoleList } from '@/api/role';
+import { getPublicKey } from '@/api/user';
+import { useUserStore } from '@/store/user';
 
+const userStore = useUserStore()
 // 表格数据
 const loading = ref(false);
 const adminList = ref([]);
@@ -239,6 +242,8 @@ onMounted(async () => {
   try {
     await getRoleOptions();
     await fetchAdminList(1, true);
+    const publicKey = await getPublicKey();
+    userStore.setPublicKey(publicKey);
   } catch (error) {
     console.error('初始化数据时出错:', error);
   }
