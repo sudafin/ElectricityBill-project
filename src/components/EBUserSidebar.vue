@@ -110,6 +110,7 @@ const handleSelect = (index) => {
   color: #fff;
   transition: all 0.3s;
   overflow: hidden;
+  position: relative;
   
   &.is-collapsed {
     width: 64px;
@@ -152,11 +153,28 @@ const handleSelect = (index) => {
   }
   
   .eb-sidebar-footer {
-    padding: 16px;
-    text-align: center;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background-color: #fff;
+    border-radius: 50%;
     cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+    
+    &:hover {
+      transform: translateX(-50%) scale(1.1);
+      box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+    }
     
     .eb-sidebar-icon {
+      color: #8ec5fc;
       font-size: 20px;
     }
   }

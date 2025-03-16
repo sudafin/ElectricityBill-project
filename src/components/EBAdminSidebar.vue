@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   House,
@@ -81,7 +81,60 @@ import {
 
 const route = useRoute();
 const router = useRouter();
-const activeIndex = ref(route.path);
+
+// 使用计算属性获取当前路由路径，确保高亮正确显示
+const activeIndex = computed(() => {
+  // 获取当前路由路径
+  const currentPath = route.path;
+  
+  // 检查是否有精确匹配的菜单项
+  const menuItems = [
+    '/admin/dashboard',
+    '/admin/fee',
+    '/admin/report',
+    '/admin/reconciliation',
+    '/admin/notification',
+    '/admin/payment',
+    '/admin/setting/role',
+    '/admin/setting/rate',
+    '/admin/setting/log'
+  ];
+  
+  // 如果当前路径精确匹配某个菜单项，直接返回
+  if (menuItems.includes(currentPath)) {
+    return currentPath;
+  }
+  
+  // 检查/admin/setting子菜单的特殊情况
+  if (currentPath.startsWith('/admin/setting')) {
+    return '/admin/setting';
+  }
+  
+  // 如果不完全匹配，查找最接近的匹配项
+  for (const item of menuItems) {
+    if (currentPath.startsWith(item)) {
+      return item;
+    }
+  }
+  
+  // 默认返回当前路径
+  return currentPath;
+});
+
+// 在组件挂载时确保高亮正确初始化
+onMounted(() => {
+  // 强制更新菜单活动项
+  const activeEl = document.querySelector('.el-menu-item.is-active');
+  if (activeEl) {
+    activeEl.classList.remove('is-active');
+    setTimeout(() => {
+      const newActiveEl = document.querySelector(`[index="${activeIndex.value}"]`);
+      if (newActiveEl) {
+        newActiveEl.classList.add('is-active');
+      }
+    }, 0);
+  }
+});
 
 const isCollapsed = ref(false);
 
@@ -165,53 +218,15 @@ const handleSelect = (index) => {
   font-size: 20px;
 }
 
-.eb-menu {
-  border-right: none;
+
+.el-menu {
+  border-right: none !important;
 }
 
-:deep(.el-menu-item.is-active) {
-  background-color: rgba(17, 5, 5, 0.2) !important;
-}
-//  .el-popper.is-pure {
-//     background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
-//     backdrop-filter: blur(12px);
-//     border: 1px solid rgba(255, 255, 255, 0.2);
-//     box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
-//     color: #333;
-// }
-
-:deep(.el-sub-menu__title),
-:deep(.el-menu-item) {
-  height: 50px;
-  line-height: 50px;
-  position: relative;
-  white-space: nowrap;
-  overflow: hidden;
+.el-menu-item.is-active {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+  border-left: 3px solid #fff !important;
 }
 
-:deep(.el-sub-menu__title) i,
-:deep(.el-menu-item) i {
-  color: #fff;
-}
-
-:deep(.el-sub-menu__title) span,
-:deep(.el-menu-item) span {
-  display: inline-block;
-  padding-left: 10px;
-  opacity: 1;
-  transition: opacity 0.28s;
-}
-
-.eb-sidebar.is-collapsed :deep(.el-sub-menu__title) span,
-.eb-sidebar.is-collapsed :deep(.el-menu-item) span {
-  opacity: 0;
-}
-
-.eb-sidebar.is-collapsed :deep(.el-menu--collapse) {
-  width: 64px;
-}
-
-.eb-sidebar:not(.is-collapsed) :deep(.el-menu--collapse) {
-  width: 200px;
-}
 </style> 

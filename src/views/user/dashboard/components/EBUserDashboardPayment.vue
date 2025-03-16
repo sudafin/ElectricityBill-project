@@ -114,9 +114,9 @@
           <el-table-column label="操作" width="180">
             <template #default="scope">
               <router-link :to="`/user/payment/detail/${scope.row.id}`">
-                <EBButton type="primary" text size="small">查看详情</EBButton>
+                <el-button type="primary" text size="small">查看详情</el-button>
               </router-link>
-              <EBButton 
+              <el-button 
                 type="success" 
                 text 
                 size="small" 
@@ -124,7 +124,7 @@
                 :disabled="scope.row.status !== '成功'"
               >
                 下载凭证
-              </EBButton>
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
