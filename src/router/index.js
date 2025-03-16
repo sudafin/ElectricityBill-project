@@ -14,11 +14,13 @@ const routes = [
         meta: { requiresAuth: true },
         children: [
           { path: 'dashboard', name: 'UserDashboard', component: () => import('@/views/user/dashboard/EBUserDashboard.vue'), meta: { title: '电费概览' } },
-          { path: 'payment', component: () => import('@/layouts/EBTabLayout.vue'), redirect: '/user/payment/dashboard', children: [
-            { path: 'dashboard', name: 'UserPaymentEntry', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费' } },
-            { path: 'history', name: 'UserPaymentHistory', component: () => import('@/views/user/payment/EBUserPaymentHistory.vue'), meta: { title: '缴费记录' } },
-            { path: 'detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserPaymentDetail.vue'), meta: { title: '缴费详情', hidden: true } }
-          ] },
+          {
+            path: 'payment', redirect: '/user/payment/dashboard', children: [
+              { path: 'dashboard', name: 'UserPaymentEntry', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费' } },
+              { path: 'history', name: 'UserPaymentHistory', component: () => import('@/views/user/payment/EBUserPaymentHistory.vue'), meta: { title: '缴费记录' } },
+              { path: 'detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserPaymentDetail.vue'), meta: { title: '缴费详情', hidden: true } }
+            ]
+          },
           { path: 'analysis', name: 'UserElectricityAnalysis', component: () => import('@/views/user/analysis/EBUserElectricityAnalysis.vue'), meta: { title: '用电分析' } },
           { path: 'notifications', name: 'UserNotifications', component: () => import('@/views/user/notification/EBUserNotifications.vue'), meta: { title: '通知中心' } },
           { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/profile/EBUserProfile.vue'), meta: { title: '个人信息' } },
@@ -36,7 +38,6 @@ const routes = [
           { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/EBDashboard.vue'), meta: { title: '首页' } },
           {
             path: 'fee',
-            component: () => import('@/layouts/EBTabLayout.vue'),
             redirect: '/admin/fee/dashboard',
             children: [
               { path: 'dashboard', name: 'AdminUserDashboard', component: () => import('@/views/admin/fee/EBFeeDashBoard.vue'), meta: { title: '用户费用' } },
@@ -48,7 +49,6 @@ const routes = [
           { path: 'report', name: 'AdminReport', component: () => import('@/views/admin/report/EBReport.vue'), meta: { title: '数据统计与报表' } },
           {
             path: 'reconciliation',
-            component: () => import('@/layouts/EBTabLayout.vue'),
             redirect: '/admin/reconciliation/list',
             children: [
               { path: 'list', name: 'ReconciliationList', component: () => import('@/views/admin/reconciliation/EBReconciliation.vue'), meta: { title: '对账列表' } },
@@ -57,7 +57,6 @@ const routes = [
           },
           {
             path: 'notification',
-            component: () => import('@/layouts/EBTabLayout.vue'),
             redirect: '/admin/notification/list',
             children: [
               { path: 'list', name: 'NotificationList', component: () => import('@/views/admin/notification/EBNotificationList.vue'), meta: { title: '通知列表' } },
@@ -67,7 +66,6 @@ const routes = [
           },
           {
             path: 'payment',
-            component: () => import('@/layouts/EBTabLayout.vue'),
             redirect: '/admin/payment/list',
             children: [
               { path: 'list', name: 'PaymentList', component: () => import('@/views/admin/payment/EBPaymentList.vue'), meta: { title: '支付列表' } },
@@ -76,7 +74,6 @@ const routes = [
           },
           {
             path: 'setting',
-            component: () => import('@/layouts/EBTabLayout.vue'),
             redirect: '/admin/setting/rate',
             children: [
               { path: 'role', name: 'RoleSetting', component: () => import('@/views/admin/setting/role/EBRoleSetting.vue'), meta: { title: '角色权限管理' } },

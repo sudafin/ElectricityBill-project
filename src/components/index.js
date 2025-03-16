@@ -2,7 +2,7 @@ import EBTable from './EBTable.vue';
 import EBSearchFilter from './EBSearchFilter.vue';
 import EBPagination from './EBPagination.vue';
 import EBBatchActions from './EBBatchActions.vue';
-import EBPageLayout from './EBPageLayout.vue';
+import EBPageLayout from '../layouts/EBPageLayout.vue';
 import EBSidebar from './EBAdminSidebar.vue';
 import EBButton from './EBButton.vue';
 

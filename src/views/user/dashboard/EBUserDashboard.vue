@@ -77,31 +77,46 @@ const currentComponent = computed(() => {
 
 .tab-buttons {
   display: flex;
-  gap: 15px;
-  padding: 10px 0;
+  padding: 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eaedf2;
 }
 
 .capsule-button {
-  border-radius: 20px;
-  background-color: #ffffff;
-  color: #606266;
+  border-radius: 0;
+  background-color: transparent;
+  color: rgba(0, 0, 0, 0.65);
   font-size: 14px;
   height: 40px;
   padding: 0 20px;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border: none;
+  margin-right: 30px;
+  box-shadow: none !important;
   transition: all 0.3s;
+  position: relative;
 }
 
 .capsule-button:hover {
   color: #409EFF;
+  background-color: transparent;
 }
 
 .active-capsule {
   color: #409EFF;
-  background-color: #ffffff;
   font-weight: 500;
-  border-color: #e6e6e6;
+  background-color: transparent;
+  box-shadow: none !important;
+}
+
+/* 活动标签下的下划线 */
+.active-capsule::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background-color: #409EFF;
 }
 
 .dashboard-container {

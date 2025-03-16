@@ -1,66 +1,59 @@
 <template>
-  <div class="eb-sidebar" :class="{ 'is-collapsed': isCollapsed }">
-    <div class="eb-sidebar-header">
-      <span v-if="!isCollapsed" class="eb-sidebar-title">电费管理系统</span>
-      <el-icon v-else class="eb-sidebar-icon" @click="toggleSidebar"><Expand /></el-icon>
+  <div class="eb-sidebar" :class="{ 'is-expanded': isExpanded }">
+    <div class="sidebar-toggle" @click="toggleSidebar">
+      <el-icon v-if="isExpanded"><Fold /></el-icon>
+      <el-icon v-else><Expand /></el-icon>
     </div>
     <el-menu 
       :default-active="activeIndex"
-      :collapse="isCollapsed"
+      :collapse="!isExpanded"
       :collapse-transition="false"
       class="eb-menu"
       @select="handleSelect"
       background-color="transparent"
-      text-color="#fff"
-      active-text-color="#fff"
+      text-color="#333"
+      active-text-color="#409EFF"
     >
       <el-menu-item index="/user/dashboard">
         <el-icon><House /></el-icon>
-        <span>电费概览</span>
+        <template #title>电费概览</template>
       </el-menu-item>
       <el-menu-item index="/user/payment/dashboard">
         <el-icon><Wallet /></el-icon>
-        <span>缴纳电费</span>
+        <template #title>缴纳电费</template>
       </el-menu-item>
       <el-menu-item index="/user/analysis">
         <el-icon><DataAnalysis /></el-icon>
-        <span>用电分析</span>
+        <template #title>用电分析</template>
       </el-menu-item>
       <el-menu-item index="/user/notifications">
         <el-icon><Bell /></el-icon>
-        <span>通知中心</span>
+        <template #title>通知中心</template>
       </el-menu-item>
       <el-menu-item index="/user/profile">
         <el-icon><User /></el-icon>
-        <span>个人信息</span>
+        <template #title>个人信息</template>
       </el-menu-item>
       <el-menu-item index="/user/help">
         <el-icon><QuestionFilled /></el-icon>
-        <span>帮助中心</span>
+        <template #title>帮助中心</template>
       </el-menu-item>
     </el-menu>
-    <div class="eb-sidebar-footer" @click="toggleSidebar">
-      <el-icon class="eb-sidebar-icon">
-        <Fold v-if="!isCollapsed" />
-        <Expand v-else />
-      </el-icon>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   House,
   User,
   DataAnalysis,
-  DocumentChecked,
   Bell,
   Wallet,
+  QuestionFilled,
   Fold,
-  Expand,
-  QuestionFilled
+  Expand
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -90,10 +83,17 @@ const activeIndex = computed(() => {
   return currentPath;
 });
 
-const isCollapsed = ref(false);
+// 控制侧边栏展开/收起状态
+const isExpanded = ref(false);
 
+// 切换侧边栏展开/收起状态
 const toggleSidebar = () => {
-  isCollapsed.value = !isCollapsed.value;
+  isExpanded.value = !isExpanded.value;
+  
+  // 触发自定义事件，通知其他组件侧边栏状态已更改
+  document.dispatchEvent(new CustomEvent('sidebarToggle', {
+    detail: { expanded: isExpanded.value }
+  }));
 };
 
 const handleSelect = (index) => {
@@ -106,32 +106,37 @@ const handleSelect = (index) => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%);
-  color: #fff;
-  transition: all 0.3s;
+  background: #f0f5fa;
+  color: #606266;
+  transition: width 0.3s ease;
   overflow: hidden;
-  position: relative;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0;
+  box-shadow: none;
+  width: 60px !important;
+  padding: 0;
+  z-index: 999;
   
-  &.is-collapsed {
-    width: 64px;
+  &.is-expanded {
+    width: 200px !important;
   }
   
-  .eb-sidebar-header {
-    padding: 20px 16px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    height: 64px;
+  .sidebar-toggle {
+    height: 60px;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #7b8191;
     
-    .eb-sidebar-title {
-      white-space: nowrap;
+    &:hover {
+      color: #409EFF;
     }
     
-    .eb-sidebar-icon {
-      cursor: pointer;
+    .el-icon {
       font-size: 20px;
     }
   }
@@ -140,42 +145,41 @@ const handleSelect = (index) => {
     flex: 1;
     border-right: none;
     background-color: transparent;
+    width: 100%;
+    margin-top: 20px;
     
     .el-menu-item {
-      &:hover, &.is-active {
-        background-color: rgba(255, 255, 255, 0.2) !important;
+      height: 50px;
+      line-height: 50px;
+      text-align: left;
+      margin-bottom: 5px;
+      background-color: transparent;
+      border-left: 3px solid transparent;
+      padding-left: 20px !important;
+      font-weight: 500;
+      
+      &:hover {
+        background-color: rgba(64, 158, 255, 0.1) !important;
+        color: #409EFF !important;
       }
       
       &.is-active {
-        border-left: 3px solid #fff;
+        background-color: #e5f1fb !important;
+        color: #409EFF !important;
+        border-left: 3px solid #409EFF;
+        font-weight: 600;
       }
-    }
-  }
-  
-  .eb-sidebar-footer {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 40px;
-    height: 40px;
-    background-color: #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
-    
-    &:hover {
-      transform: translateX(-50%) scale(1.1);
-      box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
-    }
-    
-    .eb-sidebar-icon {
-      color: #8ec5fc;
-      font-size: 20px;
+      
+      .el-icon {
+        margin-right: 0;
+        font-size: 18px;
+        color: #7b8191;
+        font-weight: bold;
+      }
+      
+      &.is-active .el-icon {
+        color: #409EFF;
+      }
     }
   }
 }
@@ -183,11 +187,26 @@ const handleSelect = (index) => {
 // 重写 Element Plus 默认样式
 .el-menu {
   border-right: none !important;
+  background-color: transparent !important;
 }
 
-.el-menu-item.is-active {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-  color: #fff !important;
-  border-left: 3px solid #fff !important;
+.el-menu-item {
+  color: #7b8191 !important;
+  
+  &.is-active {
+    color: #409EFF !important;
+  }
+}
+
+.el-menu--collapse {
+  width: 60px;
+}
+
+.el-menu:not(.el-menu--collapse) {
+  width: 200px;
+  
+  .el-menu-item .el-icon {
+    margin-right: 12px !important;
+  }
 }
 </style>

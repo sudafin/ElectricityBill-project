@@ -141,11 +141,12 @@ onMounted(() => {
 <style scoped>
 .eb-breadcrumb-container {
   background-color: #fff;
-  border-radius: 20px;
+  border-radius: 10px;
   padding: 10px 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: none !important;
+  border: 1px solid #ebeef5;
   display: inline-block;
-  margin: 10px 10px 0px 18px;
+  margin: 10px 0px 10px 0px;
   max-width: calc(100% - 36px);
   overflow: hidden;
 }

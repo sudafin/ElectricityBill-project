@@ -1,6 +1,9 @@
 <template>
   <el-header class="eb-header">
-    <div class="eb-header-left">
+    <div class="eb-header-side">
+      <!-- 左侧留空 -->
+    </div>
+    <div class="eb-header-center">
       <img src="@/assets/images/logo.png"
            alt="logo"
            class="eb-logo">
@@ -55,14 +58,28 @@ const handleLogout = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
-  background-color: #f5f7fa;
-  padding: 0 20px;
-  border-bottom: 1px solid #e4e7ed;
+  height: 64px;
+  background-color: #fff;
+  padding: 0 24px;
+  border-bottom: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.eb-header-side {
+  flex: 1;
+}
+
+.eb-header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .eb-header-right {
+  flex: 1;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
 }
 
@@ -70,34 +87,32 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 5px;
+  padding: 0 8px;
   border-radius: 4px;
   transition: background-color 0.3s;
+}
+
+.eb-user-info:hover {
+  background-color: #f0f2f5;
 }
 
 .eb-user-details {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 10px;
+  margin-right: 12px;
 }
 
 .eb-user-name {
   font-size: 14px;
-  font-weight: 100;
-  color: rgb(126, 164, 251);
-  margin-top: 2px;
-}
-
-.eb-header-left {
-  display: flex;
-  align-items: center;
+  color: rgba(0, 0, 0, 0.85);
+  margin-top: 0;
 }
 
 .eb-logo {
-  height: 50px;
-  margin-left: 30px;
+  height: 32px;
 }
+
 :focus-visible {
   outline: none;
 }

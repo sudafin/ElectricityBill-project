@@ -140,11 +140,14 @@ onMounted(() => {
   border-radius: 8px;
   background-color: #f5f7fa;
   transition: all 0.3s;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .notification-item:hover {
   background-color: #ecf5ff;
-  transform: translateY(-2px);
+  transform: none;
+  box-shadow: none !important;
 }
 
 .notification-item.unread {
@@ -169,6 +172,7 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   margin-right: 15px;
+  box-shadow: none !important;
 }
 
 .notification-icon .el-icon {
@@ -217,5 +221,10 @@ onMounted(() => {
 .view-more-container {
   margin-top: 20px;
   text-align: center;
+}
+
+:deep(*) {
+  box-shadow: none !important;
+  filter: none !important;
 }
 </style> 
