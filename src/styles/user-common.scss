@@ -1,0 +1,104 @@
+/* 用户界面共享样式 */
+
+/* 胶囊形按钮样式 */
+.capsule-button {
+  border-radius: 20px !important;
+  background-color: #ffffff !important;
+  color: #606266 !important;
+  font-size: 14px !important;
+  height: 40px !important;
+  padding: 0 20px !important;
+  border: 1px solid #ebeef5 !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s !important;
+}
+
+.capsule-button:hover {
+  color: #409EFF !important;
+}
+
+.capsule-button.el-button--primary {
+  background-color: #409EFF !important;
+  color: #ffffff !important;
+  border-color: #409EFF !important;
+}
+
+.capsule-button.el-button--primary:hover {
+  background-color: #66b1ff !important;
+  color: #ffffff !important;
+}
+
+.capsule-button.el-button--success {
+  background-color: #67C23A !important;
+  color: #ffffff !important;
+  border-color: #67C23A !important;
+}
+
+.capsule-button.el-button--success:hover {
+  background-color: #85ce61 !important;
+  color: #ffffff !important;
+}
+
+.capsule-button.el-button--warning {
+  background-color: #E6A23C !important;
+  color: #ffffff !important;
+  border-color: #E6A23C !important;
+}
+
+.capsule-button.el-button--warning:hover {
+  background-color: #ebb563 !important;
+  color: #ffffff !important;
+}
+
+.capsule-button.el-button--danger {
+  background-color: #F56C6C !important;
+  color: #ffffff !important;
+  border-color: #F56C6C !important;
+}
+
+.capsule-button.el-button--danger:hover {
+  background-color: #f78989 !important;
+  color: #ffffff !important;
+}
+
+.capsule-button.el-button--info {
+  background-color: #909399 !important;
+  color: #ffffff !important;
+  border-color: #909399 !important;
+}
+
+.capsule-button.el-button--info:hover {
+  background-color: #a6a9ad !important;
+  color: #ffffff !important;
+}
+
+/* 胶囊形按钮禁用状态 */
+.capsule-button.is-disabled {
+  background-color: #f5f7fa !important;
+  color: #c0c4cc !important;
+  border-color: #e4e7ed !important;
+}
+
+/* 文本按钮样式 */
+.capsule-button.el-button--text {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+  box-shadow: none !important;
+}
+
+/* 小型按钮样式 */
+.capsule-button.el-button--small {
+  height: 32px !important;
+  padding: 0 15px !important;
+  font-size: 12px !important;
+}
+
+/* 激活状态 */
+.active-capsule {
+  color: #409EFF !important;
+  background-color: #ffffff !important;
+  font-weight: 500 !important;
+  border-color: #e6e6e6 !important;
+} 

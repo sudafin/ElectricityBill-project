@@ -1,0 +1,79 @@
+/* 公共卡片样式 */
+.eb-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+/* 页面容器样式 */
+.eb-page-container {
+  padding: 20px;
+  background-color: #f5f7fa;
+}
+
+/* 操作按钮样式 */
+.eb-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* 表格内容区域样式 */
+.eb-table-content {
+  margin-bottom: 20px;
+}
+
+/* 按钮图标样式 */
+.eb-button-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.eb-button-with-icon .el-icon {
+  margin-right: 4px;
+}
+
+/* 抽屉内容样式 */
+.eb-drawer-content {
+  padding: 20px;
+}
+
+/* 信息项样式 */
+.eb-info-section {
+  margin-bottom: 24px;
+}
+
+.eb-info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.eb-info-item .eb-label {
+  width: 100px;
+  color: #606266;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.eb-info-item .eb-value {
+  color: #303133;
+  font-size: 14px;
+}
+
+/* 标题样式 */
+.eb-section-title {
+  display: none; /* 隐藏标题 */
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 0;
+  color: #303133;
+}
+
+/* 分隔线样式 */
+.eb-divider {
+  margin: 16px 0;
+  border-top: 1px solid #ebeef5;
+} 

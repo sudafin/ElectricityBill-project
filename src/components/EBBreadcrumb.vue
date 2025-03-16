@@ -26,7 +26,7 @@ const breadcrumbList = ref([]);
 let currentModuleName = null;
 
 const generateBreadcrumb = () => {
-  // 获取当前路由的全部匹配路径  从父路径到子路径 一个父路径一个数组元素,比如说我们的user模块,它就有三个元素, 第一个元素就是'/' 开头全部数据包括子路径 ,第二个元素就是'/user' 开头全部数据包括子路径,第三个元素就是'/user/dashboard' 开头全部数据包括子路径
+  // 获取当前路由的全部匹配路径  从父路径到子路径 一个父路径一个数组元素,比如说我们的user模块,它就有三个元素, 第一个元素就是'/' 开头全部数据包括子路径 ,第二个元素就是'/fee' 开头全部数据包括子路径,第三个元素就是'/fee/dashboard' 开头全部数据包括子路径
   const matched = route.matched;
 
 

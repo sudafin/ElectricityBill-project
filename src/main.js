@@ -5,6 +5,12 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
+// 导入自定义样式
+import './styles/user-common.scss'
+
+// 导入自定义指令
+import directives from './directives'
+
 import App from './App.vue'
 import router from './router'
 
@@ -15,6 +21,8 @@ app.use(router)
 app.use(ElementPlus,{
   locale: zhCn,
 })
+app.use(directives) // 注册自定义指令
+
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }

@@ -99,3 +99,264 @@ export function refreshAccessToken() {
     withCredentials: true
   });
 }
+
+// 模拟获取用户信息
+export function getUserInfo() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: {
+          balance: 128.56,
+          currentMonthUsage: 243,
+          lastPaymentTime: '2023-03-15 09:23:45'
+        }
+      });
+    }, 500);
+  });
+}
+
+// 模拟获取用户用电历史
+export function getUserUsageHistory() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: [
+          { month: '一月', usage: 180, cost: 90 },
+          { month: '二月', usage: 200, cost: 100 },
+          { month: '三月', usage: 160, cost: 80 },
+          { month: '四月', usage: 220, cost: 110 },
+          { month: '五月', usage: 240, cost: 120 },
+          { month: '六月', usage: 190, cost: 95 }
+        ]
+      });
+    }, 500);
+  });
+}
+
+// 模拟获取最近缴费记录
+export function getRecentPayments(params) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: [
+          {
+            paymentId: 'P2023031501',
+            amount: 100,
+            paymentMethod: '支付宝',
+            status: '已支付',
+            paymentTime: '2023-03-15 09:23:45'
+          },
+          {
+            paymentId: 'P2023030201',
+            amount: 150,
+            paymentMethod: '微信支付',
+            status: '已支付',
+            paymentTime: '2023-03-02 14:35:22'
+          }
+        ]
+      });
+    }, 500);
+  });
+}
+
+// 模拟获取用户通知
+export function getUserNotifications(params) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        data: [
+          {
+            id: 1,
+            title: '电费缴纳成功通知',
+            content: '您已成功缴纳电费100元，感谢您的使用。',
+            createTime: '2023-03-15 09:25:00',
+            isRead: true
+          },
+          {
+            id: 2,
+            title: '系统维护通知',
+            content: '系统将于2023-03-20进行维护升级，届时可能无法访问系统，敬请谅解。',
+            createTime: '2023-03-18 10:00:00',
+            isRead: false
+          }
+        ]
+      });
+    }, 500);
+  });
+}
+
+// 用户相关接口
+
+/**
+ * 获取用户电费分析数据
+ * @param {Object} params 查询参数
+ * @returns {Promise}
+ */
+export const getUserElectricityAnalysis = (params) => {
+  // 这里返回一个模拟的成功响应，包含假数据
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        code: 200,
+        message: '获取成功',
+        data: {
+          summary: {
+            totalUsage: 2560,
+            totalCost: 1792.0,
+            averageMonthlyUsage: 213.3,
+            usageYoY: -3.5,
+            costYoY: 2.1,
+            avgUsageYoY: -3.2
+          },
+          monthlyData: {
+            current: [210, 185, 190, 175, 160, 220, 280, 295, 240, 230, 205, 190],
+            lastYear: [220, 195, 200, 180, 170, 210, 270, 290, 245, 235, 215, 195]
+          },
+          timeDistribution: {
+            night: 15,
+            morning: 25,
+            afternoon: 30,
+            evening: 30
+          },
+          typeDistribution: {
+            '生活用电': 45,
+            '照明': 20,
+            '厨房电器': 15,
+            '电子设备': 10,
+            '空调': 10
+          },
+          comparison: {
+            user: [150, 160, 145, 165, 170, 155, 180, 190, 160, 155, 145, 150],
+            average: [180, 175, 170, 175, 180, 185, 195, 200, 185, 175, 170, 165]
+          },
+          insights: {
+            analysis: [
+              { content: '您的用电量较上月减少了5%，较同期减少了3.5%' },
+              { content: '您在夏季空调用电明显高于平均水平，建议注意调节空调温度' },
+              { content: '夜间用电比例较低，符合科学用电习惯' }
+            ],
+            suggestions: [
+              { 
+                title: '合理调节空调温度', 
+                content: '空调温度设定在26℃左右是最为舒适和节能的，每调高1℃可节约6%的用电量',
+                savingPotential: '约15元/月'
+              },
+              { 
+                title: '使用节能灯具', 
+                content: '将普通灯泡更换为LED节能灯，可节约75%的照明用电',
+                savingPotential: '约20元/月'
+              },
+              { 
+                title: '减少待机能耗', 
+                content: '电器不使用时及时拔掉插头，避免待机能耗',
+                savingPotential: '约10元/月'
+              }
+            ]
+          }
+        }
+      });
+    }, 500);  // 模拟网络延迟
+  });
+};
+
+/**
+ * 获取缴费历史记录
+ * @param {Object} params 查询参数
+ * @returns {Promise}
+ */
+export const getPaymentHistory = (params) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        code: 200,
+        message: '获取成功',
+        data: {
+          list: [
+            { 
+              paymentId: 'PAY202303150001', 
+              amount: 186.9, 
+              paymentMethod: '微信支付', 
+              status: '已支付', 
+              paymentTime: '2023-03-15 14:30:25' 
+            },
+            { 
+              paymentId: 'PAY202302150002', 
+              amount: 205.6, 
+              paymentMethod: '支付宝', 
+              status: '已支付', 
+              paymentTime: '2023-02-15 09:45:12' 
+            },
+            { 
+              paymentId: 'PAY202301150003', 
+              amount: 189.3, 
+              paymentMethod: '银行卡', 
+              status: '已支付', 
+              paymentTime: '2023-01-15 16:20:35' 
+            }
+          ],
+          total: 3
+        }
+      });
+    }, 500);
+  });
+};
+
+/**
+ * 获取支付详情
+ * @param {String} paymentId 支付ID
+ * @returns {Promise}
+ */
+export const getPaymentDetail = (paymentId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        code: 200,
+        message: '获取成功',
+        data: {
+          paymentId: paymentId,
+          amount: 186.9,
+          paymentMethod: '微信支付',
+          status: '已支付',
+          paymentTime: '2023-03-15 14:30:25',
+          transactionId: 'TX' + Date.now(),
+          channel: '第三方支付',
+          remark: '电费缴纳'
+        }
+      });
+    }, 500);
+  });
+};
+
+/**
+ * 申请退款
+ * @param {Object} data 退款信息
+ * @returns {Promise}
+ */
+export const applyRefund = (data) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        code: 200,
+        message: '申请成功',
+        data: null
+      });
+    }, 500);
+  });
+};
+
+/**
+ * 下载支付收据
+ * @param {String} paymentId 支付ID
+ * @returns {Promise}
+ */
+export const downloadPaymentReceipt = (paymentId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        code: 200,
+        message: '下载成功',
+        data: null
+      });
+    }, 500);
+  });
+};

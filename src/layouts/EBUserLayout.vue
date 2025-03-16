@@ -22,7 +22,7 @@
 
 <script setup>
 import EBHeader from '@/components/EBHeader.vue';
-import EBSidebar from '@/components/EBAdminSidebar.vue';
+import EBSidebar from '@/components/EBUserSidebar.vue';
 import EBFooter from '@/components/EBFooter.vue';
 import EBBreadcrumb from '@/components/EBBreadcrumb.vue';
 </script>
