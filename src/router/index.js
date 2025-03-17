@@ -14,9 +14,9 @@ const routes = [
         meta: { requiresAuth: true },
         children: [
           { path: 'dashboard', name: 'UserDashboard', component: () => import('@/views/user/dashboard/EBUserDashboard.vue'), meta: { title: '电费概览' } },
-          { path: 'paymentDashboard', name: 'UserPaymentDashboard', component: () => import('@/views/user/payment/EBUserPaymentHistory.vue'), meta: { title: '缴纳中心' } },
+          { path: 'paymentDashboard', name: 'UserPaymentDashboard', component: () => import('@/views/user/payment/EBUserBillDashBoard.vue'), meta: { title: '缴纳中心' } },
           { path: 'paymentDashboard/payment/:id', name: 'UserPayment', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费' } },
-          { path: 'paymentDashboard/detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserPaymentDetail.vue'), meta: { title: '缴费详情' } },
+          { path: 'paymentDashboard/detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserBillDetail.vue'), meta: { title: '缴费详情' } },
           { path: 'analysis', name: 'UserElectricityAnalysis', component: () => import('@/views/user/analysis/EBUserElectricityAnalysis.vue'), meta: { title: '用电分析' } },
           { path: 'notifications', name: 'UserNotifications', component: () => import('@/views/user/notification/EBUserNotifications.vue'), meta: { title: '通知中心' } },
           { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/profile/EBUserProfile.vue'), meta: { title: '个人信息' } },

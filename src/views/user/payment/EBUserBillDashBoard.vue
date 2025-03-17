@@ -3,19 +3,19 @@
     <template #header>
       <div class="eb-payment-history-header">
         <EBSearchFilter v-model:searchValue="searchText"
-                        searchPlaceholder="搜索支付单号"
+                        searchPlaceholder="搜索缴费单号"
                         @search="handleSearch"
                         @clear="fetchPaymentHistory(1, true)">
           <template #filters>
             <el-select v-model="selectedStatus"
-                       placeholder="支付状态"
+                       placeholder="缴费状态"
                        clearable
                        style="width: 150px;">
               <el-option label="全部"
                          value=""></el-option>
-              <el-option label="已支付"
-                         value="已支付"></el-option>
-              <el-option label="支付失败"
+              <el-option label="已缴费"
+                         value="已缴费"></el-option>
+              <el-option label="缴费失败"
                          value="失败"></el-option>
               <el-option label="退款"
                          value="退款"></el-option>
@@ -54,7 +54,7 @@
         <div class="eb-actions">
 
           <!-- 缴纳按钮 -->
-          <template v-if="row.status !== '已支付'">
+          <template v-if="row.status !== '已缴费'">
             <el-button type="danger"
                        text
                        @click="handleRouterPayment(row)">缴纳</el-button>
@@ -69,7 +69,7 @@
           <template v-else>
             <el-button type=""
                        text
-                       disabled>已支付</el-button>
+                       disabled>已缴费</el-button>
           </template>
 
           <!-- 查看详细信息按钮 -->
@@ -95,9 +95,9 @@
                width="30%">
       <div class="refund-content">
         <p>您确定要申请退款吗？</p>
-        <p class="refund-info">支付单号：{{ refundPayment.paymentId }}</p>
-        <p class="refund-info">支付金额：{{ refundPayment.amount }} 元</p>
-        <p class="refund-info">支付时间：{{ refundPayment.paymentTime }}</p>
+        <p class="refund-info">缴费单号：{{ refundPayment.paymentId }}</p>
+        <p class="refund-info">缴费金额：{{ refundPayment.amount }} 元</p>
+        <p class="refund-info">缴费时间：{{ refundPayment.paymentTime }}</p>
 
         <el-form ref="refundFormRef"
                  :model="refundForm"
@@ -169,7 +169,7 @@ const refundFormRef = ref(null)
 
 const router = useRouter();
 
-// 去支付
+// 去缴费
 const handleRouterPayment = (row) => {
   router.push(`/user/paymentDashboard/payment/${row.paymentId}`);
 };
@@ -195,46 +195,46 @@ const refundRules = {
 
 // 定义表格列
 const columns = ref([
-  { prop: 'paymentId', label: '支付单号' },
+  { prop: 'paymentId', label: '缴费单号' },
   { prop: 'amount', label: '金额', sortable: true },
-  { prop: 'paymentMethod', label: '支付方式' },
+  { prop: 'paymentMethod', label: '缴费方式' },
   { prop: 'status', label: '状态' },
-  { prop: 'paymentTime', label: '支付时间', sortable: true },
+  { prop: 'paymentTime', label: '缴费时间', sortable: true },
 ])
 
-// 支付统计数据 - 使用本地假数据
+// 缴费统计数据 - 使用本地假数据
 const statistics = reactive({
   totalAmount: 581.8,
   count: 3,
   averageMonthly: 193.9,
 })
 
-// 支付记录 - 使用本地假数据
+// 缴费记录 - 使用本地假数据
 const paymentList = ref([
   {
     paymentId: 'PAY202303150001',
     amount: 186.9,
-    paymentMethod: '微信支付',
-    status: '已支付',
+    paymentMethod: '微信缴费',
+    status: '已缴费',
     paymentTime: '2023-03-15 14:30:25',
   },
   {
     paymentId: 'PAY202302150002',
     amount: 205.6,
     paymentMethod: '支付宝',
-    status: '已支付',
+    status: '已缴费',
     paymentTime: '2023-02-15 09:45:12',
   },
   {
     paymentId: 'PAY202301150003',
     amount: 189.3,
     paymentMethod: '银行卡',
-    status: '已支付',
+    status: '已缴费',
     paymentTime: '2023-01-15 16:20:35',
   },
 ])
 
-// 过滤后的支付记录
+// 过滤后的缴费记录
 const filteredPayments = ref([...paymentList.value])
 const total = ref(paymentList.value.length)
 
@@ -253,7 +253,7 @@ const fetchPaymentHistory = async (
   setTimeout(() => {
     // 模拟筛选处理
     filteredPayments.value = paymentList.value.filter((item) => {
-      // 按支付单号筛选
+      // 按缴费单号筛选
       const matchPaymentId =
         !searchText.value || item.paymentId.includes(searchText.value)
 
@@ -336,7 +336,7 @@ const submitRefund = async () => {
         refundDialogVisible.value = false
         refundLoading.value = false
 
-        // 更新支付记录状态
+        // 更新缴费记录状态
         const index = paymentList.value.findIndex(
           (item) => item.paymentId === refundPayment.value.paymentId
         )
@@ -360,7 +360,7 @@ const downloadReceipt = async (payment) => {
 // 获取状态对应的类型
 const getStatusType = (status) => {
   switch (status) {
-    case '已支付':
+    case '已缴费':
       return 'success'
     case '失败':
       return 'danger'

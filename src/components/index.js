@@ -5,6 +5,7 @@ import EBBatchActions from './EBBatchActions.vue';
 import EBPageLayout from '../layouts/EBPageLayout.vue';
 import EBSidebar from './EBAdminSidebar.vue';
 import EBButton from './EBButton.vue';
+import EBFeedbackForm from './EBFeedbackForm.vue';
 
 // 导出所有组件
 export {
@@ -14,7 +15,8 @@ export {
   EBBatchActions,
   EBPageLayout,
   EBSidebar,
-  EBButton
+  EBButton,
+  EBFeedbackForm
 };
 
 // 批量注册组件
@@ -28,5 +30,6 @@ export default {
     app.component('EBPageLayout', EBPageLayout);
     app.component('EBSidebar', EBSidebar);
     app.component('EBButton', EBButton);
+    app.component('EBFeedbackForm', EBFeedbackForm);
   }
 }; 

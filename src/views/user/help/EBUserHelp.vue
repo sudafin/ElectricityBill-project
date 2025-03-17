@@ -72,6 +72,18 @@
                 <el-icon><Lock /></el-icon>
                 <span>安全问题</span>
               </el-menu-item>
+              <el-menu-item index="billing">
+                <el-icon><Ticket /></el-icon>
+                <span>账单查询</span>
+              </el-menu-item>
+              <el-menu-item index="smart-meter">
+                <el-icon><Monitor /></el-icon>
+                <span>智能电表</span>
+              </el-menu-item>
+              <el-menu-item index="energy-saving">
+                <el-icon><Sunny /></el-icon>
+                <span>节能建议</span>
+              </el-menu-item>
               <el-menu-item index="contact">
                 <el-icon><Service /></el-icon>
                 <span>联系我们</span>
@@ -98,9 +110,9 @@
                 <el-icon><Clock /></el-icon>
                 <span>工作时间：周一至周日 8:00-22:00</span>
               </div>
-              <el-button type="primary" class="contact-btn" @click="showChatDialog">
-                <el-icon><ChatDotRound /></el-icon>
-                在线咨询
+              <el-button type="primary" class="contact-btn" @click="showFeedbackDialog">
+                <el-icon><Edit /></el-icon>
+                反馈问题
               </el-button>
             </div>
           </el-card>
@@ -186,36 +198,28 @@
               </div>
             </template>
             <div class="guide-content">
-              <el-tabs v-model="activeGuide">
+              <el-tabs v-model="activeGuide" tab-position="left" class="guide-tabs">
                 <el-tab-pane
                   v-for="(guide, index) in guides"
                   :key="index"
                   :label="guide.title"
                   :name="guide.id"
                 >
-                  <div class="guide-steps">
-                    <el-steps :active="guide.steps.length" direction="vertical">
-                      <el-step
-                        v-for="(step, stepIndex) in guide.steps"
-                        :key="stepIndex"
-                        :title="step.title"
-                        :description="step.description"
-                      >
-                        <template #icon>
-                          <el-icon><component :is="step.icon" /></el-icon>
-                        </template>
-                      </el-step>
-                    </el-steps>
-                  </div>
-                  <div v-if="guide.image" class="guide-image">
-                    <el-image :src="guide.image" fit="contain">
-                      <template #error>
-                        <div class="image-error">
-                          <el-icon><Picture /></el-icon>
-                          <span>加载图片失败</span>
-                        </div>
-                      </template>
-                    </el-image>
+                  <div class="guide-container">
+                    <div class="guide-steps">
+                      <el-steps :active="guide.steps.length" direction="vertical" space="20px">
+                        <el-step
+                          v-for="(step, stepIndex) in guide.steps"
+                          :key="stepIndex"
+                          :title="step.title"
+                          :description="step.description"
+                        >
+                          <template #icon>
+                            <el-icon><component :is="step.icon" /></el-icon>
+                          </template>
+                        </el-step>
+                      </el-steps>
+                    </div>
                   </div>
                 </el-tab-pane>
               </el-tabs>
@@ -225,44 +229,14 @@
       </el-row>
     </div>
 
-    <!-- 在线客服对话框 -->
+    <!-- 反馈问题对话框 -->
     <el-dialog
-      v-model="chatDialogVisible"
-      title="在线客服"
+      v-model="feedbackDialogVisible"
+      title="问题反馈"
       width="60%"
       destroy-on-close
     >
-      <div class="chat-container">
-        <div class="chat-messages" ref="chatMessagesRef">
-          <div
-            v-for="(message, index) in chatMessages"
-            :key="index"
-            class="chat-message"
-            :class="{ 'user-message': message.isUser, 'system-message': !message.isUser }"
-          >
-            <div class="message-avatar">
-              <el-avatar :icon="message.isUser ? User : Service" :size="40"></el-avatar>
-            </div>
-            <div class="message-content">
-              <div class="message-sender">{{ message.isUser ? '您' : '客服' }}</div>
-              <div class="message-text">{{ message.content }}</div>
-              <div class="message-time">{{ message.time }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="chat-input">
-          <el-input
-            v-model="chatInput"
-            placeholder="请输入您的问题"
-            :rows="3"
-            type="textarea"
-            @keyup.enter="sendMessage"
-          ></el-input>
-          <el-button type="primary" @click="sendMessage" :disabled="!chatInput.trim()">
-            发送
-          </el-button>
-        </div>
-      </div>
+      <EBFeedbackForm ref="feedbackFormRef" />
     </el-dialog>
   </EBPageLayout>
 </template>
@@ -289,9 +263,23 @@ import {
   Setting,
   Refresh,
   Download,
-  Upload
+  Upload,
+  Edit,
+  Ticket,
+  Monitor,
+  Sunny,
+  VideoPlay,
+  Link,
+  Connection,
+  Notification,
+  Position,
+  Promotion,
+  Printer,
+  CreditCard,
+  OfficeBuilding,
+  MessageBox
 } from '@element-plus/icons-vue';
-import { EBPageLayout } from '@/components';
+import { EBPageLayout, EBFeedbackForm } from '@/components';
 
 // 搜索相关
 const searchQuery = ref('');
@@ -309,17 +297,9 @@ const activeCategory = ref('account');
 // 操作指南
 const activeGuide = ref('payment-guide');
 
-// 在线客服
-const chatDialogVisible = ref(false);
-const chatInput = ref('');
-const chatMessages = ref([
-  {
-    content: '您好，我是电费缴纳系统的智能客服助手，有什么可以帮助您的吗？',
-    isUser: false,
-    time: formatTime(new Date())
-  }
-]);
-const chatMessagesRef = ref(null);
+// 在线客服对话框改为反馈对话框
+const feedbackDialogVisible = ref(false);
+const feedbackFormRef = ref(null);
 
 // FAQ数据
 const faqs = ref([
@@ -409,7 +389,7 @@ const guides = ref([
         icon: 'Download'
       }
     ],
-    image: 'https://example.com/payment-guide.png'
+    image: '/images/guides/payment-guide.png'
   },
   {
     id: 'analysis-guide',
@@ -441,7 +421,7 @@ const guides = ref([
         icon: 'Setting'
       }
     ],
-    image: 'https://example.com/analysis-guide.png'
+    image: '/images/guides/analysis-guide.png'
   },
   {
     id: 'profile-guide',
@@ -478,7 +458,135 @@ const guides = ref([
         icon: 'Upload'
       }
     ],
-    image: 'https://example.com/profile-guide.png'
+    image: '/images/guides/profile-guide.png'
+  },
+  {
+    id: 'billing-guide',
+    title: '账单查询指南',
+    steps: [
+      {
+        title: '步骤1：进入账单查询页面',
+        description: '在左侧菜单中点击"账单查询"选项，进入账单查询页面。',
+        icon: 'Ticket'
+      },
+      {
+        title: '步骤2：选择查询时间范围',
+        description: '使用日期选择器选择您要查询的账单时间范围。',
+        icon: 'Setting'
+      },
+      {
+        title: '步骤3：筛选账单类型',
+        description: '您可以按账单类型、缴费状态等条件筛选账单记录。',
+        icon: 'Filter'
+      },
+      {
+        title: '步骤4：查看账单详情',
+        description: '点击账单记录可查看详细的账单明细和用电情况。',
+        icon: 'Document'
+      },
+      {
+        title: '步骤5：导出或打印账单',
+        description: '点击"导出"或"打印"按钮，将账单保存为电子文档或打印纸质版。',
+        icon: 'Printer'
+      }
+    ],
+    image: '/images/guides/billing-guide.png'
+  },
+  {
+    id: 'meter-guide',
+    title: '智能电表指南',
+    steps: [
+      {
+        title: '步骤1：查看电表信息',
+        description: '在"智能电表"页面查看您的电表基本信息和实时数据。',
+        icon: 'Monitor'
+      },
+      {
+        title: '步骤2：设置用电阈值',
+        description: '设置每日/每月用电量阈值，超过时系统将发送提醒。',
+        icon: 'Setting'
+      },
+      {
+        title: '步骤3：查看用电记录',
+        description: '查看历史用电记录，了解您的用电趋势和变化。',
+        icon: 'DataAnalysis'
+      },
+      {
+        title: '步骤4：报告电表异常',
+        description: '如发现电表数据异常，可通过系统报告故障。',
+        icon: 'Warning'
+      },
+      {
+        title: '步骤5：远程抄表',
+        description: '了解系统如何自动远程抄表，免去人工抄表的烦恼。',
+        icon: 'Connection'
+      }
+    ],
+    image: '/images/guides/meter-guide.png'
+  },
+  {
+    id: 'notification-guide',
+    title: '通知设置指南',
+    steps: [
+      {
+        title: '步骤1：进入通知设置页面',
+        description: '在个人中心选择"通知设置"选项，进入设置页面。',
+        icon: 'Bell'
+      },
+      {
+        title: '步骤2：设置账单通知',
+        description: '开启或关闭账单生成、缴费截止日提醒等通知。',
+        icon: 'Notification'
+      },
+      {
+        title: '步骤3：设置用电提醒',
+        description: '设置用电量超过阈值时的提醒方式和条件。',
+        icon: 'Warning'
+      },
+      {
+        title: '步骤4：选择通知方式',
+        description: '选择您偏好的通知方式，如短信、邮件或APP推送。',
+        icon: 'Message'
+      },
+      {
+        title: '步骤5：设置通知时间',
+        description: '设置您希望接收通知的时间段，避免在休息时间打扰您。',
+        icon: 'Clock'
+      }
+    ],
+    image: '/images/guides/notification-guide.png'
+  },
+  {
+    id: 'energy-guide',
+    title: '节能建议指南',
+    steps: [
+      {
+        title: '步骤1：查看用电分析',
+        description: '查看系统生成的用电分析报告，了解您的用电情况。',
+        icon: 'DataAnalysis'
+      },
+      {
+        title: '步骤2：获取节能建议',
+        description: '查看基于您的用电习惯生成的个性化节能建议。',
+        icon: 'Sunny'
+      },
+      {
+        title: '步骤3：了解峰谷电价',
+        description: '了解当地峰谷电价政策，合理安排用电时间。',
+        icon: 'Money'
+      },
+      {
+        title: '步骤4：设置节能目标',
+        description: '设置每月的节能目标，系统将追踪您的完成情况。',
+        icon: 'Setting'
+      },
+      {
+        title: '步骤5：查看节能成果',
+        description: '定期查看您的节能成果和节约的电费金额。',
+        icon: 'Star'
+      }
+    ],
+    image: '/images/guides/energy-guide.png'
   }
 ]);
 
@@ -528,6 +636,63 @@ const fetchFaqs = async () => {
         answer: '您可以在"个人信息"页面修改您的基本信息、联系方式和通知设置等。点击右上角的"保存修改"按钮即可保存您的更改。',
         category: 'account',
         links: []
+      },
+      {
+        id: 6,
+        question: '如何查询历史账单？',
+        answer: '您可以在"账单查询"页面查看您的历史账单信息。系统默认显示最近6个月的账单，您可以通过筛选功能查看更早的账单记录。点击账单记录可以查看详细的账单明细。',
+        category: 'billing',
+        links: [
+          { text: '账单查询指南', url: '#/help/guide/billing' }
+        ]
+      },
+      {
+        id: 7,
+        question: '如何导出账单？',
+        answer: '在"账单查询"页面，您可以选择需要导出的账单记录，点击"导出"按钮，选择导出格式（PDF或Excel）即可下载账单文件。您也可以在账单详情页面点击"打印"按钮直接打印账单。',
+        category: 'billing',
+        links: []
+      },
+      {
+        id: 8,
+        question: '智能电表显示的数据与实际不符怎么办？',
+        answer: '如果您发现智能电表显示的数据与实际情况不符，可以通过以下方式处理：<br>1. 检查电表是否正常工作<br>2. 拍照记录当前电表读数<br>3. 联系客服反馈问题，我们会安排技术人员上门检查',
+        category: 'smart-meter',
+        links: []
+      },
+      {
+        id: 9,
+        question: '如何查看智能电表的实时数据？',
+        answer: '您可以通过移动APP随时查看智能电表的实时数据。在APP首页点击"实时监测"，即可查看当前用电情况、历史用电趋势等信息。如果您已安装家庭能源管理系统，还可以查看分设备的用电情况。',
+        category: 'smart-meter',
+        links: [
+          { text: '下载移动APP', url: '#/help/app-download' }
+        ]
+      },
+      {
+        id: 10,
+        question: '有哪些实用的节能建议？',
+        answer: '我们根据用户用电习惯，总结了以下节能建议：<br>1. 使用高能效电器：购买电器时优先选择能效等级高的产品<br>2. 合理设置空调温度：夏季不低于26℃，冬季不高于20℃<br>3. 避开用电高峰：尽量在电力负荷较低的时段使用大功率电器<br>4. 及时关闭待机设备：完全关闭不使用的电器而非待机状态<br>5. 充分利用自然光：减少白天照明用电',
+        category: 'energy-saving',
+        links: [
+          { text: '更多节能技巧', url: '#/help/energy-tips' }
+        ]
+      },
+      {
+        id: 11,
+        question: '如何设置用电超额提醒？',
+        answer: '您可以在"通知设置"页面设置用电超额提醒。进入页面后，找到"用电提醒"区域，开启"用电超额提醒"功能，并设置您的月度用电额度和提醒方式（短信/邮件/APP推送）。系统会在您的用电量达到设定额度的80%和100%时发送提醒。',
+        category: 'notification',
+        links: []
+      },
+      {
+        id: 12,
+        question: '如何使用分时电价功能节约电费？',
+        answer: '分时电价是指电价根据用电时段不同而有所区别，通常分为峰时、平时和谷时三个时段，峰时电价最高，谷时电价最低。您可以：<br>1. 了解您所在地区的分时电价时段划分<br>2. 将高耗电设备的使用时间尽量安排在电价较低的时段<br>3. 使用智能定时插座，在低谷电价时段自动开启设备',
+        category: 'energy-saving',
+        links: [
+          { text: '查看分时电价表', url: '#/help/time-price' }
+        ]
       }
     ];
   } catch (error) {
@@ -579,83 +744,10 @@ const submitFeedback = (faqId, isHelpful) => {
   }, 500);
 };
 
-// 显示在线客服对话框
-const showChatDialog = () => {
-  chatDialogVisible.value = true;
-  nextTick(() => {
-    scrollToBottom();
-  });
+// 显示反馈问题对话框
+const showFeedbackDialog = () => {
+  feedbackDialogVisible.value = true;
 };
-
-// 发送消息
-const sendMessage = () => {
-  if (!chatInput.value.trim()) return;
-  
-  // 添加用户消息
-  chatMessages.value.push({
-    content: chatInput.value,
-    isUser: true,
-    time: formatTime(new Date())
-  });
-  
-  const userQuestion = chatInput.value;
-  chatInput.value = '';
-  
-  // 滚动到底部
-  nextTick(() => {
-    scrollToBottom();
-    
-    // 模拟客服回复
-    setTimeout(() => {
-      chatMessages.value.push({
-        content: getAutoReply(userQuestion),
-        isUser: false,
-        time: formatTime(new Date())
-      });
-      
-      nextTick(() => {
-        scrollToBottom();
-      });
-    }, 1000);
-  });
-};
-
-// 滚动聊天窗口到底部
-const scrollToBottom = () => {
-  if (chatMessagesRef.value) {
-    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight;
-  }
-};
-
-// 格式化时间
-function formatTime(date) {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
-// 获取自动回复
-function getAutoReply(question) {
-  // 简单的关键词匹配
-  const keywords = {
-    '缴费': '您可以在"电费缴纳"页面进行缴费，支持多种支付方式。需要详细指导可以查看"电费缴纳指南"。',
-    '密码': '如果您忘记密码，可以通过"忘记密码"功能重置。在登录页面点击"忘记密码"，按照提示操作即可。',
-    '用电分析': '用电分析功能可以帮助您了解用电趋势和习惯，在"用电分析"页面可以查看详细数据和节电建议。',
-    '退款': '如需申请退款，请在"缴费记录"中找到相应的缴费记录，点击"申请退款"按钮，按照提示操作即可。',
-    '账单': '您可以在"电费概览"页面查看当前账单和历史账单信息。',
-    '联系': '您可以通过客服热线400-123-4567或发送邮件至support@ebill.com与我们联系。'
-  };
-  
-  // 检查问题中是否包含关键词
-  for (const [key, reply] of Object.entries(keywords)) {
-    if (question.includes(key)) {
-      return reply;
-    }
-  }
-  
-  // 默认回复
-  return '感谢您的咨询。您的问题可能需要更专业的解答，建议您拨打客服热线400-123-4567获取帮助，或者查看我们的帮助文档获取更多信息。';
-}
 
 // 获取分类名称
 const getCategoryName = (category) => {
@@ -665,6 +757,9 @@ const getCategoryName = (category) => {
     'usage': '用电分析',
     'notification': '通知设置',
     'security': '安全问题',
+    'billing': '账单查询',
+    'smart-meter': '智能电表',
+    'energy-saving': '节能建议',
     'contact': '联系我们'
   };
   return categories[category] || '其他';
@@ -678,6 +773,9 @@ const getCategoryType = (category) => {
     'usage': 'info',
     'notification': 'warning',
     'security': 'danger',
+    'billing': 'info',
+    'smart-meter': 'warning',
+    'energy-saving': 'success',
     'contact': ''
   };
   return types[category] || '';
@@ -748,6 +846,17 @@ onMounted(() => {
   border-right: none;
 }
 
+/* 添加以下样式确保菜单项中的文字显示 */
+.help-menu .el-menu-item {
+  display: flex;
+  align-items: center;
+}
+
+.help-menu .el-menu-item span {
+  display: inline-block;
+  margin-left: 8px;
+}
+
 .contact-content {
   display: flex;
   flex-direction: column;
@@ -793,22 +902,68 @@ onMounted(() => {
   gap: 10px;
 }
 
-.guide-steps {
+.guide-card {
   margin-bottom: 20px;
 }
 
-.guide-image {
-  margin-top: 20px;
-  text-align: center;
+.guide-tabs {
+  height: 500px;
 }
 
-.image-error {
+.guide-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: #909399;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.guide-steps {
+  flex: 1;
+  padding-right: 30px;
+  overflow-y: auto;
+  max-height: 460px;
+  scrollbar-width: thin;
+}
+
+.guide-steps::-webkit-scrollbar {
+  width: 6px;
+}
+
+.guide-steps::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+.guide-steps::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+  border-radius: 3px;
+}
+
+.guide-steps :deep(.el-step) {
+  padding-bottom: 35px;
+}
+
+.guide-steps :deep(.el-step__title) {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 24px;
+  margin-bottom: 8px;
+}
+
+.guide-steps :deep(.el-step__description) {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #606266;
+  padding-right: 20px;
+}
+
+.guide-steps :deep(.el-step__icon) {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.guide-steps :deep(.el-step__line) {
+  margin-top: 12px;
 }
 
 .search-results {

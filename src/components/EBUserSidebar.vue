@@ -20,7 +20,7 @@
       </el-menu-item>
       <el-menu-item index="/user/paymentDashboard">
         <el-icon><Wallet /></el-icon>
-        <template #title>缴纳电费</template>
+        <template #title>缴费中心 </template>
       </el-menu-item>
       <el-menu-item index="/user/analysis">
         <el-icon><DataAnalysis /></el-icon>

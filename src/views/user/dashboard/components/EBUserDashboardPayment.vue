@@ -57,7 +57,7 @@
                 <div class="card-title">当前待缴费</div>
                 <div class="card-value">{{ currentBill.amount || '0.00' }} 元</div>
                 <div class="card-description">
-                  <router-link to="/user/payment" class="pay-now-link" v-if="currentBill.amount > 0">
+                  <router-link to="/user/paymentDashboard/payment/new" class="pay-now-link" v-if="currentBill.amount > 0">
                     <el-button type="danger" size="small" plain>立即缴费</el-button>
                   </router-link>
                   <span v-else>无待缴费账单</span>
@@ -68,46 +68,27 @@
         </el-col>
       </el-row>
 
-      <!-- 最近缴费记录 -->
-      <el-card class="records-card">
+      <!-- 缴费趋势图 -->
+      <el-card class="chart-card">
         <template #header>
-          <div class="card-header">
-            <h3>近期缴费记录</h3>
+          <div class="chart-header">
+            <h3>缴费趋势</h3>
             <div class="header-actions">
-              <router-link to="/user/payment" class="view-detail-link">
+              <el-radio-group v-model="chartTimeRange" size="small" @change="updatePaymentChart">
+                <el-radio-button label="halfYear">近半年</el-radio-button>
+                <el-radio-button label="year">全年</el-radio-button>
+              </el-radio-group>
+              <router-link to="/user/paymentDashboard" class="view-detail-link">
                 <el-button type="primary" text size="medium">
                   缴费中心
                   <el-icon><Right /></el-icon>
                 </el-button>
               </router-link>
-              <router-link to="/user/payment/history" class="view-detail-link">
-                <el-button type="primary" text size="medium">
-                  查看全部记录
-                  <el-icon><ArrowRight /></el-icon>
-                </el-button>
-              </router-link>
             </div>
           </div>
         </template>
-        <el-table :data="recentPayments" style="width: 100%" border stripe>
-          <el-table-column prop="paymentDate" label="缴费日期" width="160" />
-          <el-table-column prop="billPeriod" label="账单周期" width="180" />
-          <el-table-column prop="amount" label="金额(元)" width="120" />
-          <el-table-column prop="paymentMethod" label="缴费方式" width="120" />
-          <el-table-column prop="status" label="状态">
-            <template #default="scope">
-              <el-tag 
-                :type="scope.row.status === '成功' ? 'success' : scope.row.status === '失败' ? 'danger' : 'warning'"
-              >
-                {{ scope.row.status }}
-              </el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 无记录提示 -->
-        <div v-if="recentPayments.length === 0" class="no-data">
-          <el-empty description="暂无缴费记录"></el-empty>
+        <div class="chart-container">
+          <div ref="paymentChartRef" style="width: 100%; height: 300px;"></div>
         </div>
       </el-card>
     </div>
@@ -115,11 +96,33 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Refresh, Money, Document, Wallet, ArrowRight, Right } from '@element-plus/icons-vue';
+import * as echarts from 'echarts/core';
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent
+} from 'echarts/components';
+import { LineChart } from 'echarts/charts';
+import { CanvasRenderer } from 'echarts/renderers';
+
+// 注册echarts组件
+echarts.use([
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  LineChart,
+  CanvasRenderer
+]);
 
 const loading = ref(false);
+const chartTimeRange = ref('halfYear');
+const paymentChartRef = ref(null);
+let paymentChart = null;
 
 // 电费统计数据
 const paymentStats = reactive({
@@ -134,12 +137,12 @@ const currentBill = reactive({
   dueDate: '2023-03-25'
 });
 
-// 最近缴费记录 - 最多显示5条
-const recentPayments = ref([
-  { paymentDate: '2023-03-15', billPeriod: '2023-02-01 至 2023-02-28', amount: 186.9, paymentMethod: '微信支付', status: '成功' },
-  { paymentDate: '2023-02-15', billPeriod: '2023-01-01 至 2023-01-31', amount: 196.0, paymentMethod: '支付宝', status: '成功' },
-  { paymentDate: '2023-01-16', billPeriod: '2022-12-01 至 2022-12-31', amount: 217.0, paymentMethod: '银行卡', status: '成功' },
-]);
+// 按月缴费数据 - 使用本地假数据
+const monthlyPaymentData = reactive({
+  months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  amounts: [210.5, 185.3, 196.7, 175.2, 188.6, 220.3, 235.8, 245.2, 228.6, 205.4, 192.7, 186.9],
+  counts: [1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1]
+});
 
 // 刷新数据
 const refreshData = () => {
@@ -147,12 +150,115 @@ const refreshData = () => {
   setTimeout(() => {
     loading.value = false;
     ElMessage.success('缴费记录已更新');
+    updatePaymentChart();
   }, 800);
+};
+
+// 更新缴费趋势图
+const updatePaymentChart = () => {
+  if (!paymentChartRef.value) return;
+  
+  if (paymentChart === null) {
+    paymentChart = echarts.init(paymentChartRef.value);
+  }
+  
+  // 根据选择的时间范围确定显示数据
+  let months, amounts;
+  if (chartTimeRange.value === 'halfYear') {
+    // 显示最近6个月的数据
+    months = monthlyPaymentData.months.slice(-6);
+    amounts = monthlyPaymentData.amounts.slice(-6);
+  } else {
+    // 显示全年数据
+    months = monthlyPaymentData.months;
+    amounts = monthlyPaymentData.amounts;
+  }
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        return `${params[0].name}<br/>${params[0].marker}缴费金额: ${params[0].value} 元`;
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: months,
+      axisLine: {
+        lineStyle: {
+          color: '#909399'
+        }
+      },
+      axisLabel: {
+        color: '#606266'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        formatter: '{value} 元',
+        color: '#606266'
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#EBEEF5'
+        }
+      }
+    },
+    series: [
+      {
+        name: '缴费金额',
+        type: 'line',
+        stack: 'Total',
+        data: amounts,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        itemStyle: {
+          color: '#409EFF'
+        },
+        lineStyle: {
+          width: 3,
+          color: '#409EFF'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            {
+              offset: 0,
+              color: 'rgba(64, 158, 255, 0.5)'
+            },
+            {
+              offset: 1,
+              color: 'rgba(64, 158, 255, 0.1)'
+            }
+          ])
+        }
+      }
+    ]
+  };
+  
+  paymentChart.setOption(option);
+};
+
+// 窗口大小变化时重置图表大小
+const handleResize = () => {
+  if (paymentChart) paymentChart.resize();
 };
 
 onMounted(() => {
   // 初始加载
   refreshData();
+  nextTick(() => {
+    updatePaymentChart();
+  });
+  window.addEventListener('resize', handleResize);
 });
 </script>
 
@@ -267,24 +373,25 @@ onMounted(() => {
   text-decoration: none;
 }
 
-.records-card {
+/* 图表卡片样式 */
+.chart-card {
   margin-bottom: 20px;
   border-radius: 4px;
   border: none;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-.records-card:hover {
+.chart-card:hover {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
 }
 
-.records-card :deep(.el-card__header) {
+.chart-card :deep(.el-card__header) {
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   background-color: #f9f9f9;
 }
 
-.card-header {
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -293,46 +400,22 @@ onMounted(() => {
 .header-actions {
   display: flex;
   gap: 16px;
+  align-items: center;
 }
 
-.card-header h3 {
+.chart-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
   color: #303133;
 }
 
-/* 表格样式 */
-.records-card :deep(.el-table) {
-  border: none;
-  --el-table-border-color: #f0f0f0;
-}
-
-.records-card :deep(.el-table--border) {
-  border: none;
-  box-shadow: none;
-}
-
-.records-card :deep(.el-table th) {
-  background-color: #f5f7fa;
-  font-weight: 500;
-  color: #606266;
-}
-
-.records-card :deep(.el-table td), .records-card :deep(.el-table th) {
-  padding: 10px 0;
-}
-
-.records-card :deep(.el-button.is-text) {
-  color: #409EFF;
-}
-
-.records-card :deep(.el-tag) {
-  border-radius: 2px;
+.chart-container {
+  padding: 20px 0;
 }
 
 /* 卡片头部按钮样式 */
-.card-header .el-button--text {
+.chart-header .el-button--text {
   padding: 8px 15px;
   color: #409EFF;
   height: 36px;
@@ -342,7 +425,7 @@ onMounted(() => {
   gap: 5px;
 }
 
-.card-header .el-button--text .el-icon {
+.chart-header .el-button--text .el-icon {
   font-size: 14px;
   margin-left: 4px;
 }
@@ -350,9 +433,5 @@ onMounted(() => {
 /* 去除链接下划线 */
 .view-detail-link {
   text-decoration: none;
-}
-
-.no-data {
-  padding: 20px 0;
 }
 </style> 

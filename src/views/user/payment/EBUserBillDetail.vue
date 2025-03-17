@@ -4,7 +4,6 @@
       <div class="eb-payment-detail-header">
         <div class="title-section">
           <EBButton @click="goBack" :icon="ArrowLeft" class="back-button">返回</EBButton>
-          <h2 class="eb-section-title">缴费详情</h2>
         </div>
         <div class="actions-section">
           <EBButton @click="downloadReceipt" type="primary" :loading="downloadLoading">
@@ -34,91 +33,135 @@
         </div>
       </el-card>
 
-      <!-- 基本信息卡片 -->
-      <el-card class="info-card">
-        <template #header>
-          <div class="card-header">
-            <h3>基本信息</h3>
+      <!-- 基本信息区域 -->
+      <div class="bill-section">
+        <div class="section-header">
+          <h3>账单信息</h3>
+          <el-tag v-if="paymentDetail.status === '已支付'" type="success">{{ paymentDetail.status }}</el-tag>
+          <el-tag v-else-if="paymentDetail.status === '失败'" type="danger">{{ paymentDetail.status }}</el-tag>
+          <el-tag v-else-if="paymentDetail.status === '退款'" type="warning">{{ paymentDetail.status }}</el-tag>
+        </div>
+        
+        <div class="bill-content">
+          <!-- 供电局信息 -->
+          <div class="power-company-info">
+            <div class="company-logo">
+              <el-icon :size="30"><Promotion /></el-icon>
+            </div>
+            <div class="company-details">
+              <h4>国家电网有限公司</h4>
+              <p>服务热线：95598</p>
+              <p>网址：www.sgcc.com.cn</p>
+            </div>
           </div>
-        </template>
-        <div class="card-content">
-          <el-row :gutter="20">
+
+          <!-- 账单信息表格 -->
+          <el-row class="bill-header">
             <el-col :span="12">
+              <h4>电费账单收据</h4>
+            </el-col>
+            <el-col :span="12" class="text-right">
+              <span>支付日期：{{ paymentDetail.paymentTime || '-' }}</span>
+            </el-col>
+          </el-row>
+
+          <div class="bill-info-box">
+            <div class="bill-info">
               <div class="info-item">
-                <span class="info-label">支付单号：</span>
+                <span class="info-label">支付单号:</span>
                 <span class="info-value">{{ paymentDetail.paymentId || '-' }}</span>
               </div>
-            </el-col>
-            <el-col :span="12">
               <div class="info-item">
-                <span class="info-label">支付方式：</span>
-                <span class="info-value">{{ paymentDetail.paymentMethod || '-' }}</span>
+                <span class="info-label">账单周期:</span>
+                <span class="info-value">{{ paymentDetail.billPeriod || '-' }}</span>
               </div>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
               <div class="info-item">
-                <span class="info-label">缴费金额：</span>
+                <span class="info-label">用电量:</span>
+                <span class="info-value">{{ paymentDetail.usage || '-' }} 度</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">缴费金额:</span>
                 <span class="info-value amount">{{ paymentDetail.amount || 0 }} 元</span>
               </div>
-            </el-col>
-            <el-col :span="12">
               <div class="info-item">
-                <span class="info-label">支付状态：</span>
-                <el-tag :type="getStatusType(paymentDetail.status)">{{ paymentDetail.status || '-' }}</el-tag>
+                <span class="info-label">支付方式:</span>
+                <span class="info-value">{{ paymentDetail.paymentMethod || '-' }}</span>
               </div>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
               <div class="info-item">
-                <span class="info-label">支付时间：</span>
-                <span class="info-value">{{ paymentDetail.paymentTime || '-' }}</span>
+                <span class="info-label">用户编号:</span>
+                <span class="info-value">{{ paymentDetail.userId || '-' }}</span>
               </div>
-            </el-col>
-            <el-col :span="12">
               <div class="info-item">
-                <span class="info-label">交易流水号：</span>
-                <span class="info-value">{{ paymentDetail.transactionId || '-' }}</span>
+                <span class="info-label">用户名称:</span>
+                <span class="info-value">{{ paymentDetail.username || '-' }}</span>
               </div>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="24">
               <div class="info-item">
-                <span class="info-label">备注信息：</span>
-                <span class="info-value">{{ paymentDetail.remark || '无' }}</span>
+                <span class="info-label">用电地址:</span>
+                <span class="info-value">{{ paymentDetail.address || '-' }}</span>
               </div>
-            </el-col>
-          </el-row>
-        </div>
-      </el-card>
-
-      <!-- 支付流程卡片 -->
-      <el-card class="process-card">
-        <template #header>
-          <div class="card-header">
-            <h3>支付流程</h3>
+            </div>
+            
+            <div class="supply-info">
+              <div class="info-section">
+                <h5>供电信息</h5>
+                <div class="info-row">
+                  <span class="info-name">供电单位：</span>
+                  <span class="info-content">{{ paymentDetail.supplyInfo?.company || '北京市电力公司海淀供电分公司' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">供电区域：</span>
+                  <span class="info-content">{{ paymentDetail.supplyInfo?.area || '中关村区域' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">电表类型：</span>
+                  <span class="info-content">{{ paymentDetail.supplyInfo?.meterType || '智能电表' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">电表编号：</span>
+                  <span class="info-content">{{ paymentDetail.supplyInfo?.meterNo || 'M20210512345' }}</span>
+                </div>
+              </div>
+              
+              <div class="info-section">
+                <h5>缴费信息</h5>
+                <div class="info-row">
+                  <span class="info-name">缴费单位：</span>
+                  <span class="info-content">{{ paymentDetail.paymentInfo?.company || '北京市电力公司' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">缴费渠道：</span>
+                  <span class="info-content">{{ paymentDetail.paymentInfo?.channel || '网上电费缴纳系统' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">交易流水号：</span>
+                  <span class="info-content">{{ paymentDetail.transactionId || '-' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-name">电子发票：</span>
+                  <span class="info-content">{{ paymentDetail.paymentInfo?.invoice || '缴费成功后可申请' }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </template>
-        <div class="process-content">
-          <el-timeline>
-            <el-timeline-item
-              v-for="(activity, index) in paymentDetail.activities || defaultActivities"
-              :key="index"
-              :timestamp="activity.timestamp"
-              :type="activity.type"
-              :color="activity.color"
-            >
-              {{ activity.content }}
-              <div v-if="activity.detail" class="activity-detail">
-                {{ activity.detail }}
-              </div>
-            </el-timeline-item>
-          </el-timeline>
+
+          <div class="bill-details">
+            <el-collapse>
+              <el-collapse-item title="账单明细">
+                <div class="details-content">
+                  <div class="details-item" v-for="(item, index) in paymentDetail.details || defaultDetails" :key="index">
+                    <span class="details-label">{{ item.label }}:</span>
+                    <span class="details-value">{{ item.value }}</span>
+                  </div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
+          
+          <div class="bill-note">
+            <p>注：本收据仅作为电费缴纳凭证，最终以实际缴费为准。如有疑问，请拨打供电客服热线。</p>
+          </div>
         </div>
-      </el-card>
+      </div>
 
       <!-- 电子收据卡片 -->
       <el-card class="receipt-card">
@@ -228,7 +271,8 @@ import {
   CircleCheckFilled, 
   CircleCloseFilled, 
   RefreshLeft, 
-  Clock 
+  Clock,
+  Promotion
 } from '@element-plus/icons-vue';
 import { EBPageLayout, EBButton } from '@/components';
 // 假设这些API函数已经在相应的文件中定义
@@ -243,6 +287,12 @@ const refundLoading = ref(false);
 const refundFormRef = ref(null);
 const paymentDetail = ref({});
 const paymentId = computed(() => route.params.id);
+
+// 判断是否可以申请退款
+const canRefund = computed(() => {
+  return paymentDetail.value.status === '已支付' && 
+         isWithinRefundPeriod(paymentDetail.value.paymentTime);
+});
 
 // 退款表单
 const refundForm = reactive({
@@ -260,32 +310,16 @@ const refundRules = {
   ]
 };
 
-// 默认支付流程活动（当API未返回时使用）
-const defaultActivities = [
-  {
-    content: '创建支付订单',
-    timestamp: '2023-04-01 14:30:00',
-    type: 'primary',
-    color: '#409EFF'
-  },
-  {
-    content: '发起支付请求',
-    timestamp: '2023-04-01 14:30:05',
-    type: 'primary',
-    color: '#409EFF'
-  },
-  {
-    content: '支付处理中',
-    timestamp: '2023-04-01 14:30:10',
-    type: 'primary',
-    color: '#E6A23C'
-  },
-  {
-    content: '支付完成',
-    timestamp: '2023-04-01 14:30:15',
-    type: 'primary',
-    color: '#67C23A'
-  }
+// 默认账单明细
+const defaultDetails = [
+  { label: '基本电费', value: '150.40元' },
+  { label: '计量表计量', value: '267度' },
+  { label: '计费单价', value: '0.562元/度' },
+  { label: '峰时电量', value: '102度' },
+  { label: '谷时电量', value: '98度' },
+  { label: '平时电量', value: '67度' },
+  { label: '附加费', value: '28.50元' },
+  { label: '增值税', value: '8.00元' }
 ];
 
 // 获取支付详情
@@ -503,8 +537,181 @@ onMounted(() => {
   color: #606266;
 }
 
-.info-card,
-.process-card,
+.bill-section {
+  margin-bottom: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f8f9fa;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.bill-content {
+  padding: 20px;
+}
+
+/* 供电局信息样式 */
+.power-company-info {
+  display: flex;
+  padding-bottom: 20px;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed #ebeef5;
+}
+
+.company-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  margin-right: 15px;
+  color: #409EFF;
+}
+
+.company-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.company-details p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #606266;
+}
+
+/* 账单头部 */
+.bill-header {
+  margin-bottom: 20px;
+}
+
+.bill-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* 账单信息 */
+.bill-info-box {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #fafafa;
+}
+
+.bill-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 15px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 14px;
+  color: #909399;
+  width: 85px;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.info-value.amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #F56C6C;
+}
+
+/* 供电信息 */
+.supply-info {
+  border-top: 1px dashed #ebeef5;
+  padding-top: 15px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 20px;
+}
+
+.info-section h5 {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  color: #303133;
+}
+
+.info-row {
+  margin-bottom: 8px;
+}
+
+.info-name {
+  font-size: 13px;
+  color: #909399;
+}
+
+.info-content {
+  font-size: 13px;
+  color: #606266;
+}
+
+/* 账单明细 */
+.bill-details {
+  margin-bottom: 20px;
+}
+
+.details-content {
+  padding: 10px 0;
+}
+
+.details-item {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.details-label {
+  width: 100px;
+  font-size: 14px;
+  color: #909399;
+}
+
+.details-value {
+  font-size: 14px;
+}
+
+/* 账单注释 */
+.bill-note {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+  margin-top: 15px;
+}
+
 .receipt-card {
   margin-bottom: 20px;
 }
@@ -519,39 +726,6 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-}
-
-.card-content {
-  padding: 10px 0;
-}
-
-.info-item {
-  margin-bottom: 15px;
-}
-
-.info-label {
-  color: #909399;
-  margin-right: 5px;
-}
-
-.info-value {
-  color: #303133;
-  font-weight: 500;
-}
-
-.info-value.amount {
-  color: #F56C6C;
-  font-weight: 600;
-}
-
-.process-content {
-  padding: 10px 0;
-}
-
-.activity-detail {
-  color: #909399;
-  font-size: 13px;
-  margin-top: 5px;
 }
 
 .receipt-content {
