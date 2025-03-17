@@ -3,28 +3,10 @@
     <div class="panel-header">
       <div class="header-spacer"></div>
       <div class="panel-actions">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          size="small"
-          style="width: 260px;"
-          @change="filterRecords"
-        ></el-date-picker>
-        <el-select v-model="statusFilter" placeholder="支付状态" size="small" style="width: 120px;" @change="filterRecords">
-          <el-option label="全部" value="all"></el-option>
-          <el-option label="成功" value="success"></el-option>
-          <el-option label="失败" value="failed"></el-option>
-          <el-option label="处理中" value="processing"></el-option>
-        </el-select>
-        <EBButton type="primary" @click="refreshData" :loading="loading" size="small">
+        <el-button type="primary" @click="refreshData" :loading="loading" size="medium">
           <el-icon><Refresh /></el-icon>
           刷新数据
-        </EBButton>
+        </el-button>
       </div>
     </div>
 
@@ -68,14 +50,17 @@
         <el-col :span="8">
           <el-card shadow="hover" class="summary-card">
             <div class="card-content">
-              <div class="card-icon average">
-                <el-icon><TrendCharts /></el-icon>
+              <div class="card-icon payment">
+                <el-icon><Wallet /></el-icon>
               </div>
               <div class="card-info">
-                <div class="card-title">平均每月缴费</div>
-                <div class="card-value">{{ paymentStats.averageMonthly }} 元</div>
+                <div class="card-title">当前待缴费</div>
+                <div class="card-value">{{ currentBill.amount || '0.00' }} 元</div>
                 <div class="card-description">
-                  本年度平均
+                  <router-link to="/user/payment" class="pay-now-link" v-if="currentBill.amount > 0">
+                    <el-button type="danger" size="small" plain>立即缴费</el-button>
+                  </router-link>
+                  <span v-else>无待缴费账单</span>
                 </div>
               </div>
             </div>
@@ -83,25 +68,32 @@
         </el-col>
       </el-row>
 
-      <!-- 缴费记录表格 -->
+      <!-- 最近缴费记录 -->
       <el-card class="records-card">
         <template #header>
           <div class="card-header">
-            <h3>缴费记录列表</h3>
-            <router-link to="/user/payment/history">
-              <EBButton type="primary" text>
-                查看全部记录
-                <el-icon><ArrowRight /></el-icon>
-              </EBButton>
-            </router-link>
+            <h3>近期缴费记录</h3>
+            <div class="header-actions">
+              <router-link to="/user/payment" class="view-detail-link">
+                <el-button type="primary" text size="medium">
+                  缴费中心
+                  <el-icon><Right /></el-icon>
+                </el-button>
+              </router-link>
+              <router-link to="/user/payment/history" class="view-detail-link">
+                <el-button type="primary" text size="medium">
+                  查看全部记录
+                  <el-icon><ArrowRight /></el-icon>
+                </el-button>
+              </router-link>
+            </div>
           </div>
         </template>
-        <el-table :data="filteredPayments" style="width: 100%" border stripe>
-          <el-table-column prop="paymentDate" label="缴费日期" width="160" sortable />
+        <el-table :data="recentPayments" style="width: 100%" border stripe>
+          <el-table-column prop="paymentDate" label="缴费日期" width="160" />
           <el-table-column prop="billPeriod" label="账单周期" width="180" />
-          <el-table-column prop="amount" label="金额(元)" width="120" sortable />
+          <el-table-column prop="amount" label="金额(元)" width="120" />
           <el-table-column prop="paymentMethod" label="缴费方式" width="120" />
-          <el-table-column prop="transactionNo" label="交易号" width="160" />
           <el-table-column prop="status" label="状态">
             <template #default="scope">
               <el-tag 
@@ -111,35 +103,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180">
-            <template #default="scope">
-              <router-link :to="`/user/payment/detail/${scope.row.id}`">
-                <el-button type="primary" text size="small">查看详情</el-button>
-              </router-link>
-              <el-button 
-                type="success" 
-                text 
-                size="small" 
-                @click="downloadReceipt(scope.row)" 
-                :disabled="scope.row.status !== '成功'"
-              >
-                下载凭证
-              </el-button>
-            </template>
-          </el-table-column>
         </el-table>
 
-        <!-- 分页 -->
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :page-sizes="[10, 20, 30, 50]"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="totalRecords"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
+        <!-- 无记录提示 -->
+        <div v-if="recentPayments.length === 0" class="no-data">
+          <el-empty description="暂无缴费记录"></el-empty>
         </div>
       </el-card>
     </div>
@@ -147,74 +115,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Refresh, Money, Document, TrendCharts, ArrowRight } from '@element-plus/icons-vue';
-import { EBButton } from '@/components';
+import { ref, reactive, onMounted } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Refresh, Money, Document, Wallet, ArrowRight, Right } from '@element-plus/icons-vue';
 
 const loading = ref(false);
-const dateRange = ref([]);
-const statusFilter = ref('all');
-const currentPage = ref(1);
-const pageSize = ref(10);
-const totalRecords = ref(0);
 
-// 缴费统计数据 - 使用本地假数据
+// 电费统计数据
 const paymentStats = reactive({
   totalAmount: 2350.50,
   totalCount: 12,
   averageMonthly: 195.88
 });
 
-// 缴费记录 - 使用本地假数据
-const paymentRecords = ref([
-  { id: 1, paymentDate: '2023-03-15', billPeriod: '2023-02-01 至 2023-02-28', amount: 186.9, paymentMethod: '微信支付', transactionNo: 'WX202303151234', status: '成功' },
-  { id: 2, paymentDate: '2023-02-15', billPeriod: '2023-01-01 至 2023-01-31', amount: 196.0, paymentMethod: '支付宝', transactionNo: 'ZFB202302151456', status: '成功' },
-  { id: 3, paymentDate: '2023-01-16', billPeriod: '2022-12-01 至 2022-12-31', amount: 217.0, paymentMethod: '银行卡', transactionNo: 'BANK202301161023', status: '成功' },
-  { id: 4, paymentDate: '2022-12-15', billPeriod: '2022-11-01 至 2022-11-30', amount: 203.0, paymentMethod: '微信支付', transactionNo: 'WX202212150945', status: '成功' },
-  { id: 5, paymentDate: '2022-11-16', billPeriod: '2022-10-01 至 2022-10-31', amount: 189.0, paymentMethod: '支付宝', transactionNo: 'ZFB202211161532', status: '成功' },
-  { id: 6, paymentDate: '2022-10-15', billPeriod: '2022-09-01 至 2022-09-30', amount: 220.5, paymentMethod: '微信支付', transactionNo: 'WX202210151022', status: '成功' },
-  { id: 7, paymentDate: '2022-09-15', billPeriod: '2022-08-01 至 2022-08-31', amount: 230.0, paymentMethod: '银行卡', transactionNo: 'BANK202209151245', status: '成功' },
-  { id: 8, paymentDate: '2022-08-16', billPeriod: '2022-07-01 至 2022-07-31', amount: 245.5, paymentMethod: '支付宝', transactionNo: 'ZFB202208161356', status: '成功' },
-  { id: 9, paymentDate: '2022-07-15', billPeriod: '2022-06-01 至 2022-06-30', amount: 210.0, paymentMethod: '微信支付', transactionNo: 'WX202207150857', status: '成功' },
-  { id: 10, paymentDate: '2022-06-15', billPeriod: '2022-05-01 至 2022-05-31', amount: 195.0, paymentMethod: '银行卡', transactionNo: 'BANK202206151503', status: '成功' },
-  { id: 11, paymentDate: '2022-05-16', billPeriod: '2022-04-01 至 2022-04-30', amount: 175.5, paymentMethod: '支付宝', transactionNo: 'ZFB202205161133', status: '成功' },
-  { id: 12, paymentDate: '2022-04-15', billPeriod: '2022-03-01 至 2022-03-31', amount: 182.0, paymentMethod: '微信支付', transactionNo: 'WX202204151023', status: '成功' }
-]);
-
-// 筛选后的缴费记录
-const filteredPayments = computed(() => {
-  let result = paymentRecords.value;
-  
-  // 按日期范围筛选
-  if (dateRange.value && dateRange.value.length === 2) {
-    const startDate = new Date(dateRange.value[0]);
-    const endDate = new Date(dateRange.value[1]);
-    endDate.setHours(23, 59, 59); // 设置为当天结束时间
-    
-    result = result.filter(item => {
-      const paymentDate = new Date(item.paymentDate);
-      return paymentDate >= startDate && paymentDate <= endDate;
-    });
-  }
-  
-  // 按状态筛选
-  if (statusFilter.value !== 'all') {
-    const statusMap = {
-      success: '成功',
-      failed: '失败',
-      processing: '处理中'
-    };
-    result = result.filter(item => item.status === statusMap[statusFilter.value]);
-  }
-  
-  totalRecords.value = result.length;
-  
-  // 分页
-  const startIndex = (currentPage.value - 1) * pageSize.value;
-  const endIndex = startIndex + pageSize.value;
-  return result.slice(startIndex, endIndex);
+// 当前账单信息
+const currentBill = reactive({
+  amount: 186.90,
+  dueDate: '2023-03-25'
 });
+
+// 最近缴费记录 - 最多显示5条
+const recentPayments = ref([
+  { paymentDate: '2023-03-15', billPeriod: '2023-02-01 至 2023-02-28', amount: 186.9, paymentMethod: '微信支付', status: '成功' },
+  { paymentDate: '2023-02-15', billPeriod: '2023-01-01 至 2023-01-31', amount: 196.0, paymentMethod: '支付宝', status: '成功' },
+  { paymentDate: '2023-01-16', billPeriod: '2022-12-01 至 2022-12-31', amount: 217.0, paymentMethod: '银行卡', status: '成功' },
+]);
 
 // 刷新数据
 const refreshData = () => {
@@ -223,44 +148,6 @@ const refreshData = () => {
     loading.value = false;
     ElMessage.success('缴费记录已更新');
   }, 800);
-};
-
-// 筛选记录
-const filterRecords = () => {
-  currentPage.value = 1; // 筛选后重置为第一页
-  refreshData();
-};
-
-// 处理每页条数变化
-const handleSizeChange = (size) => {
-  pageSize.value = size;
-};
-
-// 处理页码变化
-const handleCurrentChange = (page) => {
-  currentPage.value = page;
-};
-
-// 下载缴费凭证
-const downloadReceipt = (row) => {
-  ElMessageBox.alert(
-    `凭证信息：<br>
-    交易号：${row.transactionNo}<br>
-    缴费日期：${row.paymentDate}<br>
-    缴费金额：${row.amount}元<br>
-    支付方式：${row.paymentMethod}<br>
-    <br>
-    <strong>已生成电子回执，正在下载...</strong>`,
-    '电费缴纳回执',
-    {
-      dangerouslyUseHTMLString: true,
-      confirmButtonText: '确定'
-    }
-  );
-  
-  setTimeout(() => {
-    ElMessage.success('回执下载成功');
-  }, 1500);
 };
 
 onMounted(() => {
@@ -278,7 +165,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .header-spacer {
@@ -287,8 +174,18 @@ onMounted(() => {
 
 .panel-actions {
   display: flex;
-  gap: 15px;
+  gap: 16px;
   align-items: center;
+}
+
+/* 统一按钮样式 */
+.panel-actions .el-button {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 4px;
+  height: 36px;
 }
 
 .summary-cards {
@@ -296,46 +193,52 @@ onMounted(() => {
 }
 
 .summary-card {
-  height: 120px;
-  transition: all 0.3s;
+  border-radius: 4px;
+  border: none;
+  height: 100%;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .summary-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.summary-card :deep(.el-card__body) {
+  padding: 16px;
 }
 
 .card-content {
   display: flex;
   align-items: center;
-  height: 100%;
 }
 
 .card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-right: 15px;
+  flex-shrink: 0;
 }
 
 .card-icon .el-icon {
-  font-size: 30px;
+  font-size: 24px;
   color: white;
 }
 
 .card-icon.total {
-  background: linear-gradient(135deg, #F56C6C 0%, #f78989 100%);
+  background-color: #409EFF;
 }
 
 .card-icon.count {
-  background: linear-gradient(135deg, #409EFF 0%, #79bbff 100%);
+  background-color: #67C23A;
 }
 
-.card-icon.average {
-  background: linear-gradient(135deg, #67C23A 0%, #85ce61 100%);
+.card-icon.payment {
+  background-color: #E6A23C;
 }
 
 .card-info {
@@ -344,15 +247,15 @@ onMounted(() => {
 
 .card-title {
   font-size: 14px;
-  color: #909399;
+  color: #606266;
   margin-bottom: 8px;
 }
 
 .card-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 600;
   color: #303133;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .card-description {
@@ -360,8 +263,25 @@ onMounted(() => {
   color: #909399;
 }
 
+.pay-now-link {
+  text-decoration: none;
+}
+
 .records-card {
   margin-bottom: 20px;
+  border-radius: 4px;
+  border: none;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.records-card:hover {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+.records-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f9f9f9;
 }
 
 .card-header {
@@ -370,15 +290,69 @@ onMounted(() => {
   align-items: center;
 }
 
+.header-actions {
+  display: flex;
+  gap: 16px;
+}
+
 .card-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #303133;
 }
 
-.pagination-container {
-  margin-top: 20px;
+/* 表格样式 */
+.records-card :deep(.el-table) {
+  border: none;
+  --el-table-border-color: #f0f0f0;
+}
+
+.records-card :deep(.el-table--border) {
+  border: none;
+  box-shadow: none;
+}
+
+.records-card :deep(.el-table th) {
+  background-color: #f5f7fa;
+  font-weight: 500;
+  color: #606266;
+}
+
+.records-card :deep(.el-table td), .records-card :deep(.el-table th) {
+  padding: 10px 0;
+}
+
+.records-card :deep(.el-button.is-text) {
+  color: #409EFF;
+}
+
+.records-card :deep(.el-tag) {
+  border-radius: 2px;
+}
+
+/* 卡片头部按钮样式 */
+.card-header .el-button--text {
+  padding: 8px 15px;
+  color: #409EFF;
+  height: 36px;
+  font-size: 14px;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-header .el-button--text .el-icon {
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+/* 去除链接下划线 */
+.view-detail-link {
+  text-decoration: none;
+}
+
+.no-data {
+  padding: 20px 0;
 }
 </style> 

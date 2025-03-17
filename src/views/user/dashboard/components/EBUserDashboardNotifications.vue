@@ -3,12 +3,12 @@
     <div class="panel-header">
       <div class="header-spacer"></div>
       <div class="panel-actions">
-        <el-button type="primary" @click="refreshData" :loading="loading" size="small">
+        <el-button type="primary" @click="refreshData" :loading="loading" size="medium">
           <el-icon><Refresh /></el-icon>
           刷新数据
         </el-button>
-        <router-link to="/user/notifications">
-          <el-button type="primary" text>
+        <router-link to="/user/notifications" class="view-all-link">
+          <el-button type="primary" text size="medium">
             查看全部
             <el-icon><ArrowRight /></el-icon>
           </el-button>
@@ -39,8 +39,8 @@
 
       <!-- 查看更多按钮 -->
       <div class="view-more-container" v-if="notifications.length > 0">
-        <router-link to="/user/notifications">
-          <el-button text>查看更多通知</el-button>
+        <router-link to="/user/notifications" class="view-more-link">
+          <span>查看更多通知</span>
         </router-link>
       </div>
     </div>
@@ -114,7 +114,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .header-spacer {
@@ -123,31 +123,54 @@ onMounted(() => {
 
 .panel-actions {
   display: flex;
-  gap: 15px;
+  gap: 16px;
   align-items: center;
+}
+
+/* 统一按钮样式 */
+.panel-actions .el-button {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 4px;
+  height: 36px;
+}
+
+.panel-actions .el-button--text {
+  padding: 8px 15px;
+  color: #409EFF;
+}
+
+.panel-actions .el-button--text .el-icon {
+  font-size: 14px;
+}
+
+/* 查看全部按钮样式 */
+.view-all-link {
+  text-decoration: none;
 }
 
 .notification-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .notification-item {
   position: relative;
   display: flex;
-  padding: 15px;
-  border-radius: 8px;
+  padding: 16px;
+  border-radius: 4px;
   background-color: #f5f7fa;
-  transition: all 0.3s;
-  box-shadow: none !important;
+  transition: all 0.2s;
   border: none !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .notification-item:hover {
   background-color: #ecf5ff;
-  transform: none;
-  box-shadow: none !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .notification-item.unread {
@@ -165,18 +188,18 @@ onMounted(() => {
 }
 
 .notification-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 15px;
-  box-shadow: none !important;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .notification-icon .el-icon {
-  font-size: 24px;
+  font-size: 20px;
   color: white;
 }
 
@@ -197,13 +220,14 @@ onMounted(() => {
 }
 
 .notification-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  color: #303133;
 }
 
 .notification-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #606266;
   margin-bottom: 8px;
   overflow: hidden;
@@ -211,6 +235,7 @@ onMounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-height: 1.5;
 }
 
 .notification-time {
@@ -219,12 +244,26 @@ onMounted(() => {
 }
 
 .view-more-container {
-  margin-top: 20px;
+  margin-top: 16px;
   text-align: center;
 }
 
-:deep(*) {
-  box-shadow: none !important;
-  filter: none !important;
+.view-more-link {
+  color: #409EFF;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.view-more-link:hover {
+  color: #66b1ff;
+}
+
+.view-more-link span {
+  border-bottom: 1px solid transparent;
+}
+
+.view-more-link:hover span {
+  border-bottom: 1px solid #66b1ff;
 }
 </style> 

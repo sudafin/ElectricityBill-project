@@ -18,7 +18,7 @@
         <el-icon><House /></el-icon>
         <template #title>电费概览</template>
       </el-menu-item>
-      <el-menu-item index="/user/payment/dashboard">
+      <el-menu-item index="/user/paymentDashboard">
         <el-icon><Wallet /></el-icon>
         <template #title>缴纳电费</template>
       </el-menu-item>
@@ -67,7 +67,7 @@ const activeIndex = computed(() => {
   // 检查是否有精确匹配的菜单项
   const menuItems = [
     '/user/dashboard',
-    '/user/payment/dashboard',
+    '/user/paymentDashboard',
     '/user/analysis',
     '/user/notifications',
     '/user/profile',

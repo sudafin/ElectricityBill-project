@@ -303,7 +303,12 @@ const fetchPaymentDetail = async () => {
 
 // 返回上一页
 const goBack = () => {
-  router.back();
+  const fromPage = route.query.from;
+  if (fromPage === 'paymentDashboard') {
+    router.push('/user/paymentDashboard');
+  } else {
+    router.back();
+  }
 };
 
 // 下载电子收据
@@ -411,6 +416,27 @@ const getStatusDescription = (status) => {
 
 onMounted(() => {
   fetchPaymentDetail();
+  
+  // 处理面包屑历史
+  const breadcrumbHistory = JSON.parse(localStorage.getItem('eb-breadcrumb-history') || '[]');
+  if (breadcrumbHistory.length > 0) {
+    // 确保缴纳中心存在于面包屑历史中
+    const paymentDashboardExists = breadcrumbHistory.some(item => 
+      item.path === '/user/paymentDashboard' || item.name === 'UserPaymentDashboard'
+    );
+    
+    if (!paymentDashboardExists) {
+      // 添加缴纳中心到面包屑历史
+      breadcrumbHistory.push({
+        title: '缴纳中心',
+        path: '/user/paymentDashboard',
+        name: 'UserPaymentDashboard',
+        query: {},
+        fullPath: '/user/paymentDashboard'
+      });
+      localStorage.setItem('eb-breadcrumb-history', JSON.stringify(breadcrumbHistory));
+    }
+  }
 });
 </script>
 

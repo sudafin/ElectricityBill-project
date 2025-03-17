@@ -3,27 +3,30 @@
     <template #header>
       <div class="eb-dashboard-header">
         <div class="tab-buttons">
-          <el-button 
-            class="capsule-button"
-            :class="{ 'active-capsule': activeTab === 'notifications' }" 
+          <div 
+            class="tab-item"
+            :class="{ 'active-tab': activeTab === 'notifications' }" 
             @click="activeTab = 'notifications'"
           >
-            最新通知
-          </el-button>
-          <el-button 
-            class="capsule-button"
-            :class="{ 'active-capsule': activeTab === 'electricity' }" 
+            <el-icon><Bell /></el-icon>
+            <span>最新通知</span>
+          </div>
+          <div 
+            class="tab-item"
+            :class="{ 'active-tab': activeTab === 'electricity' }" 
             @click="activeTab = 'electricity'"
           >
-            电费记录
-          </el-button>
-          <el-button 
-            class="capsule-button"
-            :class="{ 'active-capsule': activeTab === 'payment' }" 
+            <el-icon><Lightning /></el-icon>
+            <span>电费记录</span>
+          </div>
+          <div 
+            class="tab-item"
+            :class="{ 'active-tab': activeTab === 'payment' }" 
             @click="activeTab = 'payment'"
           >
-            缴费记录
-          </el-button>
+            <el-icon><Wallet /></el-icon>
+            <span>缴费记录</span>
+          </div>
         </div>
       </div>
     </template>
@@ -38,6 +41,7 @@
 <script setup>
 import { ref, computed, defineAsyncComponent } from 'vue';
 import { EBPageLayout } from '@/components';
+import { Bell, Lightning, Wallet } from '@element-plus/icons-vue';
 
 // 使用异步组件加载子组件
 const EBUserNotifications = defineAsyncComponent(() => 
@@ -72,54 +76,55 @@ const currentComponent = computed(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 5px 0;
+  padding: 20px 0 15px 0;
 }
 
 .tab-buttons {
   display: flex;
   padding: 0;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eaedf2;
-}
-
-.capsule-button {
-  border-radius: 0;
-  background-color: transparent;
-  color: rgba(0, 0, 0, 0.65);
-  font-size: 14px;
-  height: 40px;
-  padding: 0 20px;
+  width: 100%;
+  justify-content: center;
   border: none;
-  margin-right: 30px;
-  box-shadow: none !important;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  height: 40px;
+  color: #606266;
+  font-size: 14px;
+  cursor: pointer;
   transition: all 0.3s;
+  margin-right: 20px;
   position: relative;
+  font-weight: normal;
 }
 
-.capsule-button:hover {
+.tab-item:last-child {
+  margin-right: 0;
+}
+
+.tab-item:hover {
   color: #409EFF;
-  background-color: transparent;
 }
 
-.active-capsule {
+.tab-item .el-icon {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.active-tab {
   color: #409EFF;
   font-weight: 500;
-  background-color: transparent;
-  box-shadow: none !important;
 }
 
-/* 活动标签下的下划线 */
-.active-capsule::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background-color: #409EFF;
+.active-tab .el-icon {
+  color: #409EFF;
 }
 
 .dashboard-container {
-  margin-top: 10px;
+  margin-top: 15px;
+  padding: 0;
 }
 </style> 

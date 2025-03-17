@@ -3,15 +3,15 @@
     <div class="panel-header">
       <div class="header-spacer"></div>
       <div class="panel-actions">
-        <el-select v-model="timeRange" placeholder="查看周期" size="small" style="width: 120px;">
+        <el-select v-model="timeRange" placeholder="查看周期" size="medium" style="width: 140px;">
           <el-option label="最近一周" value="week"></el-option>
           <el-option label="最近一月" value="month"></el-option>
           <el-option label="最近一年" value="year"></el-option>
         </el-select>
-        <EBButton type="primary" @click="refreshData" :loading="loading" size="small">
+        <el-button type="primary" @click="refreshData" :loading="loading" size="medium">
           <el-icon><Refresh /></el-icon>
           刷新数据
-        </EBButton>
+        </el-button>
       </div>
     </div>
 
@@ -97,11 +97,11 @@
         <template #header>
           <div class="card-header">
             <h3>电费结算记录</h3>
-            <router-link to="/user/analysis">
-              <EBButton type="primary" text>
+            <router-link to="/user/analysis" class="view-detail-link">
+              <el-button type="primary" text size="medium">
                 查看详细分析
                 <el-icon><ArrowRight /></el-icon>
-              </EBButton>
+              </el-button>
             </router-link>
           </div>
         </template>
@@ -135,7 +135,6 @@ import {
 } from 'echarts/components';
 import { LineChart } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
-import { EBButton } from '@/components';
 
 // 注册echarts组件
 echarts.use([
@@ -264,7 +263,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .header-spacer {
@@ -273,8 +272,27 @@ onMounted(() => {
 
 .panel-actions {
   display: flex;
-  gap: 15px;
+  gap: 16px;
   align-items: center;
+}
+
+/* 统一按钮样式 */
+.panel-actions .el-button {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 4px;
+  height: 36px;
+}
+
+.panel-actions .el-button--text {
+  padding: 8px 15px;
+  color: #409EFF;
+}
+
+.panel-actions .el-button--text .el-icon {
+  font-size: 14px;
 }
 
 .summary-cards {
@@ -282,46 +300,52 @@ onMounted(() => {
 }
 
 .summary-card {
-  height: 120px;
+  border-radius: 4px;
+  border: none;
+  height: 100%;
   transition: all 0.3s;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .summary-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.summary-card :deep(.el-card__body) {
+  padding: 16px;
 }
 
 .card-content {
   display: flex;
   align-items: center;
-  height: 100%;
 }
 
 .card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-right: 15px;
+  flex-shrink: 0;
 }
 
 .card-icon .el-icon {
-  font-size: 30px;
+  font-size: 24px;
   color: white;
 }
 
 .card-icon.current {
-  background: linear-gradient(135deg, #409EFF 0%, #79bbff 100%);
+  background-color: #409EFF;
 }
 
 .card-icon.usage {
-  background: linear-gradient(135deg, #67C23A 0%, #85ce61 100%);
+  background-color: #67C23A;
 }
 
 .card-icon.payment {
-  background: linear-gradient(135deg, #E6A23C 0%, #ebb563 100%);
+  background-color: #E6A23C;
 }
 
 .card-info {
@@ -330,55 +354,119 @@ onMounted(() => {
 
 .card-title {
   font-size: 14px;
-  color: #909399;
+  color: #606266;
   margin-bottom: 8px;
 }
 
 .card-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 600;
   color: #303133;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
-.card-status,
-.card-comparison,
-.card-due {
+.card-status, .card-comparison, .card-due {
   font-size: 12px;
+  color: #909399;
   display: flex;
   align-items: center;
-  gap: 3px;
 }
 
 .card-status.warning {
   color: #E6A23C;
 }
 
-.card-comparison {
-  color: #67C23A;
+.card-comparison .el-icon, .card-due .el-icon {
+  margin: 0 4px;
+  font-size: 12px;
 }
 
-.card-due .due-date {
+.due-date {
   margin-left: 5px;
   color: #F56C6C;
 }
 
-.chart-card,
-.records-card {
+.chart-card, .records-card {
   margin-bottom: 20px;
+  border-radius: 4px;
+  border: none;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-.chart-header,
-.card-header {
+.chart-card:hover, .records-card:hover {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+}
+
+.chart-card :deep(.el-card__header), .records-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f9f9f9;
+}
+
+.chart-header, .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.chart-header h3,
-.card-header h3 {
+.chart-header h3, .card-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #303133;
+}
+
+.chart-container {
+  padding: 10px 0;
+}
+
+/* 表格样式 */
+.records-card :deep(.el-table) {
+  border: none;
+  --el-table-border-color: #f0f0f0;
+}
+
+.records-card :deep(.el-table--border) {
+  border: none;
+  box-shadow: none;
+}
+
+.records-card :deep(.el-table th) {
+  background-color: #f5f7fa;
+  font-weight: 500;
+  color: #606266;
+}
+
+.records-card :deep(.el-table td), .records-card :deep(.el-table th) {
+  padding: 10px 0;
+}
+
+.records-card :deep(.el-button.is-text) {
+  color: #409EFF;
+}
+
+.records-card :deep(.el-tag) {
+  border-radius: 2px;
+}
+
+/* 卡片头部按钮样式 */
+.card-header .el-button--text {
+  padding: 8px 15px;
+  color: #409EFF;
+  height: 36px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-header .el-button--text .el-icon {
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+/* 去除链接下划线 */
+.view-detail-link {
+  text-decoration: none;
 }
 </style> 

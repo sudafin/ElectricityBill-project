@@ -150,7 +150,7 @@
             sub-title="您的电费已经成功缴纳"
           >
             <template #extra>
-              <router-link to="/user/payment/history">
+              <router-link to="/user/paymentDashboard">
                 <EBButton type="primary">查看缴费记录</EBButton>
               </router-link>
               <router-link to="/user/dashboard">
@@ -307,7 +307,7 @@ const handleBankPayment = () => {
 // 查看缴费记录
 const goToPaymentHistory = () => {
   paymentResultVisible.value = false;
-  router.push('/user/payment/history');
+  router.push('/user/paymentDashboard');
 };
 </script>
 
