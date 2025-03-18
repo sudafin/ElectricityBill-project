@@ -1,7 +1,7 @@
 <template>
   <el-header class="eb-header">
     <div class="eb-header-side">
-      <!-- 左侧留空 -->
+      <!-- 左侧可以放置面包屑导航或页面标题 -->
     </div>
     <div class="eb-header-center">
       <img src="@/assets/images/logo.png"
@@ -9,21 +9,29 @@
            class="eb-logo">
     </div>
     <div class="eb-header-right">
-      <div class="eb-user-details">
-        <span class="eb-user-name">{{ adminInfo.username }} | {{ adminInfo.role }}</span>
+      <div class="eb-user-info">
+        <el-dropdown trigger="click">
+          <div class="user-dropdown-link">
+            <el-avatar :size="40"
+                       :src="adminInfo.avatar"
+                       class="user-avatar"></el-avatar>
+            <div class="user-details">
+              <span class="user-name">{{ adminInfo.username }}</span>
+              <span class="user-role">{{ adminInfo.role }}</span>
+            </div>
+            <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item icon="User">个人中心</el-dropdown-item>
+              <el-dropdown-item icon="Setting">系统设置</el-dropdown-item>
+              <el-dropdown-item divided
+                                icon="SwitchButton"
+                                @click="handleLogout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
-      <el-dropdown>
-        <div class="eb-user-info">
-          <el-avatar :size="42"
-                     :src="adminInfo.avatar"></el-avatar>
-        </div>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item divided
-                              @click="handleLogout">退出登录</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
     </div>
   </el-header>
 </template>
@@ -33,6 +41,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage } from 'element-plus'
+import { ArrowDown, User, Setting, SwitchButton } from '@element-plus/icons-vue'
+
 const router = useRouter()
 const userStore = useUserStore()
 // 使用假数据替换用户名和角色
@@ -61,12 +71,14 @@ const handleLogout = async () => {
   height: 64px;
   background-color: #fff;
   padding: 0 24px;
-  border-bottom: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+  border-bottom: 1px solid #f0f0f0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
 }
 
 .eb-header-side {
   flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 .eb-header-center {
@@ -83,37 +95,67 @@ const handleLogout = async () => {
   align-items: center;
 }
 
+.eb-logo {
+  height: 36px;
+  margin: 0 auto;
+}
+
 .eb-user-info {
   display: flex;
   align-items: center;
-  cursor: pointer;
-  padding: 0 8px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
 }
 
-.eb-user-info:hover {
-  background-color: #f0f2f5;
-}
-
-.eb-user-details {
+.user-dropdown-link {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin-right: 12px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.3s;
 }
 
-.eb-user-name {
+.user-dropdown-link:hover {
+  background-color: #f6f8fc;
+}
+
+.user-avatar {
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-details {
+  margin: 0 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
   font-size: 14px;
-  color: rgba(0, 0, 0, 0.85);
-  margin-top: 0;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.2;
 }
 
-.eb-logo {
-  height: 32px;
+.user-role {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
 }
 
-:focus-visible {
-  outline: none;
+.dropdown-icon {
+  color: #999;
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+:deep(.el-dropdown-menu__item) {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+:deep(.el-dropdown-menu__item i) {
+  margin-right: 8px;
+  font-size: 16px;
 }
 </style>
