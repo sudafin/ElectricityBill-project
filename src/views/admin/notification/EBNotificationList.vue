@@ -1,11 +1,14 @@
 <template>
-  <div class="notification-list">
-    <el-card>
+  <div class="notification-dashboard">
+    <el-card class="admin-card">
       <template #header>
         <div class="header">
-          <el-button type="primary" @click="handleCreate">新增通知</el-button>
-          <div class="search-filter">
-            <el-input v-model="searchText" placeholder="搜索通知" clearable @clear="fetchNotificationList" class="search-input"></el-input>
+          <h3 class="header-title">
+            <el-icon><Bell /></el-icon>
+            通知管理
+          </h3>
+          <div class="search-area">
+            <el-input v-model="searchText" placeholder="搜索通知" clearable class="search-input"></el-input>
             <el-select v-model="selectedType" placeholder="通知类型" clearable
             class="status-select" >
               <el-option label="全部" value=""></el-option>
@@ -27,12 +30,11 @@
               </template>
             </el-date-picker>
             <div class="action-buttons">
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>搜索
-            </el-button>
+              <el-button type="primary" class="action-button" @click="handleCreate">
+                <el-icon><Plus /></el-icon>新增通知
+              </el-button>
             </div>
           </div>
-          
         </div>
       </template>
       <el-table
@@ -40,6 +42,7 @@
         v-loading="loading"
         :data="notificationList"
         @selection-change="handleSelectionChange"
+        class="admin-table"
       >
         <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column label="标题" width="150">
@@ -77,21 +80,15 @@
           </template>
         </el-table-column>
       </el-table>
-      <div class="batch-actions">
-        <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedNotificationIds.length">批量删除</el-button>
-      </div>
-      <div class="pagination">
+      <div class="admin-pagination">
         <el-pagination
           :current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          :disabled="loading"
           @current-change="handlePageChange"
           layout="prev, pager, next, jumper"
-          prev-text="上一页"
-          next-text="下一页"
         ></el-pagination>
-        <div class="total">共 {{ total }} 条</div>
+        <div class="total-info">共 {{ total }} 条记录</div>
       </div>
     </el-card>
     
@@ -150,7 +147,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getNotificationList, deleteNotification ,fetchNotificationDetail} from '@/api/notification.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Download, Search, Close, Calendar } from '@element-plus/icons-vue';
+import { Download, Search, Close, Calendar, Plus } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const currentPage = ref(1);
@@ -267,22 +264,14 @@ const handleCreate = () => {
 </script>
 
 <style scoped>
-.notification-list {
+@import '@/styles/admin-card.scss';
+
+.notification-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-.el-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+/* 组件特定的样式 */
 .search-input {
   width: 200px;
   flex-shrink: 0;
@@ -302,7 +291,6 @@ const handleCreate = () => {
   flex-shrink: 0;
 }
 
-
 .el-button {
   min-width: 88px;
   border-radius: 8px;
@@ -317,19 +305,6 @@ const handleCreate = () => {
 .el-button .el-icon {
   margin-right: 4px;
 }
-
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.total {
-  color: #999;
-  font-size: 14px;
-}
-
 
 .actions {
   display: flex;
@@ -368,12 +343,6 @@ const handleCreate = () => {
 
 .table-cell.unread {
   color: #f56c6c;
-}
-
-.batch-actions {
-  margin-top: 20px;
-  display: flex;
-  gap: 10px;
 }
 
 .drawer-content {

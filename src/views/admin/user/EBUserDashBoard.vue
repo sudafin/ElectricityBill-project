@@ -1,11 +1,11 @@
 <template>
-  <div class="fee-dashboard">
+  <div class="user-dashboard">
     <el-card class="admin-card">
       <template #header>
         <div class="header">
           <h3 class="header-title">
-            <el-icon><Money /></el-icon>
-            电费管理
+            <el-icon><User /></el-icon>
+            用户管理
           </h3>
           <div class="search-area">
             <el-input
@@ -77,10 +77,10 @@
               <el-button type="primary" class="action-button" @click="handleSearch">
                 <el-icon><Search /></el-icon>搜索
               </el-button>
-              <el-button type="primary" @click="handleCreate">
+              <el-button type="primary" class="action-button" @click="handleCreate">
                 <el-icon><Plus /></el-icon>新增用户
               </el-button>
-              <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedUserIds.length">
+              <el-button type="danger" class="action-button" @click="handleBatchDelete" :disabled="!selectedUserIds.length">
                 <el-icon><Delete /></el-icon>批量删除
               </el-button>
             </div>
@@ -324,25 +324,77 @@ onMounted(() => {
 <style scoped>
 @import '@/styles/admin-card.scss';
 
-.fee-dashboard {
+.user-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-/* 组件特定的样式 */
 .search-input {
   width: 220px;
 }
 
-.filter-select {
+.filter-select, .meter-input {
   width: 140px;
 }
 
 .filter-date-range {
+  width: 360px;
+}
+
+.drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+}
+
+.drawer-header {
+  margin-bottom: 20px;
+}
+
+.drawer-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.payment-history {
+  margin-top: 20px;
+}
+
+.payment-history h4 {
+  margin-bottom: 10px;
+}
+
+.search-date-range {
   width: 260px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .meter-input {
   width: 140px;
+  flex-shrink: 0;
+}
+
+/* 响应式布局调整 */
+@media screen and (max-width: 1400px) {
+  .search-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .search-input,
+  .filter-select,
+  .meter-input,
+  .filter-date-range {
+    flex: 1;
+    min-width: 160px;
+  }
 }
 </style> 

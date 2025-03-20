@@ -1,21 +1,23 @@
 <template>
   <div class="role-setting">
-    <el-card class="filter-card glass-card">
+    <el-card class="admin-card">
       <template #header>
         <div class="header">
+          <h3 class="header-title">
+            <el-icon><Setting /></el-icon>
+            角色权限管理
+          </h3>
           <div class="search-area">
-            <div class="search-input-wrapper">
-              <el-input
-                v-model="searchText"
-                placeholder="搜索用户名"
-                clearable
-                class="search-input glass-input"
-              >
-                <template #prefix>
-                  <el-icon><Search /></el-icon>
-                </template>
-              </el-input>
-            </div>
+            <el-input
+              v-model="searchText"
+              placeholder="搜索用户名"
+              clearable
+              class="search-input"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
             
             <el-select
               v-model="searchRole"
@@ -67,10 +69,10 @@
             <el-button 
               type="primary" 
               class="action-button"
-              @click="handleCreate"
+              @click="handleAddRole"
             >
               <el-icon><Plus /></el-icon>
-              新增
+              新增角色
             </el-button>
           </div>
         </div>
@@ -81,6 +83,7 @@
         :data="adminList"
         v-loading="loading"
         @selection-change="handleSelectionChange"
+        class="admin-table"
       >
         <el-table-column type="selection" width="55"  />
         <el-table-column prop="adminId" label="用户编号"  />
@@ -139,7 +142,7 @@
         </el-table-column>
       </el-table>
 
-      <div class="pagination">
+      <div class="admin-pagination">
         <el-pagination
           :current-page="currentPage"
           :page-size="pageSize"
@@ -150,7 +153,7 @@
           prev-text="上一页"
           next-text="下一页"
         ></el-pagination>
-        <div class="total">共 {{ total }} 条</div>
+        <div class="total-info">共 {{ total }} 条记录</div>
       </div>
     </el-card>
     
@@ -175,7 +178,8 @@ import {
   Delete, 
   Warning,
   Management,
-  Operation 
+  Operation,
+  Setting
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from './EBRoleUserForm.vue';
 import { getAdminList,deleteAdmin,updateStatus,getPermissionList,getAdminDetail,getRoleList } from '@/api/role.js';
@@ -305,7 +309,7 @@ const handleBatchDelete = async () => {
 const permissions = ref([]);
 
 // 新增角色/人员
-const handleCreate = async () => {
+const handleAddRole = async () => {
   const res = await getPermissionList();    
   permissions.value = res;
   roleUserFormVisible.value = true;
@@ -348,10 +352,11 @@ const handleRoleUserFormSuccess = (type, data, isEdit) => {
 </script>
 
 <style scoped>
+@import '@/styles/admin-card.scss';
+
 .role-setting {
-  padding: 24px;
-  min-height: 100vh;
-  background: #f6f8fb;
+  padding: 20px;
+  background-color: #f5f7fa;
 }
 
 /* 玻璃态卡片 */

@@ -19,9 +19,9 @@
         <el-icon><House /></el-icon>
         <template #title>管理首页</template>
       </el-menu-item>
-      <el-menu-item index="/admin/fee">
+      <el-menu-item index="/admin/user">
         <el-icon><User /></el-icon>
-        <template #title>用户费用</template>
+        <template #title>用户管理</template>
       </el-menu-item>
       <el-menu-item index="/admin/report">
         <el-icon><DataAnalysis /></el-icon>
@@ -38,6 +38,10 @@
       <el-menu-item index="/admin/payment">
         <el-icon><Wallet /></el-icon>
         <template #title>支付管理</template>
+      </el-menu-item>
+      <el-menu-item index="/admin/meter">
+        <el-icon><Odometer /></el-icon>
+        <template #title>电表管理</template>
       </el-menu-item>
       <el-sub-menu index="/admin/setting">
         <template #title>
@@ -65,6 +69,7 @@ import {
   Setting,
   Fold,
   Expand,
+  Odometer,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -78,14 +83,15 @@ const activeIndex = computed(() => {
   // 检查是否有精确匹配的菜单项
   const menuItems = [
     '/admin/dashboard',
-    '/admin/fee',
+    '/admin/user',
     '/admin/report',
     '/admin/reconciliation',
     '/admin/notification',
     '/admin/payment',
     '/admin/setting/role',
     '/admin/setting/rate',
-    '/admin/setting/log'
+    '/admin/setting/log',
+    '/admin/meter',
   ];
   
   // 如果当前路径精确匹配某个菜单项，直接返回

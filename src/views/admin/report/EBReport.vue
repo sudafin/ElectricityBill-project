@@ -1,8 +1,12 @@
 <template>
   <div class="report-dashboard">
-    <el-card class="filter-card">
+    <el-card class="admin-card">
       <template #header>
         <div class="header">
+          <h3 class="header-title">
+            <el-icon><DataAnalysis /></el-icon>
+            数据报表
+          </h3>
           <div class="search-area">
             <div class="search-row">
               <el-date-picker
@@ -63,14 +67,14 @@
                 <el-radio-button :value="'yearly'">年报</el-radio-button>
               </el-radio-group>
             </div>
-          </div>
-          <div class="action-buttons">
-            <el-button type="success" @click="exportReport">
-              <el-icon><Download /></el-icon>导出报表
-            </el-button>
-            <el-button @click="showDetailTable = !showDetailTable">
-              {{ showDetailTable ? '隐藏' : '显示' }}详细数据
-            </el-button>
+            <div class="action-buttons">
+              <el-button type="primary" class="action-button" @click="fetchReportData">
+                <el-icon><Search /></el-icon>查询
+              </el-button>
+              <el-button type="success" class="action-button" @click="exportReport">
+                <el-icon><Download /></el-icon>导出
+              </el-button>
+            </div>
           </div>
         </div>
       </template>
@@ -623,41 +627,14 @@ const exportReport = async () => {
 </script>
 
 <style scoped>
+@import '@/styles/admin-card.scss';
+
 .report-dashboard {
-  margin: 20px 0px 0 20px;
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-.filter-card {
-  
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.search-area {
-  flex: 1;
-  background: transparent;
-  padding: 12px 0;
-  border-radius: 8px;
-  min-width: 0;
-}
-
-.search-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  width: 100%;
-}
-
+/* 报表组件特定样式 */
 .filter-date-range {
   width: 240px;
   flex-shrink: 0;

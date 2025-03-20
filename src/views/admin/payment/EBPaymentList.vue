@@ -1,66 +1,86 @@
 <template>
   <EBPageLayout>
     <template #header>
-      <EBSearchFilter
-        v-model:searchValue="searchText"
-        searchPlaceholder="搜索支付单号"
-        @search="handleSearch"
-        @clear="fetchPaymentList(1, true)"
-      >
-        <template #filters>
-          <el-select v-model="selectedStatus" placeholder="支付状态" clearable style="width: 200px;">
-            <el-option label="全部" value=""></el-option>
-            <el-option label="已支付" value="已支付"></el-option>
-            <el-option label="支付失败" value="失败"></el-option>
-          </el-select>
-          <el-select v-model="selectedMethod" placeholder="支付方式" clearable style="width: 200px;">
-            <el-option label="全部" value=""></el-option>
-            <el-option label="支付宝" value="支付宝"></el-option>
-            <el-option label="微信" value="微信"></el-option>
-            <el-option label="银行卡" value="银行卡"></el-option>
-          </el-select>
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            @change="fetchPaymentList"
-          ></el-date-picker>
-        </template>
-        <template #actions>
-          <el-button type="success" @click="exportPayments" class="eb-button-with-icon">
-            <el-icon><Download /></el-icon>
-            导出报表
-          </el-button>
-        </template>
-      </EBSearchFilter>
+      <div class="admin-card header-card">
+        <h3 class="header-title">
+          <el-icon><Wallet /></el-icon>
+          支付管理
+        </h3>
+        <EBSearchFilter
+          v-model:searchValue="searchText"
+          searchPlaceholder="搜索支付单号"
+          @search="handleSearch"
+          @clear="fetchPaymentList(1, true)"
+        >
+          <template #filters>
+            <el-select v-model="selectedStatus" placeholder="支付状态" clearable style="width: 200px;">
+              <el-option label="全部" value=""></el-option>
+              <el-option label="已支付" value="已支付"></el-option>
+              <el-option label="支付失败" value="失败"></el-option>
+            </el-select>
+            <el-select v-model="selectedMethod" placeholder="支付方式" clearable style="width: 200px;">
+              <el-option label="全部" value=""></el-option>
+              <el-option label="支付宝" value="支付宝"></el-option>
+              <el-option label="微信" value="微信"></el-option>
+              <el-option label="银行卡" value="银行卡"></el-option>
+            </el-select>
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              @change="fetchPaymentList"
+            ></el-date-picker>
+          </template>
+          <template #actions>
+            <el-button type="success" @click="exportPayments" class="eb-button-with-icon">
+              <el-icon><Download /></el-icon>
+              导出报表
+            </el-button>
+          </template>
+        </EBSearchFilter>
+      </div>
     </template>
 
-    <EBTable
-      :columns="columns"
-      :data="paymentList"
-      :loading="loading"
-      :selection="true"
-      :show-actions="true"
-      actions-width="120"
-      @selection-change="handleSelectionChange"
-      @sort-change="handleSortChange"
-    >
-      <!-- 支付状态插槽 -->
-      <template #status="{ row }">
-        <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
-      </template>
-      
-      <!-- 操作插槽 -->
-      <template #actions="{ row }">
-        <div class="eb-actions">
-          <el-button type="primary" link @click="showDetail(row)">详情</el-button>
-          <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-        </div>
-      </template>
-    </EBTable>
+    <div class="admin-card">
+      <EBTable
+        :columns="columns"
+        :data="paymentList"
+        :loading="loading"
+        :selection="true"
+        :show-actions="true"
+        actions-width="120"
+        @selection-change="handleSelectionChange"
+        @sort-change="handleSortChange"
+        class="admin-table"
+      >
+        <!-- 支付状态插槽 -->
+        <template #status="{ row }">
+          <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+        </template>
+        
+        <!-- 操作插槽 -->
+        <template #actions="{ row }">
+          <div class="eb-actions">
+            <el-button type="primary" link @click="showDetail(row)">详情</el-button>
+            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+          </div>
+        </template>
+      </EBTable>
+
+      <div class="admin-pagination">
+        <el-pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @current-change="handlePageChange"
+          layout="prev, pager, next, jumper"
+        ></el-pagination>
+        <div class="total-info">共 {{ total }} 条记录</div>
+      </div>
+    </div>
 
     <EBBatchActions>
       <el-button type="danger" @click="handleBatchDelete" :disabled="!selectedPaymentIds.length" class="eb-button-with-icon">
@@ -69,14 +89,6 @@
       </el-button>
     </EBBatchActions>
 
-    <EBPagination
-      :current-page="currentPage"
-      :page-size="pageSize"
-      :total="total"
-      :disabled="loading"
-      @page-change="handlePageChange"
-    />
-    
     <template #extra>
       <el-drawer v-model="detailVisible" :title="`支付详情 支付单号: ${currentPayment.paymentId}`" size="40%" direction="rtl">
         <EBPaymentDetail :payment="currentPayment" @refund="handleRefund"></EBPaymentDetail>
@@ -272,5 +284,5 @@ const exportPayments = async () => {
 </script>
 
 <style scoped>
-/* 使用公共样式，移除重复的样式定义 */
+@import '@/styles/admin-card.scss';
 </style> 

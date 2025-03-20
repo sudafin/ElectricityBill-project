@@ -31,15 +31,14 @@ const routes = [
         redirect: '/admin/dashboard',
         meta: { requiresAuth: true },
         children: [
-          { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/EBDashboard.vue'), meta: { title: '首页' } },
+          { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/dashboard/EBAdminDashboard.vue'), meta: { title: '首页' } },
           {
-            path: 'fee',
-            redirect: '/admin/fee/dashboard',
+            path: 'user',
+            redirect: '/admin/user/dashboard',
             children: [
-              { path: 'dashboard', name: 'AdminUserDashboard', component: () => import('@/views/admin/fee/EBFeeDashBoard.vue'), meta: { title: '用户费用' } },
-              { path: 'payment/:id', name: 'AdminUserPayment', component: () => import('@/views/admin/fee/EBFeePayment.vue'), meta: { title: '用户缴费' } },
-              { path: 'form', name: 'AdminUserForm', component: () => import('@/views/admin/fee/EBFeeForm.vue'), meta: { title: '新增用户' } },
-              { path: 'edit/:id', name: 'AdminUserEdit', component: () => import('@/views/admin/fee/EBFeeForm.vue'), meta: { title: '编辑用户' } }
+              { path: 'dashboard', name: 'AdminUserDashboard', component: () => import('@/views/admin/user/EBUserDashBoard.vue'), meta: { title: '用户管理' } },
+              { path: 'form', name: 'AdminUserForm', component: () => import('@/views/admin/user/EBUserForm.vue'), meta: { title: '新增用户' } },
+              { path: 'edit/:id', name: 'AdminUserEdit', component: () => import('@/views/admin/user/EBUserForm.vue'), meta: { title: '编辑用户' } }
             ]
           },
           { path: 'report', name: 'AdminReport', component: () => import('@/views/admin/report/EBReport.vue'), meta: { title: '数据统计与报表' } },
@@ -66,6 +65,16 @@ const routes = [
             children: [
               { path: 'list', name: 'PaymentList', component: () => import('@/views/admin/payment/EBPaymentList.vue'), meta: { title: '支付列表' } },
               { path: 'detail/:id', name: 'PaymentDetail', component: () => import('@/views/admin/payment/EBPaymentDetail.vue'), meta: { title: '支付详情' } }
+            ]
+          },
+          {
+            path: 'meter',
+            component: () => import('@/views/admin/meter/EBMeterList.vue'),
+            children: [
+              { path: 'create', name: 'MeterCreate', component: () => import('@/views/admin/meter/EBMeterForm.vue'), meta: { title: '新增电表' } },
+              { path: 'edit/:id', name: 'MeterEdit', component: () => import('@/views/admin/meter/EBMeterForm.vue'), meta: { title: '编辑电表' } },
+              { path: 'detail/:id', name: 'MeterDetail', component: () => import('@/views/admin/meter/EBMeterDetail.vue'), meta: { title: '电表详情' } },
+              { path: 'data/:id', name: 'MeterData', component: () => import('@/views/admin/meter/EBMeterData.vue'), meta: { title: '电表数据' } }
             ]
           },
           {

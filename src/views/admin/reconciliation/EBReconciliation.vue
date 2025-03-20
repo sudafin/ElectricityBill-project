@@ -1,8 +1,12 @@
 <template>
   <div class="reconciliation-dashboard">
-    <el-card class="filter-card">
+    <el-card class="admin-card">
       <template #header>
         <div class="header">
+          <h3 class="header-title">
+            <el-icon><Document /></el-icon>
+            对账管理
+          </h3>
           <div class="search-area">
             <div class="search-row">
               <el-input
@@ -70,19 +74,25 @@
                 </template>
               </el-date-picker>
             </div>
-          </div>
-          <div class="action-buttons">
-            <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>搜索
-            </el-button>
-            <el-button type="success" @click="exportReconciliationList">
-              <el-icon><Download /></el-icon>导出
-            </el-button>
+            <div class="action-buttons">
+              <el-button type="primary" class="action-button" @click="handleSearch">
+                <el-icon><Search /></el-icon>搜索
+              </el-button>
+              <el-button type="success" @click="exportReconciliationList">
+                <el-icon><Download /></el-icon>导出
+              </el-button>
+            </div>
           </div>
         </div>
       </template>
       <!-- 对账表格 -->
-      <el-table :data="reconciliationList" v-loading="loading">
+      <el-table
+        ref="tableRef"
+        v-loading="loading"
+        :data="reconciliationList"
+        @selection-change="handleSelectionChange"
+        class="admin-table"
+      >
         <el-table-column prop="reconciliationNo" label="对账单号"></el-table-column>
         <el-table-column prop="username" label="用户名"></el-table-column>
         <el-table-column prop="meterNo" label="电表编号"></el-table-column>
@@ -104,18 +114,15 @@
         </el-table-column>
       </el-table>
       <!-- 分页 -->
-      <div class="pagination">
+      <div class="admin-pagination">
         <el-pagination
           :current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          :disabled="loading"
           @current-change="handlePageChange"
           layout="prev, pager, next, jumper"
-          prev-text="上一页"
-          next-text="下一页"
         ></el-pagination>
-        <div class="total">共 {{ total }} 条</div>
+        <div class="total-info">共 {{ total }} 条记录</div>
       </div>
     </el-card>
 
@@ -284,21 +291,11 @@ const handleApproval = (row) => {
 </script>
 
 <style scoped>
+@import '@/styles/admin-card.scss';
+
 .reconciliation-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
-}
-
-.filter-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
 }
 
 .search-area {
@@ -343,18 +340,6 @@ const handleApproval = (row) => {
   justify-content: center;
   gap: 4px;
   white-space: nowrap;
-}
-
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.total {
-  color: #999;
-  font-size: 14px;
 }
 
 .meter-input {
