@@ -6,6 +6,25 @@
           <div class="login-header">
             <img src="@/assets/images/logo.png" alt="logo" class="login-logo">
           </div>
+          
+          <!-- 添加用户类型切换按钮 -->
+          <div class="user-type-switch">
+            <div 
+              class="switch-item" 
+              :class="{ 'active': loginType === 'user' }"
+              @click="loginType = 'user'"
+            >
+              用户登录
+            </div>
+            <div 
+              class="switch-item" 
+              :class="{ 'active': loginType === 'admin' }"
+              @click="loginType = 'admin'"
+            >
+              管理员登录
+            </div>
+          </div>
+          
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
             <el-form-item prop="account">
               <el-input
@@ -18,7 +37,7 @@
               <el-input
                 v-model="loginForm.password"
                 type="password"
-                            placeholder="请输入密码"
+                placeholder="请输入密码"
                 show-password
                 size="large"
               ></el-input>
@@ -63,6 +82,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = useRouter();
 const userStore = useUserStore();
+const loginType = ref('user'); // 默认为用户登录
 
 const loginForm = reactive({
   account: '',
@@ -139,17 +159,26 @@ const handleLogin = async () => {
       try {
         // 使用 store 中的公钥加密密码
         const encryptedPassword = encryptWithRSA(loginForm.password, userStore.publicKey);
-        // 发送登录请求
+        // 发送登录请求，添加用户类型参数
         await userStore.login({
           account: loginForm.account,
           password: encryptedPassword,
           //验证码
           code: loginForm.captcha,
           key: loginForm.uuid,
-          rememberMe: loginForm.rememberMe
+          rememberMe: loginForm.rememberMe,
+          userType: loginType.value // 添加用户类型
         });
-        router.push('/dashboard');
+        
+        // 根据用户类型重定向到不同页面
+        if (loginType.value === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
       } catch (error) {
+        ElMessage.error('登录失败，请检查账号和密码');
+        refreshCaptcha();
       }
     } else {
       ElMessage.error('请填写正确的账号和密码');
@@ -166,7 +195,6 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   background-image: url('/src/assets/images/background.jpg');
-  
 }
 
 .login-container {
@@ -228,5 +256,55 @@ const handleLogin = async () => {
   height: 40px;
   cursor: pointer;
   border-radius: 4px;
+}
+
+/* 用户类型切换按钮样式 */
+.user-type-switch {
+  display: flex;
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.switch-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0;
+  font-size: 15px;
+  background-color: #f5f7fa;
+  color: #606266;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-bottom: 2px solid transparent;
+}
+
+.switch-item:hover {
+  background-color: #ebeef5;
+}
+
+.switch-item.active {
+  background-color: #ffffff;
+  color: #3f51b5;
+  font-weight: 500;
+  border-bottom: 2px solid #3f51b5;
+}
+
+/* 优化响应式设计 */
+@media screen and (max-width: 576px) {
+  .login-container {
+    width: 90%;
+    padding: 30px 15px;
+  }
+  
+  .login-box {
+    padding: 30px 20px;
+  }
+  
+  .login-logo {
+    width: 240px;
+    height: 64px;
+  }
 }
 </style> 
