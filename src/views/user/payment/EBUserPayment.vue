@@ -266,79 +266,59 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { Promotion, Money } from '@element-plus/icons-vue';
 import { EBPageLayout, EBButton } from '@/components';
-import { Money, Promotion } from '@element-plus/icons-vue';
+import { getCurrentBill } from '@/api/user/bill';
+import { createPayment, getPaymentStatus } from '@/api/user/payment';
+import { getAccountBalance } from '@/api/user/account';
 
 const router = useRouter();
 
 // 当前日期
 const currentDate = ref(new Date().toLocaleDateString('zh-CN', {
-  year: 'numeric', 
-  month: '2-digit', 
+  year: 'numeric',
+  month: '2-digit',
   day: '2-digit'
-}).replace(/\//g, '-'));
+}));
 
-// 当前账单
-const currentBill = reactive({
-  billNo: 'EB202303150001',
-  billPeriod: '2023-02-01 至 2023-02-28',
-  usage: 267,
-  amount: 186.9,
-  dueDate: '2023-03-25',
+// 账单数据
+const currentBill = ref({
+  billNo: '',
+  billPeriod: '',
+  usage: 0,
+  amount: 0,
+  dueDate: '',
+  userCode: '',
+  userName: '',
+  address: '',
   status: '待缴费',
-  userCode: 'U0012345678',
-  userName: '张三',
-  address: '北京市海淀区中关村南大街5号',
   supplyInfo: {
-    company: '北京市电力公司海淀供电分公司',
-    area: '中关村区域',
-    meterType: '智能电表',
-    meterNo: 'M20210512345'
+    company: '',
+    area: '',
+    meterType: '',
+    meterNo: ''
   },
   paymentInfo: {
-    company: '北京市电力公司',
-    channel: '网上电费缴纳系统',
-    invoice: '缴费成功后可申请'
+    company: '',
+    channel: '',
+    invoice: ''
   },
-  details: [
-    { label: '基本电费', value: '150.40元' },
-    { label: '计量表计量', value: '267度' },
-    { label: '计费单价', value: '0.562元/度' },
-    { label: '峰时电量', value: '102度' },
-    { label: '谷时电量', value: '98度' },
-    { label: '平时电量', value: '67度' },
-    { label: '附加费', value: '28.50元' },
-    { label: '增值税', value: '8.00元' }
-  ]
+  details: []
 });
 
-// 判断是否即将到期
-const isDueSoon = computed(() => {
-  const today = new Date();
-  const dueDate = new Date(currentBill.dueDate);
-  const diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-  return diffDays <= 3 && diffDays >= 0;
-});
-
-// 余额支付
-const balance = ref(150);
-const balanceInsufficient = computed(() => {
-  return balance.value < currentBill.amount;
-});
-
-// 支付方式对话框
+// 支付相关
 const paymentMethodDialogVisible = ref(false);
 const paymentMethod = ref('balance');
-
-// 打开支付方式对话框
-const openPaymentDialog = () => {
-  paymentMethodDialogVisible.value = true;
-};
+const balance = ref(0);
+const balanceInsufficient = computed(() => {
+  return balance.value < currentBill.value.amount;
+});
 
 // 银行卡表单
-const bankForm = reactive({
+const bankForm = ref({
   name: '',
   cardNumber: '',
   expiry: '',
@@ -348,77 +328,133 @@ const bankForm = reactive({
 // 支付结果
 const paymentResultVisible = ref(false);
 const paymentSuccess = ref(false);
-const paymentResultMessage = ref('');
+const paymentId = ref('');
 
-// 处理余额支付
-const handlePayWithBalance = () => {
+// 判断是否接近截止日期（3天内）
+const isDueSoon = computed(() => {
+  if (!currentBill.value.dueDate) return false;
+  
+  const dueDate = new Date(currentBill.value.dueDate);
+  const today = new Date();
+  const diffTime = dueDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays <= 3 && diffDays > 0;
+});
+
+// 加载当前账单信息
+const loadCurrentBill = async () => {
+  try {
+    const response = await getCurrentBill();
+    if (response.data) {
+      currentBill.value = response.data;
+    } else {
+      ElMessage.warning('暂无当前账单信息');
+    }
+  } catch (error) {
+    console.error('获取账单信息失败:', error);
+    ElMessage.error('获取账单信息失败，请稍后重试');
+  }
+};
+
+// 加载账户余额
+const loadAccountBalance = async () => {
+  try {
+    const response = await getAccountBalance();
+    if (response.data) {
+      balance.value = response.data.balance;
+    }
+  } catch (error) {
+    console.error('获取账户余额失败:', error);
+    ElMessage.error('获取账户余额失败，请稍后重试');
+  }
+};
+
+// 打开支付方式选择对话框
+const openPaymentDialog = () => {
+  loadAccountBalance();
+  paymentMethodDialogVisible.value = true;
+};
+
+// 使用余额支付
+const handlePayWithBalance = async () => {
   if (balanceInsufficient.value) {
+    ElMessage.warning('账户余额不足，请先充值或选择其他支付方式');
     return;
   }
   
-  paymentMethodDialogVisible.value = false;
-  
-  paymentSuccess.value = true;
-  paymentResultMessage.value = `您已成功支付${currentBill.amount}元，交易编号：EB${Date.now()}`;
-  paymentResultVisible.value = true;
-  
-  // 更新账单状态和余额
-  setTimeout(() => {
-    currentBill.status = '已缴费';
-    balance.value -= currentBill.amount;
-  }, 1500);
-};
-
-// 确认支付
-const confirmPayment = () => {
-  // 模拟支付过程
-  const random = Math.random();
-  
-  paymentMethodDialogVisible.value = false;
-  
-  if (random > 0.2) { // 80%概率支付成功
-    paymentSuccess.value = true;
-    paymentResultMessage.value = `您已成功支付${currentBill.amount}元，交易编号：EB${Date.now()}`;
-    
-    // 更新账单状态
-    setTimeout(() => {
-      currentBill.status = '已缴费';
-    }, 1500);
-  } else {
-    paymentSuccess.value = false;
-    paymentResultMessage.value = '支付失败，请重新尝试或选择其他支付方式';
-  }
-  
-  paymentResultVisible.value = true;
+  await processPayment('balance');
 };
 
 // 处理银行卡支付
-const handleBankPayment = () => {
+const handleBankPayment = async () => {
   // 简单的表单验证
-  if (!bankForm.name || !bankForm.cardNumber || !bankForm.expiry || !bankForm.cvv) {
-    paymentSuccess.value = false;
-    paymentResultMessage.value = '请填写完整的银行卡信息';
-    paymentResultVisible.value = true;
+  if (!bankForm.value.name || !bankForm.value.cardNumber || !bankForm.value.expiry || !bankForm.value.cvv) {
+    ElMessage.warning('请填写完整的银行卡信息');
     return;
   }
   
-  paymentMethodDialogVisible.value = false;
-  
-  paymentSuccess.value = true;
-  paymentResultMessage.value = `您已成功支付${currentBill.amount}元，交易编号：EB${Date.now()}`;
-  paymentResultVisible.value = true;
-  
-  // 更新账单状态
-  setTimeout(() => {
-    currentBill.status = '已缴费';
-  }, 1500);
+  await processPayment('bank', { bankInfo: bankForm.value });
 };
 
-// 查看缴费记录
-const goToPaymentHistory = () => {
-  paymentResultVisible.value = false;
-  router.push('/user/paymentDashboard');
+// 确认第三方支付完成
+const confirmPayment = async () => {
+  await processPayment(paymentMethod.value);
 };
+
+// 处理支付流程
+const processPayment = async (method, additionalData = {}) => {
+  try {
+    // 创建支付订单
+    const paymentData = {
+      billId: currentBill.value.billNo,
+      paymentMethod: method,
+      ...additionalData
+    };
+    
+    const createResponse = await createPayment(paymentData);
+    
+    if (createResponse.data) {
+      paymentId.value = createResponse.data.paymentId;
+      
+      // 查询支付结果
+      const statusResponse = await getPaymentStatus(paymentId.value);
+      
+      if (statusResponse.data && statusResponse.data.status === 'success') {
+        paymentSuccess.value = true;
+        
+        // 更新账单状态
+        currentBill.value.status = '已缴费';
+      } else {
+        paymentSuccess.value = false;
+      }
+      
+      // 关闭支付方式对话框，显示支付结果
+      paymentMethodDialogVisible.value = false;
+      paymentResultVisible.value = true;
+    }
+  } catch (error) {
+    console.error('支付处理失败:', error);
+    ElMessage.error('支付处理失败，请稍后重试');
+    paymentSuccess.value = false;
+    paymentMethodDialogVisible.value = false;
+    paymentResultVisible.value = true;
+  }
+};
+
+// 关闭支付结果对话框
+const closePaymentResult = () => {
+  paymentResultVisible.value = false;
+  if (paymentSuccess.value) {
+    // 支付成功后可以跳转到支付详情或账单列表页面
+    router.push('/user/dashboard');
+  }
+};
+
+// 初始化
+onMounted(() => {
+  loadCurrentBill();
+});
 </script>
 
 <style scoped>

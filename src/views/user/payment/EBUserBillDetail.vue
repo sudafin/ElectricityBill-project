@@ -262,74 +262,118 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ref, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { 
-  ArrowLeft, 
-  Download, 
-  CircleCheckFilled, 
-  CircleCloseFilled, 
-  RefreshLeft, 
-  Clock,
-  Promotion
+  ArrowLeft, Download, Clock, CircleCheckFilled, 
+  CircleCloseFilled, RefreshLeft, Promotion 
 } from '@element-plus/icons-vue';
 import { EBPageLayout, EBButton } from '@/components';
-// 假设这些API函数已经在相应的文件中定义
-import { getPaymentDetail, downloadPaymentReceipt, applyRefund } from '@/api/user';
+import { getBillDetail, downloadBill } from '@/api/user/bill';
+import { getPaymentDetail, downloadReceipt, applyRefund } from '@/api/user/payment';
 
-const router = useRouter();
 const route = useRoute();
-const loading = ref(true);
+const router = useRouter();
+const loading = ref(false);
 const downloadLoading = ref(false);
+const billId = computed(() => route.params.id || '');
+
+// 退款相关
 const refundDialogVisible = ref(false);
-const refundLoading = ref(false);
 const refundFormRef = ref(null);
-const paymentDetail = ref({});
-const paymentId = computed(() => route.params.id);
-
-// 判断是否可以申请退款
-const canRefund = computed(() => {
-  return paymentDetail.value.status === '已支付' && 
-         isWithinRefundPeriod(paymentDetail.value.paymentTime);
-});
-
-// 退款表单
-const refundForm = reactive({
+const refundForm = ref({
   reason: '',
   description: ''
 });
-
-// 退款表单验证规则
 const refundRules = {
-  reason: [
-    { required: true, message: '请选择退款原因', trigger: 'change' }
-  ],
-  description: [
-    { required: true, message: '请详细说明退款原因', trigger: 'blur' }
-  ]
+  reason: [{ required: true, message: '请选择退款原因', trigger: 'change' }],
+  description: [{ required: true, message: '请填写详细说明', trigger: 'blur' }]
 };
 
-// 默认账单明细
+// 支付详情数据
+const paymentDetail = ref({
+  paymentId: '',
+  billId: '',
+  billPeriod: '',
+  usage: 0,
+  amount: 0,
+  status: '',
+  paymentMethod: '',
+  paymentTime: '',
+  transactionId: '',
+  userId: '',
+  username: '',
+  address: '',
+  receiptNo: '',
+  details: [],
+  supplyInfo: {},
+  paymentInfo: {}
+});
+
+// 默认明细项，在未获取到真实数据时显示
 const defaultDetails = [
-  { label: '基本电费', value: '150.40元' },
-  { label: '计量表计量', value: '267度' },
-  { label: '计费单价', value: '0.562元/度' },
-  { label: '峰时电量', value: '102度' },
-  { label: '谷时电量', value: '98度' },
-  { label: '平时电量', value: '67度' },
-  { label: '附加费', value: '28.50元' },
-  { label: '增值税', value: '8.00元' }
+  { label: '基本电费', value: '0元' },
+  { label: '计量表计量', value: '0度' },
+  { label: '计费单价', value: '0元/度' },
+  { label: '峰时电量', value: '0度' },
+  { label: '谷时电量', value: '0度' },
+  { label: '平时电量', value: '0度' },
+  { label: '附加费', value: '0元' },
+  { label: '增值税', value: '0元' }
 ];
 
-// 获取支付详情
-const fetchPaymentDetail = async () => {
+// 是否可以申请退款（仅支付成功且3天内的订单可退款）
+const canRefund = computed(() => {
+  if (paymentDetail.value.status !== '已支付') return false;
+  
+  const payTime = new Date(paymentDetail.value.paymentTime);
+  const now = new Date();
+  const diffTime = now - payTime;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays <= 3;
+});
+
+// 获取账单和支付详情
+const getPaymentDetail = async () => {
+  if (!billId.value) {
+    ElMessage.warning('账单ID不能为空');
+    return;
+  }
+  
   loading.value = true;
+  
   try {
-    const res = await getPaymentDetail(paymentId.value);
-    paymentDetail.value = res.data;
+    // 获取账单详情
+    const billResponse = await getBillDetail(billId.value);
+    
+    if (billResponse.data) {
+      const billData = billResponse.data;
+      
+      // 获取关联的支付详情
+      if (billData.paymentId) {
+        const paymentResponse = await getPaymentDetail(billData.paymentId);
+        
+        if (paymentResponse.data) {
+          paymentDetail.value = {
+            ...billData,
+            ...paymentResponse.data
+          };
+        }
+      } else {
+        // 如果没有关联支付记录，只展示账单信息
+        paymentDetail.value = {
+          ...billData,
+          status: '待支付'
+        };
+      }
+    } else {
+      ElMessage.warning('未找到账单信息');
+    }
   } catch (error) {
-    ElMessage.error('获取支付详情失败');
+    console.error('获取账单详情失败:', error);
+    ElMessage.error('获取账单详情失败，请稍后重试');
   } finally {
     loading.value = false;
   }
@@ -337,44 +381,41 @@ const fetchPaymentDetail = async () => {
 
 // 返回上一页
 const goBack = () => {
-  const fromPage = route.query.from;
-  if (fromPage === 'paymentDashboard') {
-    router.push('/user/paymentDashboard');
-  } else {
-    router.back();
-  }
+  router.back();
 };
 
 // 下载电子收据
 const downloadReceipt = async () => {
+  if (!paymentDetail.value.paymentId) {
+    ElMessage.warning('没有可下载的收据');
+    return;
+  }
+  
   downloadLoading.value = true;
+  
   try {
-    await downloadPaymentReceipt(paymentId.value);
-    ElMessage.success('收据下载成功');
+    const response = await downloadReceipt(paymentDetail.value.paymentId);
+    
+    // 创建Blob对象并下载
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `电费收据-${paymentDetail.value.paymentId}.pdf`;
+    link.click();
+    
+    ElMessage.success('电子收据下载成功');
   } catch (error) {
-    ElMessage.error('收据下载失败');
+    console.error('下载收据失败:', error);
+    ElMessage.error('下载收据失败，请稍后重试');
   } finally {
     downloadLoading.value = false;
   }
 };
 
-// 判断是否在退款期限内（假设7天内可退款）
-const isWithinRefundPeriod = (paymentTime) => {
-  if (!paymentTime) return false;
-  
-  const paymentDate = new Date(paymentTime);
-  const now = new Date();
-  const diffTime = now - paymentDate;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays <= 7;
-};
-
 // 显示退款对话框
 const showRefundDialog = () => {
   refundDialogVisible.value = true;
-  refundForm.reason = '';
-  refundForm.description = '';
 };
 
 // 提交退款申请
@@ -383,44 +424,27 @@ const submitRefund = async () => {
   
   await refundFormRef.value.validate(async (valid) => {
     if (valid) {
-      refundLoading.value = true;
-      
       try {
-        await applyRefund({
-          paymentId: paymentId.value,
-          reason: refundForm.reason,
-          description: refundForm.reason === '其他原因' ? refundForm.description : refundForm.reason
-        });
+        const response = await applyRefund(paymentDetail.value.paymentId, refundForm.value);
         
-        ElMessage.success('退款申请已提交，请等待审核');
-        refundDialogVisible.value = false;
-        
-        // 刷新详情
-        fetchPaymentDetail();
+        if (response.data && response.data.success) {
+          ElMessage.success('退款申请提交成功，请等待审核');
+          refundDialogVisible.value = false;
+          
+          // 刷新页面数据
+          getPaymentDetail();
+        } else {
+          ElMessage.error(response.data?.message || '退款申请提交失败');
+        }
       } catch (error) {
-        ElMessage.error(error.message || '退款申请失败');
-      } finally {
-        refundLoading.value = false;
+        console.error('提交退款申请失败:', error);
+        ElMessage.error('提交退款申请失败，请稍后重试');
       }
     }
   });
 };
 
-// 获取状态对应的类型
-const getStatusType = (status) => {
-  switch (status) {
-    case '已支付':
-      return 'success';
-    case '失败':
-      return 'danger';
-    case '退款':
-      return 'warning';
-    default:
-      return 'info';
-  }
-};
-
-// 获取状态对应的标题
+// 获取状态标题
 const getStatusTitle = (status) => {
   switch (status) {
     case '已支付':
@@ -428,49 +452,29 @@ const getStatusTitle = (status) => {
     case '失败':
       return '支付失败';
     case '退款':
-      return '退款成功';
+      return '已申请退款';
     default:
-      return '处理中';
+      return '等待支付';
   }
 };
 
-// 获取状态对应的描述
+// 获取状态描述
 const getStatusDescription = (status) => {
   switch (status) {
     case '已支付':
-      return '您的电费缴纳已成功，感谢您的使用！';
+      return '您的电费已成功缴纳，感谢您的使用';
     case '失败':
-      return '支付失败，请检查您的支付方式或稍后重试。';
+      return '支付失败，请重新尝试或联系客服';
     case '退款':
-      return '退款已处理，款项将在1-3个工作日内原路退回。';
+      return '您的退款申请正在处理中，请耐心等待';
     default:
-      return '您的支付正在处理中，请稍后查看结果。';
+      return '您的账单尚未支付，请尽快完成支付';
   }
 };
 
+// 初始化
 onMounted(() => {
-  fetchPaymentDetail();
-  
-  // 处理面包屑历史
-  const breadcrumbHistory = JSON.parse(localStorage.getItem('eb-breadcrumb-history') || '[]');
-  if (breadcrumbHistory.length > 0) {
-    // 确保缴纳中心存在于面包屑历史中
-    const paymentDashboardExists = breadcrumbHistory.some(item => 
-      item.path === '/user/paymentDashboard' || item.name === 'UserPaymentDashboard'
-    );
-    
-    if (!paymentDashboardExists) {
-      // 添加缴纳中心到面包屑历史
-      breadcrumbHistory.push({
-        title: '缴纳中心',
-        path: '/user/paymentDashboard',
-        name: 'UserPaymentDashboard',
-        query: {},
-        fullPath: '/user/paymentDashboard'
-      });
-      localStorage.setItem('eb-breadcrumb-history', JSON.stringify(breadcrumbHistory));
-    }
-  }
+  getPaymentDetail();
 });
 </script>
 

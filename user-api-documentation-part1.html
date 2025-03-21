@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电费账单系统 - 用户端API文档（第一部分）</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+        }
+        .api-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        }
+        .api-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #409EFF;
+        }
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background: #e3f2fd; color: #1976d2; }
+        .post { background: #e8f5e9; color: #2e7d32; }
+        .put { background: #fff3e0; color: #f57c00; }
+        .delete { background: #ffebee; color: #c62828; }
+        .url {
+            font-family: monospace;
+            background: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .param-table th, .param-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .param-table th {
+            background: #f5f5f5;
+        }
+        .required {
+            color: #f44336;
+            font-weight: bold;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow: auto;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            border: 1px solid #eee;
+        }
+        .description {
+            color: #606060;
+            margin-bottom: 15px;
+        }
+        .api-section h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .doc-header {
+            background: #409EFF;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .doc-header h1 {
+            color: white;
+            margin: 0;
+        }
+        .doc-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.8;
+        }
+        .code-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #444;
+        }
+        .function-name {
+            color: #0366d6;
+            font-weight: bold;
+        }
+        .jsdoc {
+            color: #6a737d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <h1>电费账单系统 - 用户端API文档</h1>
+        <p>第一部分：账单管理、支付管理和账户管理</p>
+    </div>
+
+    <div class="api-section">
+        <h2>1. 账单管理</h2>
+        <p class="description">账单管理模块提供用户查询当前账单、历史账单以及下载账单等功能。</p>
+        
+        <div class="api-item">
+            <h3>获取当前账单信息</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/bills/current</div>
+            <p>获取用户当前待缴费的账单信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+import request from '@/utils/request';
+
+/**
+ * 获取当前账单信息
+ * @returns {Promise} 返回Promise对象，包含当前账单信息
+ */
+export function getCurrentBill() {
+  return request({
+    url: '/api/user/bills/current',
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>返回数据：</h4>
+            <pre>
+{
+    "billNo": "string",          // 账单编号
+    "billPeriod": "string",      // 账单周期
+    "usage": "number",           // 用电量(度)
+    "amount": "number",          // 应缴金额
+    "dueDate": "string",         // 截止日期
+    "userCode": "string",        // 用户编号
+    "userName": "string",        // 用户名称
+    "address": "string",         // 用电地址
+    "status": "string",          // 账单状态
+    "supplyInfo": {              // 供电信息
+        "company": "string",     // 供电单位
+        "area": "string",        // 供电区域
+        "meterType": "string",   // 电表类型
+        "meterNo": "string"      // 电表编号
+    },
+    "paymentInfo": {             // 缴费信息
+        "company": "string",     // 缴费单位
+        "channel": "string",     // 缴费渠道
+        "invoice": "string"      // 电子发票信息
+    },
+    "details": [                 // 账单明细
+        {
+            "label": "string",   // 明细项名称
+            "value": "string"    // 明细项值
+        }
+    ]
+}</pre>
+        </div>
+
+        <div class="api-item">
+            <h3>获取账单详情</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/bills/{billId}</div>
+            <p>获取指定账单的详细信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取账单详情
+ * @param {string} billId 账单ID
+ * @returns {Promise} 返回Promise对象，包含账单详情
+ */
+export function getBillDetail(billId) {
+  return request({
+    url: `/api/user/bills/${billId}`,
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>billId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>账单ID</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>获取账单历史列表</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/bills/history</div>
+            <p>获取用户历史账单列表，支持分页查询、状态筛选和日期筛选</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取账单历史列表
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页数量
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {string} params.status 账单状态（可选）
+ * @returns {Promise} 返回Promise对象，包含账单历史列表
+ */
+export function getBillHistory(params) {
+  return request({
+    url: '/api/user/bills/history',
+    method: 'get',
+    params
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>page</td>
+                    <td>number</td>
+                    <td>否</td>
+                    <td>页码，默认1</td>
+                </tr>
+                <tr>
+                    <td>pageSize</td>
+                    <td>number</td>
+                    <td>否</td>
+                    <td>每页数量，默认10</td>
+                </tr>
+                <tr>
+                    <td>startDate</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>开始日期，格式：YYYY-MM-DD</td>
+                </tr>
+                <tr>
+                    <td>endDate</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>结束日期，格式：YYYY-MM-DD</td>
+                </tr>
+                <tr>
+                    <td>status</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>账单状态，可选值：unpaid(未支付)/paid(已支付)/overdue(已逾期)</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>下载账单</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/bills/{billId}/download</div>
+            <p>下载指定账单的PDF文件</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 下载账单
+ * @param {string} billId 账单ID
+ * @returns {Promise} 返回Promise对象，包含账单PDF文件
+ */
+export function downloadBill(billId) {
+  return request({
+    url: `/api/user/bills/${billId}/download`,
+    method: 'get',
+    responseType: 'blob'
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>billId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>账单ID</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section">
+        <h2>2. 支付管理</h2>
+        <p class="description">支付管理模块提供创建支付订单、查询支付状态、申请退款等功能。</p>
+        
+        <div class="api-item">
+            <h3>创建支付订单</h3>
+            <div class="method post">POST</div>
+            <div class="url">/api/user/payments</div>
+            <p>创建新的支付订单</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 创建支付订单
+ * @param {Object} data 支付数据
+ * @param {string} data.billId 账单ID
+ * @param {string} data.paymentMethod 支付方式（balance/wechat/alipay/bank）
+ * @param {Object} data.bankInfo 银行卡支付信息（仅当paymentMethod为bank时必填）
+ * @returns {Promise} 返回Promise对象，包含支付订单信息
+ */
+export function createPayment(data) {
+  return request({
+    url: '/api/user/payments',
+    method: 'post',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>billId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>账单ID</td>
+                </tr>
+                <tr>
+                    <td>paymentMethod</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付方式（balance/wechat/alipay/bank）</td>
+                </tr>
+                <tr>
+                    <td>bankInfo</td>
+                    <td>object</td>
+                    <td>否</td>
+                    <td>银行卡支付信息（仅当paymentMethod为bank时必填）</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>获取支付结果</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/payments/{paymentId}/status</div>
+            <p>查询支付订单状态</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取支付结果
+ * @param {string} paymentId 支付订单ID
+ * @returns {Promise} 返回Promise对象，包含支付结果信息
+ */
+export function getPaymentStatus(paymentId) {
+  return request({
+    url: `/api/user/payments/${paymentId}/status`,
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>paymentId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付订单ID</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>申请退款</h3>
+            <div class="method post">POST</div>
+            <div class="url">/api/user/payments/{paymentId}/refund</div>
+            <p>申请支付订单退款</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 申请退款
+ * @param {string} paymentId 支付订单ID
+ * @param {Object} data 退款数据
+ * @param {string} data.reason 退款原因
+ * @param {string} data.description 详细说明（当reason为"其他原因"时必填）
+ * @returns {Promise} 返回Promise对象，包含退款申请结果
+ */
+export function applyRefund(paymentId, data) {
+  return request({
+    url: `/api/user/payments/${paymentId}/refund`,
+    method: 'post',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>paymentId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付订单ID</td>
+                </tr>
+                <tr>
+                    <td>reason</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>退款原因</td>
+                </tr>
+                <tr>
+                    <td>description</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>详细说明（当reason为"其他原因"时必填）</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>获取支付记录</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/payments/history</div>
+            <p>获取用户的支付记录列表，支持分页查询和状态筛选</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取支付记录
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页数量
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {string} params.status 支付状态（可选）
+ * @returns {Promise} 返回Promise对象，包含支付记录列表
+ */
+export function getPaymentHistory(params) {
+  return request({
+    url: '/api/user/payments/history',
+    method: 'get',
+    params
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>page</td>
+                    <td>number</td>
+                    <td>否</td>
+                    <td>页码，默认1</td>
+                </tr>
+                <tr>
+                    <td>pageSize</td>
+                    <td>number</td>
+                    <td>否</td>
+                    <td>每页数量，默认10</td>
+                </tr>
+                <tr>
+                    <td>startDate</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>开始日期，格式：YYYY-MM-DD</td>
+                </tr>
+                <tr>
+                    <td>endDate</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>结束日期，格式：YYYY-MM-DD</td>
+                </tr>
+                <tr>
+                    <td>status</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>支付状态，可选值：pending(待处理)/success(成功)/failed(失败)/refunded(已退款)</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>获取支付详情</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/payments/{paymentId}/detail</div>
+            <p>获取支付订单的详细信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取支付详情
+ * @param {string} paymentId 支付订单ID
+ * @returns {Promise} 返回Promise对象，包含支付详情
+ */
+export function getPaymentDetail(paymentId) {
+  return request({
+    url: `/api/user/payments/${paymentId}/detail`,
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>paymentId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付订单ID</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>下载电子收据</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/payments/{paymentId}/receipt</div>
+            <p>下载支付订单的电子收据PDF文件</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 下载电子收据
+ * @param {string} paymentId 支付订单ID
+ * @returns {Promise} 返回Promise对象，包含收据PDF文件
+ */
+export function downloadReceipt(paymentId) {
+  return request({
+    url: `/api/user/payments/${paymentId}/receipt`,
+    method: 'get',
+    responseType: 'blob'
+  });
+}</pre>
+            
+            <h4>参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>paymentId</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付订单ID</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="api-section">
+        <h2>3. 账户管理</h2>
+        <p class="description">账户管理模块提供查询账户余额、获取账户信息、更新账户信息和密码修改等功能。</p>
+        
+        <div class="api-item">
+            <h3>获取账户余额</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/account/balance</div>
+            <p>获取用户账户余额信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取账户余额
+ * @returns {Promise} 返回Promise对象，包含账户余额信息
+ */
+export function getAccountBalance() {
+  return request({
+    url: '/api/user/account/balance',
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>返回数据：</h4>
+            <pre>
+{
+    "balance": "number",         // 账户余额
+    "lastUpdateTime": "string"   // 最后更新时间
+}</pre>
+        </div>
+
+        <div class="api-item">
+            <h3>获取账户信息</h3>
+            <div class="method get">GET</div>
+            <div class="url">/api/user/account/info</div>
+            <p>获取用户账户基本信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 获取账户信息
+ * @returns {Promise} 返回Promise对象，包含账户基本信息
+ */
+export function getAccountInfo() {
+  return request({
+    url: '/api/user/account/info',
+    method: 'get'
+  });
+}</pre>
+            
+            <h4>返回数据：</h4>
+            <pre>
+{
+    "userId": "string",          // 用户ID
+    "username": "string",        // 用户名
+    "phone": "string",           // 手机号
+    "email": "string",           // 邮箱
+    "address": "string",         // 地址
+    "meterInfo": {               // 电表信息
+        "meterNo": "string",     // 电表编号
+        "meterType": "string",   // 电表类型
+        "location": "string"     // 安装位置
+    }
+}</pre>
+        </div>
+
+        <div class="api-item">
+            <h3>更新账户信息</h3>
+            <div class="method put">PUT</div>
+            <div class="url">/api/user/account/info</div>
+            <p>更新用户账户信息</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 更新账户信息
+ * @param {Object} data 账户信息
+ * @param {string} data.phone 手机号（可选）
+ * @param {string} data.email 邮箱（可选）
+ * @param {string} data.address 地址（可选）
+ * @returns {Promise} 返回Promise对象，包含更新结果
+ */
+export function updateAccountInfo(data) {
+  return request({
+    url: '/api/user/account/info',
+    method: 'put',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>phone</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>手机号</td>
+                </tr>
+                <tr>
+                    <td>email</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>邮箱</td>
+                </tr>
+                <tr>
+                    <td>address</td>
+                    <td>string</td>
+                    <td>否</td>
+                    <td>地址</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>修改密码</h3>
+            <div class="method put">PUT</div>
+            <div class="url">/api/user/account/password</div>
+            <p>修改用户账户密码</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 修改密码
+ * @param {Object} data 密码信息
+ * @param {string} data.oldPassword 旧密码
+ * @param {string} data.newPassword 新密码
+ * @param {string} data.confirmPassword 确认新密码
+ * @returns {Promise} 返回Promise对象，包含更新结果
+ */
+export function changePassword(data) {
+  return request({
+    url: '/api/user/account/password',
+    method: 'put',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>oldPassword</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>旧密码</td>
+                </tr>
+                <tr>
+                    <td>newPassword</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>新密码</td>
+                </tr>
+                <tr>
+                    <td>confirmPassword</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>确认新密码</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>账户充值</h3>
+            <div class="method post">POST</div>
+            <div class="url">/api/user/account/recharge</div>
+            <p>给用户账户充值</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 账户充值
+ * @param {Object} data 充值信息
+ * @param {number} data.amount 充值金额
+ * @param {string} data.paymentMethod 支付方式
+ * @returns {Promise} 返回Promise对象，包含充值结果
+ */
+export function accountRecharge(data) {
+  return request({
+    url: '/api/user/account/recharge',
+    method: 'post',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>amount</td>
+                    <td>number</td>
+                    <td class="required">是</td>
+                    <td>充值金额</td>
+                </tr>
+                <tr>
+                    <td>paymentMethod</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>支付方式（wechat/alipay/bank）</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="api-item">
+            <h3>绑定电表</h3>
+            <div class="method post">POST</div>
+            <div class="url">/api/user/account/bind-meter</div>
+            <p>绑定电表到用户账户</p>
+            
+            <div class="code-title">前端实现代码:</div>
+            <pre>
+/**
+ * 绑定电表
+ * @param {Object} data 电表信息
+ * @param {string} data.meterNo 电表编号
+ * @param {string} data.location 安装位置
+ * @returns {Promise} 返回Promise对象，包含绑定结果
+ */
+export function bindMeter(data) {
+  return request({
+    url: '/api/user/account/bind-meter',
+    method: 'post',
+    data
+  });
+}</pre>
+            
+            <h4>请求参数：</h4>
+            <table class="param-table">
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>meterNo</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>电表编号</td>
+                </tr>
+                <tr>
+                    <td>location</td>
+                    <td>string</td>
+                    <td class="required">是</td>
+                    <td>安装位置</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html> 

@@ -200,8 +200,7 @@ import { ref, reactive, onMounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Refresh, Odometer, Money, DataLine, CaretTop, CaretBottom, InfoFilled } from '@element-plus/icons-vue';
 import { EBPageLayout, EBButton } from '@/components';
-// 假设这些API函数已经在相应的文件中定义
-import { getUserElectricityAnalysis } from '@/api/user';
+import { getYearlyAnalysis, getElectricityComparison } from '@/api/user/analysis';
 // 假设已经安装并引入了echarts
 import * as echarts from 'echarts/core';
 import {
@@ -248,7 +247,7 @@ const availableYears = [
 ];
 
 // 汇总数据
-const summaryData = reactive({
+const summaryData = ref({
   totalUsage: 0,
   totalCost: 0,
   averageMonthlyUsage: 0,
@@ -257,43 +256,53 @@ const summaryData = reactive({
   avgUsageYoY: 0
 });
 
-// 分析数据和建议
-const analysisData = reactive({
+// 分析数据
+const analysisData = ref({
   analysis: [],
   suggestions: []
 });
 
-// 获取同比数据样式类
-const getComparisonClass = (value) => {
-  if (!value) return '';
-  return value > 0 ? 'increase' : 'decrease';
-};
-
 // 获取分析数据
 const fetchAnalysisData = async () => {
   loading.value = true;
+  
   try {
-    const res = await getUserElectricityAnalysis({
-      year: selectedYear.value,
-      type: chartType.value,
-      comparisonMode: comparisonMode.value
-    });
+    // 获取年度用电分析数据
+    const params = { year: selectedYear.value };
+    const response = await getYearlyAnalysis(params);
     
-    // 更新汇总数据
-    Object.assign(summaryData, res.data.summary);
-    
-    // 更新分析和建议
-    Object.assign(analysisData, res.data.insights);
-    
-    // 渲染图表
-    nextTick(() => {
-      renderMonthlyChart(res.data.monthlyData);
-      renderTimeDistributionChart(res.data.timeDistribution);
-      renderTypeDistributionChart(res.data.typeDistribution);
-      renderComparisonChart(res.data.comparison);
-    });
+    if (response.data) {
+      const data = response.data;
+      
+      // 更新汇总数据
+      summaryData.value = data.summary;
+      
+      // 更新分析和建议
+      analysisData.value = {
+        analysis: data.analysis || [],
+        suggestions: data.suggestions || []
+      };
+      
+      // 等待DOM更新后初始化图表
+      await nextTick();
+      
+      // 初始化月度趋势图
+      initMonthlyChart(data.monthlyData);
+      
+      // 初始化用电时段分布图
+      initTimeDistributionChart(data.timeDistribution);
+      
+      // 初始化用电类型分布图
+      initTypeDistributionChart(data.typeDistribution);
+      
+      // 初始化用户对比图
+      initComparisonChart(data.comparison);
+    } else {
+      ElMessage.warning('未找到分析数据');
+    }
   } catch (error) {
-    ElMessage.error('获取用电分析数据失败');
+    console.error('获取分析数据失败:', error);
+    ElMessage.error('获取分析数据失败，请稍后重试');
   } finally {
     loading.value = false;
   }
@@ -301,30 +310,71 @@ const fetchAnalysisData = async () => {
 
 // 更新图表类型
 const updateChartType = () => {
-  fetchAnalysisData();
+  if (monthlyChart) {
+    const option = monthlyChart.getOption();
+    option.series[0].name = chartType.value === 'usage' ? '用电量' : '电费';
+    option.yAxis[0].name = chartType.value === 'usage' ? '用电量 (度)' : '电费 (元)';
+    
+    if (comparisonMode.value === 'lastYear') {
+      option.series[1].name = chartType.value === 'usage' ? '去年用电量' : '去年电费';
+    }
+    
+    monthlyChart.setOption(option);
+  }
 };
 
-// 更新对比模式
-const updateComparisonMode = () => {
-  fetchAnalysisData();
+// 更新比较模式
+const updateComparisonMode = async () => {
+  if (comparisonMode.value === 'lastYear' && !monthlyChart) return;
+  
+  try {
+    if (comparisonMode.value === 'lastYear') {
+      loading.value = true;
+      
+      // 获取对比数据
+      const params = {
+        year: selectedYear.value,
+        prevYear: selectedYear.value - 1
+      };
+      
+      const response = await getElectricityComparison(params);
+      
+      if (response.data && response.data.comparison) {
+        const data = response.data.comparison;
+        updateMonthlyChartWithComparison(data);
+      }
+    } else {
+      // 移除对比数据
+      const option = monthlyChart.getOption();
+      option.series = [option.series[0]];
+      option.legend.data = [option.legend.data[0]];
+      monthlyChart.setOption(option);
+    }
+  } catch (error) {
+    console.error('获取对比数据失败:', error);
+    ElMessage.error('获取对比数据失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 };
 
-// 渲染月度趋势图
-const renderMonthlyChart = (data) => {
+// 初始化月度趋势图
+const initMonthlyChart = (data) => {
   if (!monthlyChartRef.value) return;
   
-  if (monthlyChart === null) {
+  if (!monthlyChart) {
     monthlyChart = echarts.init(monthlyChartRef.value);
   }
+  
+  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+  const currentYearData = data?.current || Array(12).fill(0);
   
   const option = {
     tooltip: {
       trigger: 'axis'
     },
     legend: {
-      data: comparisonMode.value === 'lastYear'
-        ? [`${selectedYear.value}年${chartType.value === 'usage' ? '用电量' : '电费'}`, `${selectedYear.value - 1}年${chartType.value === 'usage' ? '用电量' : '电费'}`]
-        : [`${chartType.value === 'usage' ? '用电量' : '电费'}`]
+      data: [chartType.value === 'usage' ? '用电量' : '电费']
     },
     grid: {
       left: '3%',
@@ -332,94 +382,122 @@ const renderMonthlyChart = (data) => {
       bottom: '3%',
       containLabel: true
     },
+    toolbox: {
+      feature: {
+        saveAsImage: {}
+      }
+    },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      data: months
     },
     yAxis: {
       type: 'value',
-      axisLabel: {
-        formatter: `{value} ${chartType.value === 'usage' ? '度' : '元'}`
-      }
+      name: chartType.value === 'usage' ? '用电量 (度)' : '电费 (元)'
     },
-    series: comparisonMode.value === 'lastYear'
-      ? [
-          {
-            name: `${selectedYear.value}年${chartType.value === 'usage' ? '用电量' : '电费'}`,
-            type: 'line',
-            data: data.current,
-            smooth: true,
-            lineStyle: {
-              width: 3
-            },
-            itemStyle: {
-              color: '#409EFF'
-            }
-          },
-          {
-            name: `${selectedYear.value - 1}年${chartType.value === 'usage' ? '用电量' : '电费'}`,
-            type: 'line',
-            data: data.lastYear,
-            smooth: true,
-            lineStyle: {
-              width: 3,
-              type: 'dashed'
-            },
-            itemStyle: {
-              color: '#E6A23C'
-            }
-          }
-        ]
-      : [
-          {
-            name: `${chartType.value === 'usage' ? '用电量' : '电费'}`,
-            type: 'line',
-            data: data.current,
-            smooth: true,
-            areaStyle: {},
-            lineStyle: {
-              width: 3
-            },
-            itemStyle: {
-              color: '#409EFF'
-            }
-          }
-        ]
+    series: [
+      {
+        name: chartType.value === 'usage' ? '用电量' : '电费',
+        type: 'line',
+        data: currentYearData,
+        smooth: true,
+        lineStyle: {
+          width: 3
+        },
+        itemStyle: {
+          color: '#409EFF'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+            { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+          ])
+        }
+      }
+    ]
   };
+  
+  monthlyChart.setOption(option);
+  
+  // 窗口大小改变时重新渲染图表
+  window.addEventListener('resize', () => {
+    monthlyChart.resize();
+  });
+};
+
+// 更新月度趋势图添加对比数据
+const updateMonthlyChartWithComparison = (data) => {
+  if (!monthlyChart) return;
+  
+  const lastYearData = data?.lastYear || Array(12).fill(0);
+  const option = monthlyChart.getOption();
+  
+  option.legend.data.push(chartType.value === 'usage' ? '去年用电量' : '去年电费');
+  option.series.push({
+    name: chartType.value === 'usage' ? '去年用电量' : '去年电费',
+    type: 'line',
+    data: lastYearData,
+    smooth: true,
+    lineStyle: {
+      width: 3,
+      type: 'dashed'
+    },
+    itemStyle: {
+      color: '#909399'
+    }
+  });
   
   monthlyChart.setOption(option);
 };
 
-// 渲染用电时段分布图
-const renderTimeDistributionChart = (data) => {
+// 初始化用电时段分布图
+const initTimeDistributionChart = (data) => {
   if (!timeDistributionChartRef.value) return;
   
-  if (timeDistributionChart === null) {
+  if (!timeDistributionChart) {
     timeDistributionChart = echarts.init(timeDistributionChartRef.value);
+  }
+  
+  const formattedData = [];
+  for (const [key, value] of Object.entries(data)) {
+    let name = key;
+    switch (key) {
+      case 'peak':
+        name = '峰时';
+        break;
+      case 'valley':
+        name = '谷时';
+        break;
+      case 'flat':
+        name = '平时';
+        break;
+      default:
+        name = key;
+    }
+    
+    formattedData.push({
+      name,
+      value
+    });
   }
   
   const option = {
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: {c} ({d}%)'
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
     },
     legend: {
-      bottom: '0%',
-      left: 'center',
-      data: ['凌晨 (0-6点)', '上午 (6-12点)', '下午 (12-18点)', '晚上 (18-24点)']
+      orient: 'vertical',
+      left: 10,
+      data: formattedData.map(item => item.name)
     },
     series: [
       {
         name: '用电时段',
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: ['50%', '70%'],
         avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
         label: {
           show: false,
           position: 'center'
@@ -427,147 +505,154 @@ const renderTimeDistributionChart = (data) => {
         emphasis: {
           label: {
             show: true,
-            fontSize: '18',
+            fontSize: '16',
             fontWeight: 'bold'
           }
         },
         labelLine: {
           show: false
         },
-        data: [
-          { value: data.night || 15, name: '凌晨 (0-6点)' },
-          { value: data.morning || 20, name: '上午 (6-12点)' },
-          { value: data.afternoon || 30, name: '下午 (12-18点)' },
-          { value: data.evening || 35, name: '晚上 (18-24点)' }
-        ]
+        data: formattedData,
+        itemStyle: {
+          borderRadius: 5,
+          borderColor: '#fff',
+          borderWidth: 2
+        }
       }
     ]
   };
   
   timeDistributionChart.setOption(option);
+  
+  window.addEventListener('resize', () => {
+    timeDistributionChart.resize();
+  });
 };
 
-// 渲染用电类型分布图
-const renderTypeDistributionChart = (data) => {
+// 初始化用电类型分布图
+const initTypeDistributionChart = (data) => {
   if (!typeDistributionChartRef.value) return;
   
-  if (typeDistributionChart === null) {
+  if (!typeDistributionChart) {
     typeDistributionChart = echarts.init(typeDistributionChartRef.value);
+  }
+  
+  const formattedData = [];
+  for (const [key, value] of Object.entries(data)) {
+    formattedData.push({
+      name: key,
+      value
+    });
   }
   
   const option = {
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: {c} ({d}%)'
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
     },
     legend: {
-      bottom: '0%',
-      left: 'center'
+      orient: 'vertical',
+      left: 10,
+      data: formattedData.map(item => item.name)
     },
     series: [
       {
         name: '用电类型',
         type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
+        radius: '55%',
+        center: ['50%', '60%'],
+        data: formattedData,
         emphasis: {
-          label: {
-            show: true,
-            fontSize: '18',
-            fontWeight: 'bold'
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
           }
-        },
-        labelLine: {
-          show: false
-        },
-        data: Object.keys(data).map(key => ({
-          name: key,
-          value: data[key]
-        }))
+        }
       }
     ]
   };
   
   typeDistributionChart.setOption(option);
+  
+  window.addEventListener('resize', () => {
+    typeDistributionChart.resize();
+  });
 };
 
-// 渲染同类型用户比较图
-const renderComparisonChart = (data) => {
+// 初始化用户对比图
+const initComparisonChart = (data) => {
   if (!comparisonChartRef.value) return;
   
-  if (comparisonChart === null) {
+  if (!comparisonChart) {
     comparisonChart = echarts.init(comparisonChartRef.value);
   }
   
+  const userUsage = data?.userUsage || 0;
+  const averageUsage = data?.averageUsage || 0;
+  const percentile = data?.percentile || 50;
+  
   const option = {
     tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    legend: {
-      data: ['您的用电', '同类用户平均']
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      axisLabel: {
-        formatter: `{value} ${chartType.value === 'usage' ? '度' : '元'}`
-      }
-    },
-    yAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      formatter: '{a} <br/>{b} : {c}度'
     },
     series: [
       {
-        name: '您的用电',
-        type: 'bar',
-        data: data.user,
-        itemStyle: {
-          color: '#409EFF'
-        }
-      },
-      {
-        name: '同类用户平均',
-        type: 'bar',
-        data: data.average,
-        itemStyle: {
-          color: '#67C23A'
+        name: '用电对比',
+        type: 'gauge',
+        detail: { formatter: '{value}%' },
+        data: [{ value: percentile, name: '百分位数' }],
+        axisLine: {
+          lineStyle: {
+            width: 30,
+            color: [
+              [0.3, '#67C23A'],
+              [0.7, '#E6A23C'],
+              [1, '#F56C6C']
+            ]
+          }
+        },
+        pointer: {
+          itemStyle: {
+            color: 'auto'
+          }
+        },
+        title: {
+          fontSize: 14
+        },
+        detail: {
+          fontSize: 20,
+          formatter: '{value}%',
+          offsetCenter: [0, '60%']
         }
       }
     ]
   };
   
   comparisonChart.setOption(option);
+  
+  window.addEventListener('resize', () => {
+    comparisonChart.resize();
+  });
 };
 
-// 窗口大小变化时重置图表大小
-const handleResize = () => {
-  if (monthlyChart) monthlyChart.resize();
-  if (timeDistributionChart) timeDistributionChart.resize();
-  if (typeDistributionChart) typeDistributionChart.resize();
-  if (comparisonChart) comparisonChart.resize();
+// 获取同比变化率的样式类
+const getComparisonClass = (yoyValue) => {
+  if (!yoyValue) return '';
+  
+  // 根据不同的指标，判断增加是好还是坏
+  if (chartType.value === 'usage') {
+    // 用电量减少为好
+    return yoyValue < 0 ? 'comparison-good' : 'comparison-bad';
+  } else {
+    // 电费减少为好
+    return yoyValue < 0 ? 'comparison-good' : 'comparison-bad';
+  }
 };
 
+// 初始化
 onMounted(() => {
   fetchAnalysisData();
-  window.addEventListener('resize', handleResize);
 });
 </script>
 

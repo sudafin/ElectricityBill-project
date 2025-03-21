@@ -145,7 +145,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNotificationList, deleteNotification ,fetchNotificationDetail} from '@/api/notification.js';
+import { getNotificationList, deleteNotification ,fetchNotificationDetail} from '@/api/admin/notification.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Download, Search, Close, Calendar, Plus } from '@element-plus/icons-vue';
 

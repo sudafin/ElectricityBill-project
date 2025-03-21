@@ -39,20 +39,51 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent } from 'vue';
-import { EBPageLayout } from '@/components';
-import { Bell, Lightning, Wallet } from '@element-plus/icons-vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { EBPageLayout, EBCard } from '@/components';
+import { formatMoney, formatNumber } from '@/utils/formatter';
+import { getCurrentBill } from '@/api/user/bill';
+import { getAccountBalance, getAccountInfo } from '@/api/user/account';
+import { getUnreadCount } from '@/api/user/notification';
+import { getElectricityTrend, getEnergySavingTips } from '@/api/user/analysis';
 
-// 使用异步组件加载子组件
-const EBUserNotifications = defineAsyncComponent(() => 
-  import('./components/EBUserDashboardNotifications.vue')
-);
-const EBUserElectricityRecord = defineAsyncComponent(() => 
-  import('./components/EBUserDashboardElectricity.vue')
-);
-const EBUserPaymentRecord = defineAsyncComponent(() => 
-  import('./components/EBUserDashboardPayment.vue')
-);
+const router = useRouter();
+
+// 页面状态
+const loading = ref(false);
+
+// 用户信息
+const userInfo = ref({
+  name: '',
+  address: '',
+  meterNumber: ''
+});
+
+// 账户余额
+const accountBalance = ref(0);
+
+// 当前账单
+const currentBill = ref({
+  billId: '',
+  billMonth: '',
+  dueDate: '',
+  amount: 0,
+  status: 'unpaid', // unpaid, overdue, paid
+  usageAmount: 0,
+  paidAmount: 0,
+  remainAmount: 0
+});
+
+// 近期用电趋势
+const electricityTrend = ref([]);
+
+// 未读通知数量
+const unreadNotifications = ref(0);
+
+// 节能小贴士
+const energySavingTips = ref([]);
 
 // 当前活动标签
 const activeTab = ref('notifications'); // 默认显示最新通知
@@ -68,6 +99,147 @@ const currentComponent = computed(() => {
     default:
       return EBUserNotifications;
   }
+});
+
+// 计算属性：账单状态文本
+const billStatusText = computed(() => {
+  const status = currentBill.value.status;
+  if (status === 'paid') return '已支付';
+  if (status === 'overdue') return '已逾期';
+  return '待支付';
+});
+
+// 计算属性：账单状态样式
+const billStatusType = computed(() => {
+  const status = currentBill.value.status;
+  if (status === 'paid') return 'success';
+  if (status === 'overdue') return 'danger';
+  return 'warning';
+});
+
+// 初始化页面数据
+const initPageData = async () => {
+  loading.value = true;
+  
+  try {
+    // 获取用户信息
+    const accountInfoResponse = await getAccountInfo();
+    if (accountInfoResponse.code === 200) {
+      userInfo.value = accountInfoResponse.data || {};
+    }
+    
+    // 获取账户余额
+    const balanceResponse = await getAccountBalance();
+    if (balanceResponse.code === 200) {
+      accountBalance.value = balanceResponse.data.balance || 0;
+    }
+    
+    // 获取当前账单
+    await fetchCurrentBill();
+    
+    // 获取用电趋势
+    await fetchElectricityTrend();
+    
+    // 获取未读通知数量
+    await fetchUnreadNotifications();
+    
+    // 获取节能小贴士
+    await fetchEnergySavingTips();
+  } catch (error) {
+    console.error('初始化仪表盘数据失败:', error);
+    ElMessage.error('加载仪表盘数据失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取当前账单
+const fetchCurrentBill = async () => {
+  try {
+    const response = await getCurrentBill();
+    if (response.code === 200) {
+      currentBill.value = response.data || {};
+    }
+  } catch (error) {
+    console.error('获取当前账单失败:', error);
+  }
+};
+
+// 获取用电趋势
+const fetchElectricityTrend = async () => {
+  try {
+    // 获取最近30天的用电趋势
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    const formattedToday = today.toISOString().split('T')[0];
+    const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    const response = await getElectricityTrend({
+      startDate: formattedThirtyDaysAgo,
+      endDate: formattedToday,
+      type: 'daily'
+    });
+    
+    if (response.code === 200) {
+      electricityTrend.value = response.data || [];
+    }
+  } catch (error) {
+    console.error('获取用电趋势失败:', error);
+  }
+};
+
+// 获取未读通知
+const fetchUnreadNotifications = async () => {
+  try {
+    const response = await getUnreadCount();
+    if (response.code === 200) {
+      unreadNotifications.value = response.data.count || 0;
+    }
+  } catch (error) {
+    console.error('获取未读通知数量失败:', error);
+  }
+};
+
+// 获取节能小贴士
+const fetchEnergySavingTips = async () => {
+  try {
+    const response = await getEnergySavingTips({ limit: 3 });
+    if (response.code === 200) {
+      energySavingTips.value = response.data || [];
+    }
+  } catch (error) {
+    console.error('获取节能小贴士失败:', error);
+  }
+};
+
+// 路由跳转
+const goToPage = (path) => {
+  router.push(path);
+};
+
+// 支付账单
+const payBill = () => {
+  router.push({
+    path: '/user/payment',
+    query: { billId: currentBill.value.billId }
+  });
+};
+
+// 查看更多用电分析
+const viewMoreAnalysis = () => {
+  router.push('/user/analysis');
+};
+
+// 查看更多通知
+const viewMoreNotifications = () => {
+  router.push('/user/notifications');
+};
+
+// 初始化
+onMounted(() => {
+  initPageData();
 });
 </script>
 

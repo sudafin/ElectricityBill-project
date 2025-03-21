@@ -187,7 +187,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
-import { getReconciliationList, getReconciliationDetail, getReconciliationReport } from '@/api/reconciliation.js';
+import { getReconciliationList, getReconciliationDetail, getReconciliationReport } from '@/api/admin/reconciliation.js';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();

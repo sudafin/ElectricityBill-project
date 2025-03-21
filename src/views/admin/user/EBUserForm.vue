@@ -77,7 +77,7 @@ import {
   RefreshRight, 
   Check 
 } from '@element-plus/icons-vue';
-import { getUserDetail, editUser, createUser } from '@/api/user.js';
+import { getUserDetail, editUser, createUser } from '@/api/admin/user.js';
 
 const router = useRouter();
 const userFormRef = ref(null);

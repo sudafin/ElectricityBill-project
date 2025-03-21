@@ -39,41 +39,154 @@ export function getDashboardInfo() {
     method: 'get',
   });
 }
-export function getUserList(userPageQuery){
+
+/**
+ * 获取用户列表
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页数量
+ * @param {string} params.keyword 搜索关键词（可选）
+ * @param {string} params.status 用户状态（可选）
+ * @returns {Promise} 返回Promise对象，包含用户列表
+ */
+export function getUserList(params) {
   return request({
-    url: '/user/page',
+    url: '/api/admin/users',
     method: 'get',
-    params: userPageQuery,
-  });
-}
-export function getUserDetail(id){
-  return request({
-    url: `/user/detail/${id}`,
-    method: 'get',
+    params
   });
 }
 
-export function createUser(data){
+/**
+ * 获取用户详情
+ * @param {string} userId 用户ID
+ * @returns {Promise} 返回Promise对象，包含用户详情
+ */
+export function getUserDetail(userId) {
   return request({
-    url: '/user/create',
+    url: `/api/admin/users/${userId}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 添加用户
+ * @param {Object} data 用户数据
+ * @param {string} data.username 用户名
+ * @param {string} data.password 密码
+ * @param {string} data.name 姓名
+ * @param {string} data.phone 手机号
+ * @param {string} data.email 邮箱
+ * @param {string} data.address 地址
+ * @returns {Promise} 返回Promise对象，包含添加结果
+ */
+export function addUser(data) {
+  return request({
+    url: '/api/admin/users',
     method: 'post',
-    data,
+    data
   });
 }
 
-export function editUser(data){
+/**
+ * 更新用户信息
+ * @param {string} userId 用户ID
+ * @param {Object} data 更新数据
+ * @param {string} data.name 姓名（可选）
+ * @param {string} data.phone 手机号（可选）
+ * @param {string} data.email 邮箱（可选）
+ * @param {string} data.address 地址（可选）
+ * @param {string} data.status 状态（可选）
+ * @returns {Promise} 返回Promise对象，包含更新结果
+ */
+export function updateUser(userId, data) {
   return request({
-    url: '/user/edit',
+    url: `/api/admin/users/${userId}`,
     method: 'put',
-    data,
+    data
   });
 }
 
-export function deleteUser(userIds) {
+/**
+ * 删除用户
+ * @param {string} userId 用户ID
+ * @returns {Promise} 返回Promise对象，包含删除结果
+ */
+export function deleteUser(userId) {
   return request({
-    url: '/user/delete',
-    method: 'delete', 
-    params: { userIds: userIds },
+    url: `/api/admin/users/${userId}`,
+    method: 'delete'
+  });
+}
+
+/**
+ * 重置用户密码
+ * @param {string} userId 用户ID
+ * @returns {Promise} 返回Promise对象，包含重置结果
+ */
+export function resetUserPassword(userId) {
+  return request({
+    url: `/api/admin/users/${userId}/reset-password`,
+    method: 'post'
+  });
+}
+
+/**
+ * 获取用户统计数据
+ * @returns {Promise} 返回Promise对象，包含用户统计数据
+ */
+export function getUserStatistics() {
+  return request({
+    url: '/api/admin/users/statistics',
+    method: 'get'
+  });
+}
+
+/**
+ * 获取用户账单记录
+ * @param {string} userId 用户ID
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页数量
+ * @returns {Promise} 返回Promise对象，包含用户账单记录
+ */
+export function getUserBillRecords(userId, params) {
+  return request({
+    url: `/api/admin/users/${userId}/bills`,
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取用户支付记录
+ * @param {string} userId 用户ID
+ * @param {Object} params 查询参数
+ * @param {number} params.page 页码
+ * @param {number} params.pageSize 每页数量
+ * @returns {Promise} 返回Promise对象，包含用户支付记录
+ */
+export function getUserPaymentRecords(userId, params) {
+  return request({
+    url: `/api/admin/users/${userId}/payments`,
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取用户用电分析
+ * @param {string} userId 用户ID
+ * @param {Object} params 查询参数
+ * @param {number} params.year 年份
+ * @param {string} params.type 数据类型（可选）
+ * @returns {Promise} 返回Promise对象，包含用户用电分析数据
+ */
+export function getUserElectricityAnalysis(userId, params) {
+  return request({
+    url: `/api/admin/users/${userId}/electricity-analysis`,
+    method: 'get',
+    params
   });
 }
 

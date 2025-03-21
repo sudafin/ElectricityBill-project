@@ -231,7 +231,7 @@ import {
   Loading,
   Warning
 } from '@element-plus/icons-vue';
-import { getLogList, detailLog, deleteLog, getLogReport } from '@/api/log.js';
+import { getLogList, detailLog, deleteLog, getLogReport } from '@/api/admin/log.js';
 
 
 // 搜索和筛选条件

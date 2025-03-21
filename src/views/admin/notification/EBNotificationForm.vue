@@ -60,7 +60,7 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { createNotification } from '@/api/notification.js';
+import { createNotification } from '@/api/admin/notification.js';
 import { ElMessage } from 'element-plus';
 
 

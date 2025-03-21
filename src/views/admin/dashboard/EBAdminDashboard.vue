@@ -3,7 +3,7 @@
     <!-- 顶部统计卡片 -->
     <el-row :gutter="20">
       <el-col :span="18">
-        <el-card class="total-card" shadow="never">
+        <el-card class="total-card" shadow="never" v-loading="loading">
           <div class="total-card-inner">
             <div class="total-info">
               <h2 class="total-title">当前用户总数</h2>
@@ -39,7 +39,7 @@
     <!-- 分类统计卡片 -->
     <el-row :gutter="20" class="stat-cards">
       <el-col :span="6">
-        <div class="stat-card">
+        <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
             <h3>用户管理</h3>
             <p>User management</p>
@@ -53,7 +53,7 @@
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="stat-card">
+        <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
             <h3>电费统计</h3>
             <p>Electricity fee statistics</p>
@@ -67,7 +67,7 @@
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="stat-card">
+        <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
             <h3>用电量统计</h3>
             <p>Power consumption statistics</p>
@@ -81,7 +81,7 @@
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="stat-card">
+        <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
             <h3>支付账单</h3>
             <p>Payment bills</p>
@@ -99,7 +99,7 @@
     <!-- 图表区域 -->
     <el-row :gutter="20" class="chart-area">
       <el-col :span="16">
-        <el-card class="chart-card" shadow="never">
+        <el-card class="chart-card" shadow="never" v-loading="userTypesLoading">
           <template #header>
             <div class="chart-header">
               <h3>用户类型数量统计分析</h3>
@@ -123,39 +123,39 @@
       <el-col :span="8">
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-card class="chart-card stat-elements" shadow="never">
+            <el-card class="chart-card stat-elements" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
                   <h3>已处理用户订单</h3>
                   <p>Processed orders</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ totalUsers * 3 }}</div>
+              <div class="stat-big-number">{{ processedOrders }}</div>
             </el-card>
           </el-col>
         </el-row>
         
         <el-row :gutter="20" style="margin-top: 20px;">
           <el-col :span="12">
-            <el-card class="chart-card materials-card" shadow="never">
+            <el-card class="chart-card materials-card" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
                   <h3>待处理订单数</h3>
                   <p>Pending orders</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ totalFees * 2 }}</div>
+              <div class="stat-big-number">{{ pendingOrders }}</div>
             </el-card>
           </el-col>
           <el-col :span="12">
-            <el-card class="chart-card steps-card" shadow="never">
+            <el-card class="chart-card steps-card" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
                   <h3>系统操作日志</h3>
                   <p>System logs</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ abnormalBills * 6 }}</div>
+              <div class="stat-big-number">{{ systemLogs }}</div>
             </el-card>
           </el-col>
         </el-row>
@@ -165,7 +165,7 @@
     <!-- 底部图表 -->
     <el-row :gutter="20" style="margin-top: 20px;">
       <el-col :span="24">
-        <el-card class="chart-card" shadow="never">
+        <el-card class="chart-card" shadow="never" v-loading="chartLoading">
           <template #header>
             <div class="chart-header-with-tools">
               <h3>数据图表分析</h3>
@@ -202,23 +202,32 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import * as echarts from 'echarts';
+import { ElMessage } from 'element-plus';
 import { 
   User, Document, Plus, Setting, Key, 
   Wallet, Stopwatch, PieChart, Histogram, TrendCharts
 } from '@element-plus/icons-vue';
-import { getDashboardInfo } from '@/api/user.js';
+import { getDashboardOverview } from '@/api/admin/statistics';
+import { getElectricityUsageStatistics } from '@/api/admin/statistics';
+import { getRevenueStatistics } from '@/api/admin/statistics';
+import { getUserGrowthStatistics } from '@/api/admin/statistics';
+import { getPaymentMethodDistribution } from '@/api/admin/statistics';
+import { getBillPaymentRateStatistics } from '@/api/admin/statistics';
+
+// 加载状态
+const loading = ref(false);
+const userTypesLoading = ref(false); 
+const chartLoading = ref(false);
 
 // 基本统计数据
-const totalUsers = ref(278);
-const totalFees = ref(2345);
-const totalIncome = ref(34520);
-const abnormalBills = ref(89);
-const userTypeData = ref([
-  { name: '居民用户', value: 180 },
-  { name: '商业用户', value: 78 },
-  { name: '工业用户', value: 15 },
-  { name: '农业用户', value: 5 }
-]);
+const totalUsers = ref(0);
+const totalFees = ref(0);
+const totalIncome = ref(0);
+const abnormalBills = ref(0);
+const processedOrders = ref(0);
+const pendingOrders = ref(0);
+const systemLogs = ref(0);
+const userTypeData = ref([]);
 
 // 图表配置
 const mainChart = ref(null);
@@ -226,21 +235,21 @@ const chartInstance = ref(null);
 const selectedChartType = ref('line');
 const selectedDataType = ref('userType');
 
-// 模拟数据
-const mockData = {
+// 图表数据
+const chartData = ref({
   userType: {
-    labels: ['居民用户', '商业用户', '工业用户', '农业用户'],
-    values: [180, 78, 15, 5]
+    labels: [],
+    values: []
   },
   powerUsage: {
-    labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-    values: [320, 302, 301, 334, 390, 430, 510, 620, 500, 420, 390, 450]
+    labels: [],
+    values: []
   },
   payment: {
-    labels: ['在线支付', '柜台支付', '自动扣款', '其他方式'],
-    values: [520, 230, 350, 100]
+    labels: [],
+    values: []
   }
-};
+});
 
 // 计算条形图宽度
 const getBarWidth = (value) => {
@@ -255,7 +264,13 @@ const handleChartTypeChange = () => {
 
 // 数据类型切换处理
 const handleDataTypeChange = () => {
-  updateChart();
+  if (selectedDataType.value === 'powerUsage' && chartData.value.powerUsage.values.length === 0) {
+    fetchElectricityData();
+  } else if (selectedDataType.value === 'payment' && chartData.value.payment.values.length === 0) {
+    fetchPaymentData();
+  } else {
+    updateChart();
+  }
 };
 
 // 初始化图表
@@ -276,7 +291,7 @@ const initChart = () => {
 const updateChart = () => {
   if (!chartInstance.value) return;
   
-  const data = mockData[selectedDataType.value];
+  const data = chartData.value[selectedDataType.value];
   let option = {};
   
   switch (selectedChartType.value) {
@@ -413,35 +428,88 @@ const updateChart = () => {
 
 // 获取仪表盘信息
 const fetchDashboardInfo = async () => {
+  loading.value = true;
   try {
-    const res = await getDashboardInfo();
-    totalUsers.value = res.totalUser || 278;
-    totalFees.value = res.totalElectricityUsage || 2345;
-    totalIncome.value = res.totalAmount || 34520;
-    abnormalBills.value = res.totalPaymentBill || 89;
+    const res = await getDashboardOverview();
+    totalUsers.value = res.userCount || 0;
+    totalFees.value = res.electricityUsage || 0;
+    totalIncome.value = res.revenueMonth || 0;
+    abnormalBills.value = res.unpaidBills || 0;
+    processedOrders.value = res.completedPayments || 0;
+    pendingOrders.value = res.pendingPayments || 0;
+    systemLogs.value = res.operationLogs || 0;
     
-    // 处理用户类型数据
-    const userTypeMap = res.userTypeMap || { '居民用户': 180, '商业用户': 78, '工业用户': 15, '农业用户': 5 };
-    userTypeData.value = Object.entries(userTypeMap).map(([name, value]) => ({
-      name,
-      value
-    }));
-    
-    // 更新图表数据
-    if (res.userTypeMap) {
-      mockData.userType.labels = Object.keys(res.userTypeMap);
-      mockData.userType.values = Object.values(res.userTypeMap);
-    }
-    
-    if (res.electricityWeekUsageList) {
-      const weekLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-      mockData.powerUsage.labels = weekLabels;
-      mockData.powerUsage.values = res.electricityWeekUsageList.map(item => item.usage);
-    }
-    
-    updateChart();
+    // 更新用户类型数据
+    fetchUserTypeData();
   } catch (error) {
     console.error('获取仪表盘信息失败:', error);
+    ElMessage.error('获取仪表盘信息失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取用户类型数据
+const fetchUserTypeData = async () => {
+  userTypesLoading.value = true;
+  try {
+    const res = await getUserGrowthStatistics({ period: 'month' });
+    
+    if (res.userTypeMap) {
+      // 处理用户类型数据
+      const userTypeMap = res.userTypeMap;
+      userTypeData.value = Object.entries(userTypeMap).map(([name, value]) => ({
+        name,
+        value
+      }));
+      
+      // 更新图表数据
+      chartData.value.userType.labels = Object.keys(userTypeMap);
+      chartData.value.userType.values = Object.values(userTypeMap);
+      
+      updateChart();
+    }
+  } catch (error) {
+    console.error('获取用户类型数据失败:', error);
+    ElMessage.error('获取用户类型数据失败，请稍后重试');
+  } finally {
+    userTypesLoading.value = false;
+  }
+};
+
+// 获取用电量数据
+const fetchElectricityData = async () => {
+  chartLoading.value = true;
+  try {
+    const res = await getElectricityUsageStatistics({ period: 'month' });
+    if (res.data && res.data.length) {
+      chartData.value.powerUsage.labels = res.data.map(item => item.period);
+      chartData.value.powerUsage.values = res.data.map(item => item.usage);
+      updateChart();
+    }
+  } catch (error) {
+    console.error('获取用电量数据失败:', error);
+    ElMessage.error('获取用电量数据失败，请稍后重试');
+  } finally {
+    chartLoading.value = false;
+  }
+};
+
+// 获取缴费情况数据
+const fetchPaymentData = async () => {
+  chartLoading.value = true;
+  try {
+    const res = await getPaymentMethodDistribution();
+    if (res.data) {
+      chartData.value.payment.labels = Object.keys(res.data);
+      chartData.value.payment.values = Object.values(res.data);
+      updateChart();
+    }
+  } catch (error) {
+    console.error('获取缴费情况数据失败:', error);
+    ElMessage.error('获取缴费情况数据失败，请稍后重试');
+  } finally {
+    chartLoading.value = false;
   }
 };
 

@@ -190,8 +190,8 @@ import {
   Check,
   Monitor
 } from '@element-plus/icons-vue';
-import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/role.js';
-import { getPublicKey } from '@/api/user.js';
+import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/admin/role.js';
+import { getPublicKey } from '@/api/admin/user.js';
 import { encryptWithRSA } from '@/utils/encrypt.js';
 
 const userStore = useUserStore()

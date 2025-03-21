@@ -119,7 +119,7 @@ import EBYearlyReport from './EBYearlyReport.vue';
 import EBReportDetail from './EBReportDetail.vue';
 import { Calendar, Search, Download } from '@element-plus/icons-vue';
 import { ElMessage,ElMessageBox } from 'element-plus';
-import { getReportData, getReportExcel } from '@/api/report.js';
+import { getReportData, getReportExcel } from '@/api/admin/report.js';
 
 const loading = ref(false);
 const dateRange = ref([]);

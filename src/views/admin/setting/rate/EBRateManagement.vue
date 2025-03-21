@@ -285,7 +285,7 @@ import {
   Warning,
   Calendar
 } from '@element-plus/icons-vue';
-import { getRateList, updateRate } from '@/api/rate.js';
+import { getRateList, updateRate } from '@/api/admin/rate.js';
 
 // 当前设置信息
 const currentSettings = reactive({

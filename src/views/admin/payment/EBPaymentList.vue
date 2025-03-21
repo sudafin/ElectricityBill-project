@@ -102,7 +102,7 @@ import { onMounted, ref } from 'vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Download, Delete } from '@element-plus/icons-vue';
 import EBPaymentDetail from './EBPaymentDetail.vue';
-import { getPaymentList, deletePayment, getPaymentDetail, refundPayment, getPaymentReport } from '@/api/payment.js';
+import { getPaymentList, deletePayment, getPaymentDetail, refundPayment, getPaymentReport } from '@/api/admin/fee.js';
 import EBTable from '@/components/EBTable.vue';
 import EBSearchFilter from '@/components/EBSearchFilter.vue';
 import EBPagination from '@/components/EBPagination.vue';

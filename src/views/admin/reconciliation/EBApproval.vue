@@ -74,7 +74,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { approveReconciliationDetail, approveReconciliation } from '@/api/reconciliation.js';
+import { approveReconciliationDetail, approveReconciliation } from '@/api/admin/reconciliation.js';
 import { ElMessage } from 'element-plus';
 const route = useRoute();
 const router = useRouter();

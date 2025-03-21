@@ -280,16 +280,225 @@ import {
   MessageBox
 } from '@element-plus/icons-vue';
 import { EBPageLayout, EBFeedbackForm } from '@/components';
+import { 
+  searchHelp, 
+  getCategoryFAQs, 
+  submitFeedback, 
+  submitFeedbackForm, 
+  getHotQuestions, 
+  getAllCategories,
+  getOperationGuide
+} from '@/api/user/help';
 
-// 搜索相关
+// 页面状态管理
+const activeTab = ref('faqs');
 const searchQuery = ref('');
+const activeCategoryId = ref(null);
+const feedbackForm = ref({
+  title: '',
+  content: '',
+  category: '',
+  contact: '',
+  email: '',
+  phone: '',
+  attachments: []
+});
+const loading = ref(false);
+const searchLoading = ref(false);
+const submitting = ref(false);
+
+// 数据存储
+const helpCategories = ref([]);
+const hotQuestions = ref([]);
+const categoryFAQs = ref([]);
 const searchResults = ref([]);
-const hotQuestions = ref([
-  '如何缴纳电费',
-  '忘记密码怎么办',
-  '如何查看用电分析',
-  '电费计算方式'
-]);
+const operationGuides = ref([]);
+
+// 初始化页面数据
+const initPageData = async () => {
+  loading.value = true;
+  try {
+    // 获取所有帮助类别
+    const categoriesResponse = await getAllCategories();
+    if (categoriesResponse.code === 200) {
+      helpCategories.value = categoriesResponse.data || [];
+      
+      // 设置默认选中第一个类别
+      if (helpCategories.value.length > 0) {
+        activeCategoryId.value = helpCategories.value[0].id;
+        await loadCategoryFAQs(activeCategoryId.value);
+      }
+    }
+    
+    // 获取热门问题
+    const hotQuestionsResponse = await getHotQuestions({ limit: 5 });
+    if (hotQuestionsResponse.code === 200) {
+      hotQuestions.value = hotQuestionsResponse.data || [];
+    }
+    
+    // 获取操作指南
+    await loadOperationGuides();
+  } catch (error) {
+    console.error('初始化帮助中心数据失败:', error);
+    ElMessage.error('加载帮助中心数据失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 加载类别FAQ
+const loadCategoryFAQs = async (categoryId) => {
+  loading.value = true;
+  try {
+    const response = await getCategoryFAQs(categoryId);
+    if (response.code === 200) {
+      categoryFAQs.value = response.data || [];
+    } else {
+      categoryFAQs.value = [];
+      ElMessage.warning(response.message || '获取FAQ列表失败');
+    }
+  } catch (error) {
+    console.error('获取FAQ列表失败:', error);
+    ElMessage.error('获取FAQ列表失败，请稍后重试');
+    categoryFAQs.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 加载操作指南
+const loadOperationGuides = async () => {
+  try {
+    const response = await getOperationGuide();
+    if (response.code === 200) {
+      operationGuides.value = response.data || [];
+    }
+  } catch (error) {
+    console.error('获取操作指南失败:', error);
+    ElMessage.error('获取操作指南失败，请稍后重试');
+  }
+};
+
+// 切换类别
+const handleCategoryChange = (categoryId) => {
+  activeCategoryId.value = categoryId;
+  loadCategoryFAQs(categoryId);
+};
+
+// 搜索帮助内容
+const handleSearch = async () => {
+  if (!searchQuery.value.trim()) {
+    ElMessage.warning('请输入搜索关键词');
+    return;
+  }
+  
+  searchLoading.value = true;
+  try {
+    const response = await searchHelp({ query: searchQuery.value.trim() });
+    if (response.code === 200) {
+      searchResults.value = response.data || [];
+      activeTab.value = 'search';
+    } else {
+      ElMessage.warning(response.message || '搜索结果为空');
+    }
+  } catch (error) {
+    console.error('搜索失败:', error);
+    ElMessage.error('搜索失败，请稍后重试');
+  } finally {
+    searchLoading.value = false;
+  }
+};
+
+// 提交FAQ反馈
+const submitFAQFeedback = async (faqId, isHelpful) => {
+  try {
+    const response = await submitFeedback({
+      faqId,
+      isHelpful,
+      additionalComment: ''
+    });
+    
+    if (response.code === 200) {
+      ElMessage.success(isHelpful ? '感谢您的反馈！' : '感谢您的反馈，我们会努力改进');
+    } else {
+      ElMessage.warning(response.message || '反馈提交失败');
+    }
+  } catch (error) {
+    console.error('提交反馈失败:', error);
+    ElMessage.error('提交反馈失败，请稍后重试');
+  }
+};
+
+// 提交反馈表单
+const handleSubmitFeedback = async () => {
+  // 表单验证
+  if (!feedbackForm.value.title.trim()) {
+    ElMessage.warning('请输入反馈标题');
+    return;
+  }
+  
+  if (!feedbackForm.value.content.trim()) {
+    ElMessage.warning('请输入反馈内容');
+    return;
+  }
+  
+  if (!feedbackForm.value.category) {
+    ElMessage.warning('请选择反馈类别');
+    return;
+  }
+  
+  submitting.value = true;
+  try {
+    const response = await submitFeedbackForm(feedbackForm.value);
+    
+    if (response.code === 200) {
+      ElMessage.success('反馈提交成功，感谢您的建议');
+      // 清空表单
+      Object.keys(feedbackForm.value).forEach(key => {
+        if (key === 'attachments') {
+          feedbackForm.value[key] = [];
+        } else {
+          feedbackForm.value[key] = '';
+        }
+      });
+      // 切换回FAQ标签页
+      activeTab.value = 'faqs';
+    } else {
+      ElMessage.warning(response.message || '反馈提交失败');
+    }
+  } catch (error) {
+    console.error('提交反馈表单失败:', error);
+    ElMessage.error('提交反馈失败，请稍后重试');
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// 处理文件上传
+const handleFileUpload = (file) => {
+  const isLt5M = file.size / 1024 / 1024 < 5;
+  if (!isLt5M) {
+    ElMessage.warning('文件大小不能超过5MB!');
+    return false;
+  }
+  
+  feedbackForm.value.attachments.push(file);
+  return false; // 阻止自动上传
+};
+
+// 移除上传的文件
+const handleRemoveFile = (file) => {
+  const index = feedbackForm.value.attachments.indexOf(file);
+  if (index !== -1) {
+    feedbackForm.value.attachments.splice(index, 1);
+  }
+};
+
+// 查看操作指南详情
+const viewGuideDetail = (guide) => {
+  // 这里可以显示详细的操作指南，例如打开一个弹窗或导航到详情页
+  ElMessage.info(`正在查看：${guide.title}`);
+};
 
 // 分类导航
 const activeCategory = ref('account');
@@ -345,7 +554,6 @@ const faqs = ref([
     links: []
   }
 ]);
-const loading = ref(false);
 
 // 根据当前选中的分类过滤FAQ
 const filteredFaqs = computed(() => {
@@ -736,14 +944,6 @@ const selectFaq = (faq) => {
   // 这里可以添加逻辑来自动展开选中的FAQ
 };
 
-// 提交FAQ反馈
-const submitFeedback = (faqId, isHelpful) => {
-  // 模拟提交反馈
-  setTimeout(() => {
-    ElMessage.success('感谢您的反馈！');
-  }, 500);
-};
-
 // 显示反馈问题对话框
 const showFeedbackDialog = () => {
   feedbackDialogVisible.value = true;
@@ -793,7 +993,7 @@ watch(activeCategory, (newCategory) => {
 });
 
 onMounted(() => {
-  fetchFaqs();
+  initPageData();
 });
 </script>
 
