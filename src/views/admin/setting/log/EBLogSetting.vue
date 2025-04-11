@@ -57,6 +57,7 @@
           :total="total"
           @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
+          :row-style="{ height: '55px' }"
         >
           <!-- 操作类型列自定义渲染 -->
           <template #operationType="{ row }">
@@ -238,13 +239,13 @@ const initialFilterValues = {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'createTime', label: '操作时间', width: '180', sortable: true, formatter: row => formatDate(row.createTime) },
-  { prop: 'operatorName', label: '操作用户', width: '140' },
-  { prop: 'operationType', label: '操作类型', width: '140' },
-  { prop: 'module', label: '模块名称', width: '160' },
-  { prop: 'description', label: '操作描述', width: '160', showOverflowTooltip: true },
-  { prop: 'ip', label: 'IP地址', width: '140' },
-  { prop: 'status', label: '操作状态', width: '140' }
+  { prop: 'createTime', label: '操作时间', minWidth: '180', sortable: true, formatter: row => formatDate(row.createTime) },
+  { prop: 'operatorName', label: '操作用户', minWidth: '140' },
+  { prop: 'operationType', label: '操作类型', minWidth: '140' },
+  { prop: 'module', label: '模块名称', minWidth: '160' },
+  { prop: 'description', label: '操作描述', minWidth: '200', showOverflowTooltip: true },
+  { prop: 'ip', label: 'IP地址', minWidth: '140' },
+  { prop: 'status', label: '操作状态', minWidth: '140' }
 ];
 
 // 获取操作类型标签样式
@@ -471,6 +472,27 @@ onMounted(() => {
   padding: 12px 0;
 }
 
+/* 自定义表格单元格样式 */
+:deep(.el-table td.el-table__cell) {
+  padding: 12px 0;
+  height: 55px;
+  line-height: 20px;
+}
+
+/* 确保表格内容垂直居中 */
+:deep(.el-table .cell) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* 标签特殊处理，避免由于flex布局导致的显示问题 */
+:deep(.el-table .el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 统一移除EBFilterBar和EBTable的边框样式 */
 :deep(.eb-filter-bar .filter-container) {
   box-shadow: none;
@@ -536,4 +558,16 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
+
+/* 操作列的特殊处理 */
+:deep(.el-table .cell .el-button) {
+  margin: 0 5px;
+}
+
+:deep(.el-table .cell .el-button--link) {
+  height: auto;
+  padding: 4px 0;
+}
+
+/* 标签特殊处理，避免由于flex布局导致的显示问题 */
 </style> 

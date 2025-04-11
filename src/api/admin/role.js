@@ -1,60 +1,112 @@
 import request from '@/utils/request';
 
+/**
+ * 获取管理员列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
 export function getAdminList(params) {
   return request({
-    url: '/role/page',
+    url: '/admin/role/admin/list',
     method: 'get',
-    params,
+    params
   });
 }
 
-export function deleteAdmin(Ids) {
+/**
+ * 获取角色列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getRoleList(params) {
   return request({
-    url: '/role/delete',
-    method: 'delete',
-    params: {
-      ids: Ids
-    }
+    url: '/admin/role/list',
+    method: 'get',
+    params
   });
 }
 
-export function createRoleOrAdmin(data) {
+/**
+ * 获取管理员详情
+ * @param {String|Number} id - 管理员ID
+ * @returns {Promise}
+ */
+export function getAdminDetail(id) {
   return request({
-    url: '/role/create',
+    url: `/admin/role/admin/${id}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 获取权限列表
+ * @returns {Promise}
+ */
+export function getPermissionList() {
+  return request({
+    url: '/admin/role/permission/list',
+    method: 'get'
+  });
+}
+
+/**
+ * 创建管理员
+ * @param {Object} data - 管理员数据
+ * @returns {Promise}
+ */
+export function createAdmin(data) {
+  return request({
+    url: '/admin/role/admin',
     method: 'post',
-    data,
-  });
-}
-export function getAdminDetail(Id) {
-  return request({
-    url: `/role/detail/${Id}`,
-    method: 'get',
+    data
   });
 }
 
-export function editAdmin(id, data) {
+/**
+ * 更新管理员
+ * @param {String|Number} id - 管理员ID
+ * @param {Object} data - 管理员数据
+ * @returns {Promise}
+ */
+export function updateAdmin(id, data) {
   return request({
-    url: `/role/edit/${id}`,
+    url: `/admin/role/admin/${id}`,
     method: 'put',
-    data,
-  });
-}
-export function getPermissionList(){
-  return request({
-    url: '/role/list',
-    method: 'get',
-  });
-}
-export function updateStatus(id){
-  return request({
-    url: `/role/status/${id}`,
-    method: 'put',
+    data
   });
 }
 
-export function getRoleList(){
+/**
+ * 删除管理员
+ * @param {String|Number} id - 管理员ID或ID列表
+ * @returns {Promise}
+ */
+export function deleteAdmin(id) {
   return request({
-    url: '/role/roleList',
-    method: 'get',
+    url: `/admin/role/admin/${id}`,
+    method: 'delete'
+  });
+}
+
+/**
+ * 更新管理员状态
+ * @param {String|Number} id - 管理员ID
+ * @returns {Promise}
+ */
+export function updateStatus(id) {
+  return request({
+    url: `/admin/role/admin/status/${id}`,
+    method: 'put'
+  });
+}
+
+/**
+ * 获取公钥
+ * @returns {Promise}
+ */
+export function getPublicKey() {
+  return request({
+    url: '/admin/role/public-key',
+    method: 'get'
   });
 }

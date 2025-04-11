@@ -1,19 +1,79 @@
 import request from '@/utils/request';
 
-export function getReportData(reportType,startDate, endDate) {
+/**
+ * 获取报表数据
+ * @param {String} type - 报表类型
+ * @param {String} startDate - 开始日期
+ * @param {String} endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getReportData(type, startDate, endDate) {
   return request({
-    url: '/report',
+    url: '/admin/report/data',
     method: 'get',
-    params: { reportType: reportType, startDate: startDate, endDate: endDate },
+    params: {
+      type,
+      startDate,
+      endDate
+    }
   });
-} 
+}
 
-//获取报表excel
-export function getReportExcel(reportType,startDate, endDate) {
+/**
+ * 导出报表Excel
+ * @param {String} type - 报表类型
+ * @param {String} startDate - 开始日期
+ * @param {String} endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getReportExcel(type, startDate, endDate) {
   return request({
-    url: '/report/export',
+    url: '/admin/report/excel',
     method: 'get',
-    params: { reportType: reportType, startDate: startDate, endDate: endDate },
-    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+    params: {
+      type,
+      startDate,
+      endDate
+    },
+    responseType: 'blob'
+  });
+}
+
+/**
+ * 获取用户类型统计报表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getUserTypeReport(params) {
+  return request({
+    url: '/admin/report/user-type',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取反馈信息统计报表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getFeedbackReport(params) {
+  return request({
+    url: '/admin/report/feedback',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取对账审批统计报表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getReconciliationReport(params) {
+  return request({
+    url: '/admin/report/reconciliation',
+    method: 'get',
+    params
   });
 } 

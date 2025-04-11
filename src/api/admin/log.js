@@ -1,35 +1,53 @@
 import request from '@/utils/request';
 
-
+/**
+ * 获取日志列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
 export function getLogList(params) {
   return request({
-    url: '/log/page',
+    url: '/admin/log/list',
     method: 'get',
-    params,
+    params
   });
 }
 
+/**
+ * 获取日志详情
+ * @param {String|Number} id - 日志ID
+ * @returns {Promise}
+ */
 export function detailLog(id) {
   return request({
-    url: `/log/detail/${id}`,
-    method: 'get',
+    url: `/admin/log/${id}`,
+    method: 'get'
   });
 }
 
-export function deleteLog(ids) {
+/**
+ * 删除日志
+ * @param {String|Number} id - 日志ID
+ * @returns {Promise}
+ */
+export function deleteLog(id) {
   return request({
-    url: '/log/delete',
-    method: 'delete',
-    params: { ids: ids },
+    url: `/admin/log/${id}`,
+    method: 'delete'
   });
 }
 
-//获取报表excel
-export function getLogReport() {
+/**
+ * 获取日志报表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getLogReport(params) {
   return request({
-    url: '/log/export',
+    url: '/admin/log/report',
     method: 'get',
-    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+    params,
+    responseType: 'blob'
   });
 }
 

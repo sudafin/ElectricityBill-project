@@ -50,6 +50,7 @@
           selection
           show-actions
           actions-width="180"
+          actions-fixed="right"
           :auto-height="true"
           pagination
           :current-page="currentPage"
@@ -57,6 +58,7 @@
           :total="total"
           @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
+          :row-style="{ height: '55px' }"
         >
           <!-- 账号状态列自定义渲染 -->
           <template #accountStatus="{ row }">
@@ -197,23 +199,24 @@ const selectedUserIds = ref([]);
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'username', label: '用户姓名' },
-  { prop: 'phone', label: '电话' },
-  { prop: 'meterNo', label: '电表编号' },
-  { prop: 'address', label: '地址' },
-  { prop: 'userType', label: '用户类型' },
+  { prop: 'username', label: '用户姓名', minWidth: '100' },
+  { prop: 'phone', label: '电话', minWidth: '120' },
+  { prop: 'meterNo', label: '电表编号', minWidth: '120' },
+  { prop: 'address', label: '地址', minWidth: '180' },
+  { prop: 'userType', label: '用户类型', minWidth: '100' },
   { 
     prop: 'accountStatus', 
     label: '账号状态',
+    minWidth: '100',
     type: 'tag',
     tagMap: {
       '正常': 'success',
       '欠费': 'danger'
     }
   },
-  { prop: 'balance', label: '当前电费余额' },
-  { prop: 'electricityUsage', label: '用电量' },
-  { prop: 'lastPaymentDate', label: '最近缴费时间', type: 'date' }
+  { prop: 'balance', label: '当前电费余额', minWidth: '120' },
+  { prop: 'electricityUsage', label: '用电量', minWidth: '100' },
+  { prop: 'lastPaymentDate', label: '最近缴费时间', minWidth: '140', type: 'date' }
 ];
 
 // 获取用户列表
@@ -418,6 +421,47 @@ onMounted(() => {
   color: #606266;
   font-weight: 500;
   padding: 12px 0;
+}
+
+/* 自定义表格单元格样式 */
+:deep(.el-table td.el-table__cell) {
+  padding: 12px 0;
+  height: 55px;
+  line-height: 20px;
+}
+
+/* 确保表格内容垂直居中 */
+:deep(.el-table .cell) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* 标签特殊处理，避免由于flex布局导致的显示问题 */
+:deep(.el-table .el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 操作列的特殊处理 */
+:deep(.el-table .cell .el-button) {
+  margin: 0 5px;
+}
+
+:deep(.el-table .cell .el-button--link) {
+  height: auto;
+  padding: 4px 0;
+}
+
+/* 固定列阴影效果优化 */
+:deep(.el-table .is-right-fixed) {
+  box-shadow: -5px 0 5px -5px rgba(0, 0, 0, 0.12);
+}
+
+:deep(.el-table .is-right-fixed .cell) {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 /* 统一移除EBFilterBar和EBTable的边框样式 */

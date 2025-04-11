@@ -50,6 +50,7 @@
           selection
           show-actions
           actions-width="200"
+          actions-fixed="right"
           :auto-height="true"
           pagination
           :current-page="currentPage"
@@ -57,6 +58,7 @@
           :total="total"
           @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
+          :row-style="{ height: '55px' }"
         >
           <!-- 角色列自定义渲染 -->
           <template #role="{ row }">
@@ -177,19 +179,20 @@ const initialFilterValues = {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'adminId', label: '用户编号' },
-  { prop: 'account', label: '用户名' },
-  { prop: 'role', label: '角色' },
+  { prop: 'adminId', label: '用户编号', minWidth: '100' },
+  { prop: 'account', label: '用户名', minWidth: '120' },
+  { prop: 'role', label: '角色', minWidth: '120' },
   { 
     prop: 'status', 
     label: '状态',
+    minWidth: '100',
     type: 'tag',
     tagMap: {
       1: 'success',
       0: 'danger'
     }
   },
-  { prop: 'createTime', label: '创建时间' }
+  { prop: 'createTime', label: '创建时间', minWidth: '180' }
 ];
 
 // 获取用户列表
@@ -405,6 +408,47 @@ const handleRoleUserFormSuccess = (type, data, isEdit) => {
   color: #606266;
   font-weight: 500;
   padding: 12px 0;
+}
+
+/* 自定义表格单元格样式 */
+:deep(.el-table td.el-table__cell) {
+  padding: 12px 0;
+  height: 55px;
+  line-height: 20px;
+}
+
+/* 确保表格内容垂直居中 */
+:deep(.el-table .cell) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* 标签特殊处理，避免由于flex布局导致的显示问题 */
+:deep(.el-table .el-tag) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 操作列的特殊处理 */
+:deep(.el-table .cell .el-button) {
+  margin: 0 5px;
+}
+
+:deep(.el-table .cell .el-button--link) {
+  height: auto;
+  padding: 4px 0;
+}
+
+/* 固定列阴影效果优化 */
+:deep(.el-table .is-right-fixed) {
+  box-shadow: -5px 0 5px -5px rgba(0, 0, 0, 0.12);
+}
+
+:deep(.el-table .is-right-fixed .cell) {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 /* 统一移除EBFilterBar和EBTable的边框样式 */

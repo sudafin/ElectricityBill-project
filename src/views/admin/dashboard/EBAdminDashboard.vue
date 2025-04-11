@@ -8,14 +8,6 @@
             <div class="total-info">
               <h2 class="total-title">当前用户总数</h2>
               <p class="total-subtitle">TOTAL NUMBER OF CURRENT USERS</p>
-              <div class="action-btns">
-                <el-button type="primary" size="small" plain>
-                  <el-icon><Plus /></el-icon>新增用户
-                </el-button>
-                <el-button size="small" plain>
-                  <el-icon><Setting /></el-icon>用户管理
-                </el-button>
-              </div>
             </div>
             <div class="total-number">{{ totalUsers }}</div>
           </div>
@@ -102,17 +94,17 @@
         <el-card class="chart-card" shadow="never" v-loading="userTypesLoading">
           <template #header>
             <div class="chart-header">
-              <h3>用户类型数量统计分析</h3>
+              <h3>访问数量统计分析</h3>
             </div>
           </template>
           
           <!-- 水平条形图 -->
           <div class="horizontal-chart">
-            <div v-for="(item, index) in userTypeData" :key="index" class="chart-bar-row">
+            <div v-for="(item, index) in accessData" :key="index" class="chart-bar-row">
               <div class="chart-bar-label">{{ item.name }}</div>
               <div class="chart-bar-wrapper">
                 <div class="chart-bar" :style="{ width: getBarWidth(item.value) }">
-                  <span class="chart-bar-value">{{ item.value }}户</span>
+                  <span class="chart-bar-value">{{ item.value }}次</span>
                 </div>
               </div>
             </div>
@@ -126,7 +118,7 @@
             <el-card class="chart-card stat-elements" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>已处理用户订单</h3>
+                  <h3>已处理对账审批</h3>
                   <p>Processed orders</p>
                 </div>
               </template>
@@ -162,40 +154,7 @@
       </el-col>
     </el-row>
     
-    <!-- 底部图表 -->
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :span="24">
-        <el-card class="chart-card" shadow="never" v-loading="chartLoading">
-          <template #header>
-            <div class="chart-header-with-tools">
-              <h3>数据图表分析</h3>
-              <div class="chart-tools">
-                <!-- 数据类型切换 -->
-                <el-radio-group v-model="selectedDataType" size="small" @change="handleDataTypeChange">
-                  <el-radio-button label="userType">用户类型</el-radio-button>
-                  <el-radio-button label="powerUsage">用电量</el-radio-button>
-                  <el-radio-button label="payment">缴费情况</el-radio-button>
-                </el-radio-group>
-                
-                <!-- 图表类型切换 -->
-                <el-radio-group v-model="selectedChartType" size="small" @change="handleChartTypeChange">
-                  <el-radio-button label="line">
-                    <el-icon><TrendCharts /></el-icon>
-                  </el-radio-button>
-                  <el-radio-button label="bar">
-                    <el-icon><Histogram /></el-icon>
-                  </el-radio-button>
-                  <el-radio-button label="pie">
-                    <el-icon><PieChart /></el-icon>
-                  </el-radio-button>
-                </el-radio-group>
-              </div>
-            </div>
-          </template>
-          <div ref="mainChart" class="main-chart"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+
   </div>
 </template>
 
@@ -228,6 +187,7 @@ const processedOrders = ref(0);
 const pendingOrders = ref(0);
 const systemLogs = ref(0);
 const userTypeData = ref([]);
+const accessData = ref([]);
 
 // 图表配置
 const mainChart = ref(null);
@@ -253,7 +213,7 @@ const chartData = ref({
 
 // 计算条形图宽度
 const getBarWidth = (value) => {
-  const maxValue = Math.max(...userTypeData.value.map(item => item.value));
+  const maxValue = Math.max(...accessData.value.map(item => item.value));
   return (value / maxValue * 100) + '%';
 };
 
@@ -441,6 +401,9 @@ const fetchDashboardInfo = async () => {
     
     // 更新用户类型数据
     fetchUserTypeData();
+    
+    // 初始化访问数量数据
+    initAccessData();
   } catch (error) {
     console.error('获取仪表盘信息失败:', error);
     ElMessage.error('获取仪表盘信息失败，请稍后重试');
@@ -513,6 +476,25 @@ const fetchPaymentData = async () => {
   }
 };
 
+// 初始化访问数量数据
+const initAccessData = () => {
+  userTypesLoading.value = true;
+  try {
+    // 模拟访问数量数据
+    accessData.value = [
+      { name: '今日访问', value: Math.floor(Math.random() * 500 + 300) },
+      { name: '昨日访问', value: Math.floor(Math.random() * 450 + 250) },
+      { name: '本周访问', value: Math.floor(Math.random() * 2000 + 1500) },
+      { name: '本月访问', value: Math.floor(Math.random() * 8000 + 5000) },
+      { name: '总访问量', value: Math.floor(Math.random() * 50000 + 30000) }
+    ];
+  } catch (error) {
+    console.error('初始化访问数量数据失败:', error);
+  } finally {
+    userTypesLoading.value = false;
+  }
+};
+
 // 监听图表配置变化
 watch([selectedChartType, selectedDataType], () => {
   nextTick(() => {
@@ -546,7 +528,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 30px 20px;
 }
 
 .total-info {
@@ -554,32 +536,26 @@ onMounted(() => {
 }
 
 .total-title {
-  margin: 0 0 5px 0;
-  font-size: 18px;
+  margin: 0 0 10px 0;
+  font-size: 20px;
   font-weight: 600;
   color: #333;
 }
 
 .total-subtitle {
-  margin: 0 0 15px 0;
+  margin: 0;
   font-size: 12px;
   color: #999;
   text-transform: uppercase;
 }
 
 .total-number {
-  font-size: 48px;
+  font-size: 52px;
   font-weight: 700;
   color: #409EFF;
-  margin-left: 20px;
+  margin-left: 30px;
   min-width: 120px;
   text-align: right;
-}
-
-.action-btns {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
 }
 
 /* 简介卡片 */
@@ -625,14 +601,15 @@ onMounted(() => {
 
 /* 统计卡片样式 */
 .stat-cards {
+  margin-top: 20px;
   margin-bottom: 20px;
 }
 
 .stat-card {
   background-color: #fff;
   border-radius: 8px;
-  padding: 15px;
-  height: 120px;
+  padding: 20px;
+  height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -640,8 +617,8 @@ onMounted(() => {
 }
 
 .stat-card-header h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 18px;
   font-weight: 500;
   color: #333;
 }
@@ -656,23 +633,24 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 15px;
 }
 
 .stat-number {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   color: #303133;
 }
 
 .stat-icon {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .residential-icon {

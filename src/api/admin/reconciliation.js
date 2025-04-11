@@ -1,50 +1,64 @@
 import request from '@/utils/request';
 
+/**
+ * 获取对账单列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
 export function getReconciliationList(params) {
   return request({
-    url: '/reconciliation/page',
+    url: '/admin/reconciliation/list',
     method: 'get',
     params
   });
 }
 
+/**
+ * 获取对账单详情
+ * @param {String|Number} id - 对账单ID
+ * @returns {Promise}
+ */
 export function getReconciliationDetail(id) {
   return request({
-    url: `/reconciliation/detail/${id}`,
-    method: 'get',
+    url: `/admin/reconciliation/${id}`,
+    method: 'get'
   });
 }
 
 /**
- * 获取审批详情
- * @param {*} id 
- * @returns 
+ * 审批对账单
+ * @param {Object} data - 审批数据
+ * @returns {Promise}
  */
-export function approveReconciliationDetail(id) {
+export function approveReconciliation(data) {
   return request({
-    url: `/reconciliation/approve/detail/${id}`,
-    method: 'get',
+    url: '/admin/reconciliation/approve',
+    method: 'post',
+    data
   });
-} 
-/**
- * 审批
- * @param {*} id 
- * @param {*} data 
- * @returns 
- */
-export function approveReconciliation(id, data) {
-  return request({
-    url: `/reconciliation/approve/${id}`,
-    method: 'put',
-    data,
-  });
-} 
+}
 
-//获取报表excel
+/**
+ * 拒绝对账单
+ * @param {Object} data - 拒绝数据
+ * @returns {Promise}
+ */
+export function rejectReconciliation(data) {
+  return request({
+    url: '/admin/reconciliation/reject',
+    method: 'post',
+    data
+  });
+}
+
+/**
+ * 获取对账单报表
+ * @returns {Promise}
+ */
 export function getReconciliationReport() {
   return request({
-    url: '/reconciliation/export',
+    url: '/admin/reconciliation/report',
     method: 'get',
-    responseType: 'blob',  // 设置响应类型为 Blob，用于处理文件下载
+    responseType: 'blob'
   });
 }

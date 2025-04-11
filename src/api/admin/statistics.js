@@ -1,43 +1,37 @@
 import request from '@/utils/request';
 
 /**
- * 获取控制台数据概览
- * @returns {Promise} 返回Promise对象，包含控制台数据概览
+ * 获取仪表盘概览数据
+ * @returns {Promise}
  */
 export function getDashboardOverview() {
   return request({
-    url: '/api/admin/statistics/dashboard',
+    url: '/admin/statistics/dashboard/overview',
     method: 'get'
   });
 }
 
 /**
  * 获取收入统计
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @param {string} params.period 周期类型（day/week/month/year，默认month）
- * @returns {Promise} 返回Promise对象，包含收入统计数据
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
  */
 export function getRevenueStatistics(params) {
   return request({
-    url: '/api/admin/statistics/revenue',
+    url: '/admin/statistics/revenue',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取用电量统计
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @param {string} params.period 周期类型（day/week/month/year，默认month）
- * @returns {Promise} 返回Promise对象，包含用电量统计数据
+ * 获取电量使用统计
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
  */
 export function getElectricityUsageStatistics(params) {
   return request({
-    url: '/api/admin/statistics/electricity-usage',
+    url: '/admin/statistics/electricity/usage',
     method: 'get',
     params
   });
@@ -45,15 +39,12 @@ export function getElectricityUsageStatistics(params) {
 
 /**
  * 获取用户增长统计
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @param {string} params.period 周期类型（day/week/month/year，默认month）
- * @returns {Promise} 返回Promise对象，包含用户增长统计数据
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
  */
 export function getUserGrowthStatistics(params) {
   return request({
-    url: '/api/admin/statistics/user-growth',
+    url: '/admin/statistics/user/growth',
     method: 'get',
     params
   });
@@ -61,14 +52,36 @@ export function getUserGrowthStatistics(params) {
 
 /**
  * 获取支付方式分布
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @returns {Promise} 返回Promise对象，包含支付方式分布数据
+ * @returns {Promise}
  */
-export function getPaymentMethodDistribution(params) {
+export function getPaymentMethodDistribution() {
   return request({
-    url: '/api/admin/statistics/payment-method',
+    url: '/admin/statistics/payment/method',
+    method: 'get'
+  });
+}
+
+/**
+ * 获取账单支付率统计
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getBillPaymentRateStatistics(params) {
+  return request({
+    url: '/admin/statistics/bill/payment-rate',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取每日访问数据
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getDailyVisitStatistics(params) {
+  return request({
+    url: '/admin/statistics/visit/daily',
     method: 'get',
     params
   });
@@ -82,22 +95,6 @@ export function getUserRegionDistribution() {
   return request({
     url: '/api/admin/statistics/user-region',
     method: 'get'
-  });
-}
-
-/**
- * 获取账单支付率统计
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @param {string} params.period 周期类型（day/week/month/year，默认month）
- * @returns {Promise} 返回Promise对象，包含账单支付率统计数据
- */
-export function getBillPaymentRateStatistics(params) {
-  return request({
-    url: '/api/admin/statistics/bill-payment-rate',
-    method: 'get',
-    params
   });
 }
 

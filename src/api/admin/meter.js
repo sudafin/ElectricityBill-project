@@ -2,16 +2,12 @@ import request from '@/utils/request';
 
 /**
  * 获取电表列表
- * @param {Object} params 查询参数
- * @param {number} params.page 页码
- * @param {number} params.pageSize 每页数量
- * @param {string} params.keyword 搜索关键词（可选）
- * @param {string} params.status 电表状态（可选）
- * @returns {Promise} 返回Promise对象，包含电表列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
  */
 export function getMeterList(params) {
   return request({
-    url: '/api/admin/meters',
+    url: '/admin/meter/list',
     method: 'get',
     params
   });
@@ -19,45 +15,38 @@ export function getMeterList(params) {
 
 /**
  * 获取电表详情
- * @param {string} meterId 电表ID
- * @returns {Promise} 返回Promise对象，包含电表详情
+ * @param {String|Number} id - 电表ID
+ * @returns {Promise}
  */
-export function getMeterDetail(meterId) {
+export function getMeterDetail(id) {
   return request({
-    url: `/api/admin/meters/${meterId}`,
+    url: `/admin/meter/${id}`,
     method: 'get'
   });
 }
 
 /**
- * 添加电表
- * @param {Object} data 电表数据
- * @param {string} data.meterNo 电表编号
- * @param {string} data.meterType 电表类型
- * @param {string} data.location 安装位置
- * @param {string} data.userId 用户ID（可选）
- * @returns {Promise} 返回Promise对象，包含添加结果
+ * 创建电表
+ * @param {Object} data - 电表数据
+ * @returns {Promise}
  */
-export function addMeter(data) {
+export function createMeter(data) {
   return request({
-    url: '/api/admin/meters',
+    url: '/admin/meter',
     method: 'post',
     data
   });
 }
 
 /**
- * 更新电表信息
- * @param {string} meterId 电表ID
- * @param {Object} data 更新数据
- * @param {string} data.meterType 电表类型（可选）
- * @param {string} data.location 安装位置（可选）
- * @param {string} data.status 状态（可选）
- * @returns {Promise} 返回Promise对象，包含更新结果
+ * 更新电表
+ * @param {String|Number} id - 电表ID
+ * @param {Object} data - 电表数据
+ * @returns {Promise}
  */
-export function updateMeter(meterId, data) {
+export function updateMeter(id, data) {
   return request({
-    url: `/api/admin/meters/${meterId}`,
+    url: `/admin/meter/${id}`,
     method: 'put',
     data
   });
@@ -65,39 +54,69 @@ export function updateMeter(meterId, data) {
 
 /**
  * 删除电表
- * @param {string} meterId 电表ID
- * @returns {Promise} 返回Promise对象，包含删除结果
+ * @param {String|Number} id - 电表ID
+ * @returns {Promise}
  */
-export function deleteMeter(meterId) {
+export function deleteMeter(id) {
   return request({
-    url: `/api/admin/meters/${meterId}`,
+    url: `/admin/meter/${id}`,
     method: 'delete'
   });
 }
 
 /**
+ * 批量删除电表
+ * @param {Array} ids - 电表ID数组
+ * @returns {Promise}
+ */
+export function batchDeleteMeters(ids) {
+  return request({
+    url: '/admin/meter/batch',
+    method: 'delete',
+    data: { ids }
+  });
+}
+
+/**
  * 绑定用户
- * @param {string} meterId 电表ID
- * @param {string} userId 用户ID
- * @returns {Promise} 返回Promise对象，包含绑定结果
+ * @param {String|Number} meterId - 电表ID
+ * @param {String|Number} userId - 用户ID
+ * @returns {Promise}
  */
 export function bindUser(meterId, userId) {
   return request({
-    url: `/api/admin/meters/${meterId}/bind`,
+    url: '/admin/meter/bind',
     method: 'post',
-    data: { userId }
+    data: {
+      meterId,
+      userId
+    }
   });
 }
 
 /**
  * 解绑用户
- * @param {string} meterId 电表ID
- * @returns {Promise} 返回Promise对象，包含解绑结果
+ * @param {String|Number} meterId - 电表ID
+ * @returns {Promise}
  */
 export function unbindUser(meterId) {
   return request({
-    url: `/api/admin/meters/${meterId}/unbind`,
+    url: `/admin/meter/unbind/${meterId}`,
     method: 'post'
+  });
+}
+
+/**
+ * 获取电表数据
+ * @param {String|Number} meterId - 电表ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getMeterData(meterId, params) {
+  return request({
+    url: `/admin/meter/data/${meterId}`,
+    method: 'get',
+    params
   });
 }
 
