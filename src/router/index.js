@@ -20,7 +20,15 @@ const routes = [
           { path: 'analysis', name: 'UserElectricityAnalysis', component: () => import('@/views/user/analysis/EBUserElectricityAnalysis.vue'), meta: { title: '用电分析' } },
           { path: 'notifications', name: 'UserNotifications', component: () => import('@/views/user/notification/EBUserNotifications.vue'), meta: { title: '通知中心' } },
           { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/profile/EBUserProfile.vue'), meta: { title: '个人信息' } },
-          { path: 'help', name: 'UserHelp', component: () => import('@/views/user/help/EBUserHelp.vue'), meta: { title: '帮助中心' } }
+          { 
+            path: 'help', 
+            name: 'UserHelp', 
+            component: () => import('../views/user/help/EBUserHelp.vue').catch(() => {
+              console.error('Failed to load help component');
+              return import('../views/user/help/EBUserHelpCenter.vue');
+            }), 
+            meta: { title: '帮助中心' } 
+          }
         ]
       },
 
@@ -56,7 +64,7 @@ const routes = [
             children: [
               { path: 'list', name: 'NotificationList', component: () => import('@/views/admin/notification/EBNotificationList.vue'), meta: { title: '通知列表' } },
               { path: 'create', name: 'NotificationCreate', component: () => import('@/views/admin/notification/EBNotificationForm.vue'), meta: { title: '新增通知' } },
-              { path: 'edit/:id', name: 'NotificationEdit', component: () => import('@/views/admin/notification/EBNotificationForm.vue'), meta: { title: '编辑通知' } }
+              { path: 'edit/:id', name: 'NotificationEdit', component: () => import('@/views/admin/notification/EBNotificationForm.vue'), meta: { title: '编辑通知' } },
             ]
           },
           {
@@ -85,6 +93,14 @@ const routes = [
               { path: 'rate', name: 'RateSetting', component: () => import('@/views/admin/setting/rate/EBRateManagement.vue'), meta: { title: '费率管理' } },
               { path: 'log', name: 'LogSetting', component: () => import('@/views/admin/setting/log/EBLogSetting.vue'), meta: { title: '日志管理' } }
             ]
+          },
+          {
+            path: 'feedback',
+            redirect: '/admin/feedback/list',
+            children: [
+              { path: 'list', name: 'FeedbackList', component: () => import('@/views/admin/feedback/FeedbackList.vue'), meta: { title: '反馈列表' } },
+              { path: 'process/:id', name: 'ProcessFeedback', component: () => import('@/views/admin/feedback/ProcessFeedback.vue'), meta: { title: '处理反馈' } }
+            ]  
           }
         ]
       }

@@ -25,8 +25,8 @@
         </el-form-item>
         <el-form-item label="类型" prop="type" >
           <el-select v-model="form.type" placeholder="请选择通知类型" style="width: 200px;">
-            <el-option label="系统通知" value="系统通知"></el-option>
-            <el-option label="审批通知" value="审批通知"></el-option>
+            <el-option label="公告" value="公告"></el-option>
+            <el-option label="内部通知" value="内部通知"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="级别" prop="level">
@@ -38,7 +38,7 @@
         <el-form-item label="到期时间" prop="expireTime">
           <el-date-picker v-model="form.expireTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="请选择到期时间"  unlink-panels></el-date-picker>
         </el-form-item>
-        <el-form-item label="发送对象" prop="senderList">
+        <el-form-item v-if="form.type === '内部通知'" label="发送对象" prop="senderList">
           <el-select v-model="form.senderList" multiple placeholder="请选择发送对象" style="width: 360px;">
             <el-option label="系统管理员" value="系统管理员"></el-option>
             <el-option label="运营人员" value="运营人员"></el-option>
@@ -79,7 +79,18 @@ const rules = {
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
   type: [{ required: true, message: '请选择通知类型', trigger: 'change' }],
   level: [{ required: true, message: '请选择级别', trigger: 'change' }],
-  senderList: [{ required: true, message: '请选择发送对象', trigger: 'change' }],
+  senderList: [{ 
+    required: true, 
+    message: '请选择发送对象', 
+    trigger: 'change',
+    validator: (rule, value, callback) => {
+      if (form.type === '内部通知' && (!value || value.length === 0)) {
+        callback(new Error('请选择发送对象'));
+      } else {
+        callback();
+      }
+    }
+  }],
   expireTime: [{ required: true, message: '请选择到期时间', trigger: 'change' }],
 };
 

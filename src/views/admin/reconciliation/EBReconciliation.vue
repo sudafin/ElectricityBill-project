@@ -1,130 +1,69 @@
 <template>
   <div class="reconciliation-dashboard">
-    <el-card class="admin-card">
-      <template #header>
-        <div class="header">
-          <h3 class="header-title">
-            <el-icon><Document /></el-icon>
-            对账管理
-          </h3>
-          <div class="search-area">
-            <div class="search-row">
-              <el-input
-                v-model="searchText"
-                placeholder="搜索对账单号或用户名"
-                clearable
-                @clear="fetchReconciliationList"
-                @keyup.enter="fetchReconciliationList"
-                class="search-input"
-              >
-                <template #prefix>
-                  <el-icon><Search /></el-icon>
-                </template>
-              </el-input>
-              <el-select
-                v-model="searchUserType"
-                clearable
-                placeholder="用户类型"
-                class="user-type-select"
-              >
-                <template #prefix>
-                  <el-icon><User /></el-icon>
-                </template>
-                <el-option label="全部类型" value=""></el-option>
-                <el-option label="居民类型" value="居民用户"></el-option>
-                <el-option label="商业类型" value="商业用户"></el-option>
-              </el-select>
-              <el-select
-                v-model="searchStatus"
-                clearable
-                placeholder="状态"
-                class="status-select"
-              >
-                <template #prefix>
-                  <el-icon><InfoFilled /></el-icon>
-                </template>
-                <el-option label="全部" value=""></el-option>
-                <el-option label="待审批" value="pending"></el-option>
-                <el-option label="已完成" value="completed"></el-option>
-              </el-select>
-              <el-input
-                v-model="searchMeterNo"
-                placeholder="电表编号"
-                clearable
-                @clear="fetchReconciliationList"
-                @keyup.enter="fetchReconciliationList"
-                class="meter-input"
-              >
-                <template #prefix>
-                  <el-icon><Odometer /></el-icon>
-                </template>
-              </el-input>
-              <el-date-picker
-                v-model="dateRange"
-                type="daterange"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="YYYY-MM-DD"
-                class="filter-date-range"
-              >
-                <template #prefix>
-                  <el-icon><Calendar /></el-icon>
-                </template>
-              </el-date-picker>
-            </div>
-            <div class="action-buttons">
-              <el-button type="primary" class="action-button" @click="handleSearch">
-                <el-icon><Search /></el-icon>搜索
-              </el-button>
-              <el-button type="success" @click="exportReconciliationList">
-                <el-icon><Download /></el-icon>导出
-              </el-button>
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><Document /></el-icon>
+          <h2 class="header-title">对账管理</h2>
         </div>
-      </template>
-      <!-- 对账表格 -->
-      <el-table
-        ref="tableRef"
-        v-loading="loading"
-        :data="reconciliationList"
-        @selection-change="handleSelectionChange"
-        class="admin-table"
+      </div>
+
+      <!-- 使用新的筛选栏组件 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleFilterSearch"
+        @reset="clearSearch"
       >
-        <el-table-column prop="reconciliationNo" label="对账单号"></el-table-column>
-        <el-table-column prop="username" label="用户名"></el-table-column>
-        <el-table-column prop="meterNo" label="电表编号"></el-table-column>
-        <el-table-column prop="userType" label="用户类型"></el-table-column>
-        <el-table-column prop="balance" label="金额"></el-table-column>
-        <el-table-column prop="status" label="状态">
-          <template #default="{ row }">
-            <el-tag :type="row.reconciliationStatus === '待审批' ? 'info' : row.reconciliationStatus === '通过' ? 'success' : row.reconciliationStatus === '拒绝' ? 'danger' : row.reconciliationStatus === '退回' ? 'warning' : row.reconciliationStatus === '暂缓' ? 'info' : 'warning'">
-                {{ row.reconciliationStatus }}
-              </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="reconciliationTime" label="创建时间"></el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="showDetail(row)">详情</el-button>
-            <el-button type="primary" link @click="handleApproval(row)">审批</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <!-- 分页 -->
-      <div class="admin-pagination">
-        <el-pagination
+        <!-- 添加额外按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="success" 
+            class="action-button" 
+            size="default"
+            @click="exportReconciliationList"
+          >
+            <el-icon><Download /></el-icon>导出
+          </el-button>
+        </template>
+      </EBFilterBar>
+
+      <!-- 使用新的表格组件 -->
+      <div class="table-container">
+        <EBTable
+          ref="tableRef"
+          :columns="tableColumns"
+          :data="reconciliationList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="180"
+          :auto-height="true"
+          pagination
           :current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          @current-change="handlePageChange"
-          layout="prev, pager, next, jumper"
-        ></el-pagination>
-        <div class="total-info">共 {{ total }} 条记录</div>
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 状态列自定义渲染 -->
+          <template #reconciliationStatus="{ row }">
+            <el-tag :type="row.reconciliationStatus === '待审批' ? 'info' : row.reconciliationStatus === '通过' ? 'success' : row.reconciliationStatus === '拒绝' ? 'danger' : row.reconciliationStatus === '退回' ? 'warning' : row.reconciliationStatus === '暂缓' ? 'info' : 'warning'">
+              {{ row.reconciliationStatus }}
+            </el-tag>
+          </template>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="showDetail(row)">详情</el-button>
+            <el-button type="primary" link size="small" @click="handleApproval(row)">审批</el-button>
+          </template>
+        </EBTable>
       </div>
-    </el-card>
+    </div>
 
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="对账单详情" size="50%" :with-header="false" direction="rtl">
@@ -176,7 +115,6 @@
             <el-table-column prop="operator" label="支付人"></el-table-column>
             <el-table-column prop="remark" label="备注"></el-table-column>
           </el-table>
-
         </div>
       </div>
     </el-drawer>
@@ -186,16 +124,17 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
+import { Document, Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
 import { getReconciliationList, getReconciliationDetail, getReconciliationReport } from '@/api/admin/reconciliation.js';
 import { ElMessage } from 'element-plus';
+import { EBFilterBar, EBTable } from '@/components';
 
 const router = useRouter();
 const searchText = ref('');
 const searchStatus = ref('');
 const dateRange = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(5);
+const pageSize = ref(10);
 const total = ref(0);
 const searchUserType = ref('');
 const searchMeterNo = ref('');
@@ -203,20 +142,81 @@ const detailVisible = ref(false);
 const currentReconciliation = ref({});
 const loading = ref(false);
 const reconciliationList = ref([]);
+const selectedIds = ref([]);
 
-const columns = [
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'input',
+    field: 'searchText',
+    label: '对账单号',
+    placeholder: '请输入对账单号或用户名'
+  },
+  {
+    type: 'select',
+    field: 'searchUserType',
+    label: '用户类型',
+    options: [
+      { label: '全部类型', value: '' },
+      { label: '居民类型', value: '居民用户' },
+      { label: '商业类型', value: '商业用户' }
+    ]
+  },
+  {
+    type: 'select',
+    field: 'searchStatus',
+    label: '审批状态',
+    options: [
+      { label: '全部', value: '' },
+      { label: '待审批', value: 'pending' },
+      { label: '已完成', value: 'completed' }
+    ]
+  },
+  {
+    type: 'input',
+    field: 'searchMeterNo',
+    label: '电表编号',
+    placeholder: '请输入电表编号'
+  },
+  {
+    type: 'daterange',
+    field: 'dateRange',
+    label: '日期范围'
+  }
+];
+
+// 初始值
+const initialFilterValues = {
+  searchText: '',
+  searchUserType: '',
+  searchStatus: '',
+  searchMeterNo: '',
+  dateRange: []
+};
+
+// 表格列配置
+const tableColumns = [
   { prop: 'reconciliationNo', label: '对账单号' },
   { prop: 'username', label: '用户名' },
   { prop: 'meterNo', label: '电表编号' },
   { prop: 'userType', label: '用户类型' },
   { prop: 'balance', label: '金额' },
-  { prop: 'status', label: '状态', slotName: 'status' },
-  { prop: 'reconciliationTime', label: '创建时间' },
-  { prop: 'actions', label: '操作', slotName: 'actions', width: '120px' },
+  { 
+    prop: 'reconciliationStatus', 
+    label: '状态',
+    type: 'tag',
+    tagMap: {
+      '待审批': 'info',
+      '通过': 'success',
+      '拒绝': 'danger',
+      '退回': 'warning',
+      '暂缓': 'info'
+    }
+  },
+  { prop: 'reconciliationTime', label: '创建时间' }
 ];
 
-
-const fetchReconciliationList = async (page = currentPage.value,shouldResetPage = false) => {
+const fetchReconciliationList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   if(shouldResetPage){
     currentPage.value = 1;
@@ -225,17 +225,17 @@ const fetchReconciliationList = async (page = currentPage.value,shouldResetPage 
   }
   //创建条件查询对象
   const reconciliationPageQuery = {
-  pageNo: currentPage.value,
-  pageSize: pageSize.value,
-  reconciliationNo: searchText.value && /^\d+$/.test(searchText.value) ? searchText.value : undefined,
-  username: searchText.value && /^[\u4e00-\u9fa5]+$/.test(searchText.value) ? searchText.value : undefined,
-  reconciliationStatus: searchStatus.value,
-  userType: searchUserType.value,
-  meterNo: searchMeterNo.value,
-  startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
-  endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
-}
-//获取数据
+    pageNo: currentPage.value,
+    pageSize: pageSize.value,
+    reconciliationNo: searchText.value && /^\d+$/.test(searchText.value) ? searchText.value : undefined,
+    username: searchText.value && /^[\u4e00-\u9fa5]+$/.test(searchText.value) ? searchText.value : undefined,
+    reconciliationStatus: searchStatus.value,
+    userType: searchUserType.value,
+    meterNo: searchMeterNo.value,
+    startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+    endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+  }
+  //获取数据
   try{
     // 模拟从后端获取数据,添加搜索条件
     const res = await getReconciliationList(reconciliationPageQuery);
@@ -247,23 +247,51 @@ const fetchReconciliationList = async (page = currentPage.value,shouldResetPage 
     loading.value = false;
   }
 };
-onMounted(()=>{
-  fetchReconciliationList(1,true);
-})
-const handleSearch = () => {
-  fetchReconciliationList(1,true);
+
+// 处理筛选搜索
+const handleFilterSearch = (filterValues) => {
+  // 更新筛选值
+  searchText.value = filterValues.searchText || '';
+  searchUserType.value = filterValues.searchUserType || '';
+  searchStatus.value = filterValues.searchStatus || '';
+  searchMeterNo.value = filterValues.searchMeterNo || '';
+  dateRange.value = filterValues.dateRange || [];
+  
+  // 重新加载数据
+  fetchReconciliationList(1, true);
 };
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchText.value = '';
+  searchUserType.value = '';
+  searchStatus.value = '';
+  searchMeterNo.value = '';
+  dateRange.value = [];
+};
+
+onMounted(()=>{
+  fetchReconciliationList(1, true);
+});
+
 const handlePageChange = (page) => {
   fetchReconciliationList(page);
-}
+};
+
 const fetchReconciliationDetail = async (id) => {
   const res = await getReconciliationDetail(id);
   return res;
 };
+
 const showDetail = async (row) => {
   const detail = await fetchReconciliationDetail(row.reconciliationNo);
   currentReconciliation.value = detail;
   detailVisible.value = true;
+};
+
+// 表格选择变化
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id);
 };
 
 const exportReconciliationList = async () => {
@@ -286,103 +314,90 @@ const exportReconciliationList = async () => {
 const handleApproval = (row) => {
   router.push({ name: 'Approval', params: { reconciliationNo: row.reconciliationNo } });
 };
-
-
 </script>
 
 <style scoped>
-@import '@/styles/admin-card.scss';
-
 .reconciliation-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-.search-area {
-  flex: 1;
-  background: transparent;
-  padding: 12px 0;
+.content-wrapper {
+  background-color: #fff;
   border-radius: 8px;
-  min-width: 0;
-}
-
-.search-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  width: 100%;
-}
-
-.search-input {
-  width: 360px;
-  flex-shrink: 0;
-}
-
-.filter-date-range {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  padding: 12px 0;
-  flex-shrink: 0;
-}
-
-.action-buttons .el-button {
-  min-width: 88px;
-  border-radius: 8px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.meter-input {
-  width: 140px;
-  flex-shrink: 0;
-}
-
-.status-select {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.user-type-select {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-@media screen and (max-width: 1400px) {
-  .search-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .search-input,
-  .user-type-select,
-  .status-select,
-  .meter-input {
-    flex: 1;
-    min-width: 160px;
-  }
-  
-  .filter-date-range {
-    width: 100%;
-  }
-}
-
-.el-drawer {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-}
-
-.el-drawer__container {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 20px;
   transition: all 0.3s ease;
+}
+
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+}
+
+.title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
+}
+
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
+  color: #606266;
+  font-weight: 500;
+  padding: 12px 0;
+}
+
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+:deep(.eb-table .el-table) {
+  border: none;
+}
+
+:deep(.eb-pagination) {
+  padding-top: 15px;
+}
+
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
+}
+
+:deep(.el-button--link) {
+  min-width: auto;
 }
 
 .drawer-content {
@@ -404,16 +419,6 @@ const handleApproval = (row) => {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-}
-
-.el-divider {
-  margin: 20px 0;
-}
-
-h4 {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .comment-section {
@@ -439,9 +444,5 @@ h4 {
   margin: 0 0 10px;
   font-size: 16px;
   font-weight: 600;
-}
-
-.el-table {
-  width: 100%;
 }
 </style> 

@@ -182,13 +182,13 @@ export function getUserPaymentRecords(userId, params) {
  * @param {string} params.type 数据类型（可选）
  * @returns {Promise} 返回Promise对象，包含用户用电分析数据
  */
-export function getUserElectricityAnalysis(userId, params) {
-  return request({
-    url: `/api/admin/users/${userId}/electricity-analysis`,
-    method: 'get',
-    params
-  });
-}
+// export function getUserElectricityAnalysis(userId, params) {
+//   return request({
+//     url: `/api/admin/users/${userId}/electricity-analysis`,
+//     method: 'get',
+//     params
+//   });
+// }
 
 export function payUser(userId, money, paymentMethod){
   return request({  

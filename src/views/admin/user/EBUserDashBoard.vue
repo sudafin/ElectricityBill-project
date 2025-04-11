@@ -1,137 +1,79 @@
 <template>
   <div class="user-dashboard">
-    <el-card class="admin-card">
-      <template #header>
-        <div class="header">
-          <h3 class="header-title">
-            <el-icon><User /></el-icon>
-            用户管理
-          </h3>
-          <div class="search-area">
-            <el-input
-              v-model="searchText"
-              placeholder="搜索用户名或电话"
-              clearable
-              @clear="fetchUserList"
-              @keyup.enter="fetchUserList"
-              class="search-input"
-            >
-              <template #prefix>
-                <el-icon><Search /></el-icon>
-              </template>
-            </el-input>
-            <el-select
-              v-model="searchUserType"
-              clearable
-              placeholder="用户类型"
-              class="filter-select"
-            >
-              <template #prefix>
-                <el-icon><User /></el-icon>
-              </template>
-              <el-option label="全部" value=""></el-option>
-              <el-option label="居民用户" value="居民用户"></el-option>
-              <el-option label="商业用户" value="商业用户"></el-option>
-            </el-select>
-            <el-select
-              v-model="searchAccountStatus"
-              clearable
-              placeholder="账号状态"
-              @change="fetchUserList"
-              class="filter-select"
-            >
-              <template #prefix>
-                <el-icon><InfoFilled /></el-icon>
-              </template>
-              <el-option label="全部" value=""></el-option>
-              <el-option label="正常" value="正常"></el-option>
-              <el-option label="欠费" value="欠费"></el-option>
-            </el-select>
-            <el-input
-              v-model="searchMeterNo"
-              placeholder="电表编号"
-              clearable
-              @clear="fetchUserList"
-              @keyup.enter="fetchUserList"
-              class="meter-input"
-            >
-              <template #prefix>
-                <el-icon><Odometer /></el-icon>
-              </template>
-            </el-input>
-            <el-date-picker
-              v-model="searchDateRange"
-              type="daterange"
-              unlink-panels
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="YYYY-MM-DD"
-              class="filter-date-range"
-            >
-              <template #prefix>
-                <el-icon><Calendar /></el-icon>
-              </template>
-            </el-date-picker>
-            <div class="action-buttons">
-              <el-button type="primary" class="action-button" @click="handleSearch">
-                <el-icon><Search /></el-icon>搜索
-              </el-button>
-              <el-button type="primary" class="action-button" @click="handleCreate">
-                <el-icon><Plus /></el-icon>新增用户
-              </el-button>
-              <el-button type="danger" class="action-button" @click="handleBatchDelete" :disabled="!selectedUserIds.length">
-                <el-icon><Delete /></el-icon>批量删除
-              </el-button>
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><User /></el-icon>
+          <h2 class="header-title">用户管理</h2>
         </div>
-      </template>
-      <!-- 表格 -->
-      <el-table
-        ref="tableRef"
-        v-loading="loading"
-        :data="userList"
-        @selection-change="handleSelectionChange"
-        class="admin-table"
+      </div>
+      
+      <!-- 使用新的筛选栏组件，添加buttonSize属性 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleFilterSearch"
+        @reset="clearSearch"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="username" label="用户姓名"></el-table-column>
-        <el-table-column prop="phone" label="电话"></el-table-column>
-        <el-table-column prop="meterNo" label="电表编号"></el-table-column>
-        <el-table-column prop="address" label="地址"></el-table-column>
-        <el-table-column prop="userType" label="用户类型"></el-table-column>
-        <el-table-column label="账号状态">
-          <template #default="{ row }">
+        <!-- 添加额外按钮，确保使用相同的尺寸 -->
+        <template #append-buttons>
+          <el-button 
+            type="primary" 
+            class="action-button" 
+            size="default"
+            @click="handleCreate"
+          >
+            <el-icon><Plus /></el-icon>新增用户
+          </el-button>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleBatchDelete" 
+            :disabled="!selectedUserIds.length"
+          >
+            <el-icon><Delete /></el-icon>批量删除
+          </el-button>
+        </template>
+      </EBFilterBar>
+
+      <!-- 使用新的表格组件，设置border为false -->
+      <div class="table-container">
+        <EBTable
+          ref="userTableRef"
+          :columns="tableColumns"
+          :data="userList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="180"
+          :auto-height="true"
+          pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 账号状态列自定义渲染 -->
+          <template #accountStatus="{ row }">
             <el-tag :type="row.accountStatus === '正常' ? 'success' : 'danger'">
               {{ row.accountStatus }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="balance" label="当前电费余额"></el-table-column>
-        <el-table-column prop="electricityUsage" label="用电量"></el-table-column>
-        <el-table-column prop="lastPaymentDate" label="最近缴费时间"></el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="showDetail(row.id)">详情</el-button>
-            <el-button type="warning" link @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="showDetail(row.id)">详情</el-button>
+            <el-button type="warning" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
-        </el-table-column>
-      </el-table>
-      <!-- 分页 -->
-      <div class="admin-pagination">
-        <el-pagination
-          :current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          :disabled="loading"
-          @current-change="handlePageChange"
-          layout="prev, pager, next, jumper"
-        ></el-pagination>
-        <div class="total-info">共 {{ total }} 条记录</div>
+        </EBTable>
       </div>
-    </el-card>
+    </div>
 
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="用户详情" size="50%" :with-header="false" direction="rtl">
@@ -178,26 +120,103 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
-import { Search, User, InfoFilled, Calendar, Plus, Delete, Odometer } from '@element-plus/icons-vue'
+import { Search, User, InfoFilled, Calendar, Plus, Delete, Odometer } from '@element-plus/icons-vue';
 import { getUserList, getUserDetail, deleteUser } from '@/api/admin/user.js';
-const router = useRouter();
+import { EBFilterBar, EBTable } from '@/components';
 
+const router = useRouter();
+const userTableRef = ref(null);
+
+// 筛选条件相关
 const searchText = ref('');
 const searchUserType = ref('');
 const searchAccountStatus = ref('');
+const searchDateRange = ref([]);
+const searchMeterNo = ref('');
+
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'input',
+    field: 'searchText',
+    label: '用户姓名',
+    placeholder: '请输入用户名或电话'
+  },
+  {
+    type: 'select',
+    field: 'searchUserType',
+    label: '用户类型',
+    options: [
+      { label: '全部', value: '' },
+      { label: '居民用户', value: '居民用户' },
+      { label: '商业用户', value: '商业用户' }
+    ]
+  },
+  {
+    type: 'select',
+    field: 'searchAccountStatus',
+    label: '账号状态',
+    options: [
+      { label: '全部', value: '' },
+      { label: '正常', value: '正常' },
+      { label: '欠费', value: '欠费' }
+    ]
+  },
+  {
+    type: 'input',
+    field: 'searchMeterNo',
+    label: '电表编号',
+    placeholder: '请输入电表编号'
+  },
+  {
+    type: 'daterange',
+    field: 'searchDateRange',
+    label: '日期范围'
+  }
+];
+
+// 初始值
+const initialFilterValues = {
+  searchText: '',
+  searchUserType: '',
+  searchAccountStatus: '',
+  searchMeterNo: '',
+  searchDateRange: []
+};
+
+// 表格相关
 const currentPage = ref(1);
-const pageSize = ref(5);
+const pageSize = ref(10);
 const loading = ref(false);
 const userList = ref([]);
 const total = ref(0);
 const selectedUserIds = ref([]);
-const searchDateRange = ref([]);
-const searchMeterNo = ref('');
 
-//获取用户列表
+// 表格列配置
+const tableColumns = [
+  { prop: 'username', label: '用户姓名' },
+  { prop: 'phone', label: '电话' },
+  { prop: 'meterNo', label: '电表编号' },
+  { prop: 'address', label: '地址' },
+  { prop: 'userType', label: '用户类型' },
+  { 
+    prop: 'accountStatus', 
+    label: '账号状态',
+    type: 'tag',
+    tagMap: {
+      '正常': 'success',
+      '欠费': 'danger'
+    }
+  },
+  { prop: 'balance', label: '当前电费余额' },
+  { prop: 'electricityUsage', label: '用电量' },
+  { prop: 'lastPaymentDate', label: '最近缴费时间', type: 'date' }
+];
+
+// 获取用户列表
 const fetchUserList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   
@@ -207,7 +226,7 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     currentPage.value = page;
   }
 
-  //创建条件查询对象
+  // 创建条件查询对象
   const userPageQuery = {
     pageNo: currentPage.value,
     pageSize: pageSize.value,
@@ -219,11 +238,18 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     name: searchText.value && !isNaN(searchText.value) ? undefined : searchText.value,
     phone: searchText.value && isNaN(searchText.value) ? undefined : searchText.value
   };
-//分页查询
+
   try {
     const res = await getUserList(userPageQuery);
     userList.value = res.list;
     total.value = Number(res.total);
+    
+    // 数据加载完成后手动更新表格布局
+    nextTick(() => {
+      if (userTableRef.value) {
+        userTableRef.value.doLayout && userTableRef.value.doLayout();
+      }
+    });
   } catch (err) {
     console.error(err);
     ElMessage.error('获取用户列表失败');
@@ -231,7 +257,20 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
   loading.value = false;
 };
 
-//获取用户详情
+// 处理筛选搜索
+const handleFilterSearch = (filterValues) => {
+  // 更新筛选值
+  searchText.value = filterValues.searchText || '';
+  searchUserType.value = filterValues.searchUserType || '';
+  searchAccountStatus.value = filterValues.searchAccountStatus || '';
+  searchMeterNo.value = filterValues.searchMeterNo || '';
+  searchDateRange.value = filterValues.searchDateRange || [];
+  
+  // 重新加载数据
+  fetchUserList(1, true);
+};
+
+// 获取用户详情
 const fetchUserDetail = async (userId) => {
   const res = await getUserDetail(userId);
   return res;
@@ -240,7 +279,7 @@ const fetchUserDetail = async (userId) => {
 const detailVisible = ref(false);
 const currentUser = ref({});
 
-const showDetail  = async (userId) => {
+const showDetail = async (userId) => {
   const userDetail = await fetchUserDetail(userId);
   currentUser.value = userDetail;
   detailVisible.value = true;
@@ -251,8 +290,7 @@ const handleCreate = () => {
   router.push({ name: 'UserForm' });
 };
 
-
-//删除单个用户
+// 删除单个用户
 const handleDelete = async (row) => {
   ElMessageBox.confirm('确定删除该用户吗?', '提示', { 
     confirmButtonText: '确定',
@@ -268,44 +306,46 @@ const handleDelete = async (row) => {
 };
 
 // 批量删除用户
-const tableRef = ref(null);
-
-const handleSelectionChange = (selectedRows) => {
-  selectedUserIds.value = selectedRows.map((row) => row.id);
+const handleSelectionChange = (selection) => {
+  selectedUserIds.value = selection.map((row) => row.id);
 };
+
 const handleBatchDelete = async () => {
+  if (selectedUserIds.value.length === 0) {
+    ElMessage.warning('请先选择要删除的用户');
+    return;
+  }
+  
   ElMessageBox.confirm(`确定删除选中的 ${selectedUserIds.value.length} 个用户吗?`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
   .then(async () => {
-    selectedUserIds.value = selectedUserIds.value.join(',');
-    const res = await deleteUser(selectedUserIds.value);
+    const ids = selectedUserIds.value.join(',');
+    const res = await deleteUser(ids);
     if(res.code === 200){
       fetchUserList();
-    ElMessage.success('删除成功');
-  } else {
+      ElMessage.success('删除成功');
+    } else {
       ElMessage.error('删除失败');
     }
   })
   .catch(() => {});
 };
 
-
-// 添加搜索处理函数
-const handleSearch = () => {
-  fetchUserList(1, true); // 点击搜索按钮时,从第一页开始搜索,并重置页码
-};
-
-// 修改其他输入框和选择器的事件处理
-const handleInputChange = () => {
-  // 输入变化时不立即搜索，等待用户点击搜索按钮
-};
-
 // 分页
 const handlePageChange = (page) => {
   fetchUserList(page);
+};
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchText.value = '';
+  searchUserType.value = '';
+  searchAccountStatus.value = '';
+  searchMeterNo.value = '';
+  searchDateRange.value = [];
 };
 
 // 编辑用户
@@ -322,23 +362,87 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/admin-card.scss';
-
 .user-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-.search-input {
-  width: 220px;
+.content-wrapper {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-.filter-select, .meter-input {
-  width: 140px;
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
-.filter-date-range {
-  width: 360px;
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+}
+
+.title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
+}
+
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
+  color: #606266;
+  font-weight: 500;
+  padding: 12px 0;
+}
+
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+:deep(.eb-table .el-table) {
+  border: none;
+}
+
+:deep(.eb-pagination) {
+  padding-top: 15px;
+}
+
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
+}
+
+:deep(.el-button--link) {
+  min-width: auto;
 }
 
 .drawer-content {
@@ -368,33 +472,5 @@ onMounted(() => {
 
 .payment-history h4 {
   margin-bottom: 10px;
-}
-
-.search-date-range {
-  width: 260px;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.meter-input {
-  width: 140px;
-  flex-shrink: 0;
-}
-
-/* 响应式布局调整 */
-@media screen and (max-width: 1400px) {
-  .search-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .search-input,
-  .filter-select,
-  .meter-input,
-  .filter-date-range {
-    flex: 1;
-    min-width: 160px;
-  }
 }
 </style> 

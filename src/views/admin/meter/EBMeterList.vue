@@ -1,108 +1,74 @@
 <template>
   <div class="meter-dashboard">
-    <el-card class="admin-card">
-      <template #header>
-        <div class="header">
-          <h3 class="header-title">
-            <el-icon><Odometer /></el-icon>
-            电表管理
-          </h3>
-          <div class="search-area">
-            <el-input
-              v-model="searchText"
-              placeholder="搜索电表编号或型号"
-              clearable
-              @clear="fetchMeterList"
-              @keyup.enter="fetchMeterList"
-              class="search-input"
-            >
-              <template #prefix>
-                <el-icon><Search /></el-icon>
-              </template>
-            </el-input>
-            <el-select
-              v-model="searchStatus"
-              clearable
-              placeholder="电表状态"
-              class="filter-select"
-            >
-              <template #prefix>
-                <el-icon><CircleCheck /></el-icon>
-              </template>
-              <el-option label="全部" value=""></el-option>
-              <el-option label="正常" value="正常"></el-option>
-              <el-option label="故障" value="故障"></el-option>
-              <el-option label="停用" value="停用"></el-option>
-            </el-select>
-            <el-select
-              v-model="searchBind"
-              clearable
-              placeholder="绑定状态"
-              class="filter-select"
-            >
-              <template #prefix>
-                <el-icon><Link /></el-icon>
-              </template>
-              <el-option label="全部" value=""></el-option>
-              <el-option label="已绑定" value="bound"></el-option>
-              <el-option label="未绑定" value="unbound"></el-option>
-            </el-select>
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              unlink-panels
-              range-separator="至"
-              start-placeholder="安装开始日期"
-              end-placeholder="安装结束日期"
-              value-format="YYYY-MM-DD"
-              class="filter-date-range"
-            >
-              <template #prefix>
-                <el-icon><Calendar /></el-icon>
-              </template>
-            </el-date-picker>
-            <div class="action-buttons">
-              <el-button type="primary" class="action-button" @click="handleSearch">
-                <el-icon><Search /></el-icon>搜索
-              </el-button>
-              <el-button type="primary" class="action-button" @click="handleCreate">
-                <el-icon><Plus /></el-icon>新增电表
-              </el-button>
-              <el-button 
-                type="danger" 
-                class="action-button" 
-                @click="handleBatchDelete" 
-                :disabled="!selectedMeterIds.length"
-              >
-                <el-icon><Delete /></el-icon>批量删除
-              </el-button>
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><Odometer /></el-icon>
+          <h2 class="header-title">电表管理</h2>
         </div>
-      </template>
-      
-      <el-table
-        ref="tableRef"
-        v-loading="loading"
-        :data="meterList"
-        @selection-change="handleSelectionChange"
-        class="admin-table"
+      </div>
+
+      <!-- 使用新的筛选栏组件 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleFilterSearch"
+        @reset="clearSearch"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column label="电表编号" prop="meterNo" width="180"></el-table-column>
-        <el-table-column label="电表型号" prop="model" width="160"></el-table-column>
-        <el-table-column label="安装日期" prop="installDate" width="120"></el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
+        <!-- 添加额外按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="primary" 
+            class="action-button" 
+            size="default"
+            @click="handleCreate"
+          >
+            <el-icon><Plus /></el-icon>新增电表
+          </el-button>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleBatchDelete" 
+            :disabled="!selectedMeterIds.length"
+          >
+            <el-icon><Delete /></el-icon>批量删除
+          </el-button>
+        </template>
+      </EBFilterBar>
+
+      <!-- 使用新的表格组件 -->
+      <div class="table-container">
+        <EBTable
+          ref="tableRef"
+          :columns="tableColumns"
+          :data="meterList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="200"
+          :auto-height="true"
+          pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 状态列自定义渲染 -->
+          <template #status="{ row }">
             <el-tag 
               :type="row.status === '正常' ? 'success' : row.status === '故障' ? 'danger' : 'info'"
             >
               {{ row.status }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="绑定用户" width="180">
-          <template #default="{ row }">
+
+          <!-- 绑定用户列自定义渲染 -->
+          <template #username="{ row }">
             <span v-if="row.username">
               {{ row.username }}
               <el-tag size="small" type="success">已绑定</el-tag>
@@ -119,39 +85,27 @@
               </el-button>
             </span>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" fixed="right" width="200">
-          <template #default="{ row }">
-            <div class="action-group">
-              <el-button type="primary" link @click="handleEdit(row)">
-                <el-icon><Edit /></el-icon>编辑
-              </el-button>
-              <el-button type="primary" link @click="handleDetail(row)">
-                <el-icon><View /></el-icon>详情
-              </el-button>
-              <el-button 
-                type="danger" 
-                link 
-                @click="handleDelete(row.id)"
-              >
-                <el-icon><Delete /></el-icon>删除
-              </el-button>
-            </div>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="handleEdit(row)">
+              <el-icon><Edit /></el-icon>编辑
+            </el-button>
+            <el-button type="primary" link size="small" @click="handleDetail(row)">
+              <el-icon><View /></el-icon>详情
+            </el-button>
+            <el-button 
+              type="danger" 
+              link 
+              size="small"
+              @click="handleDelete(row.id)"
+            >
+              <el-icon><Delete /></el-icon>删除
+            </el-button>
           </template>
-        </el-table-column>
-      </el-table>
-      
-      <div class="admin-pagination">
-        <el-pagination
-          :current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          @current-change="handlePageChange"
-          layout="prev, pager, next, jumper"
-        ></el-pagination>
-        <div class="total-info">共 {{ total }} 条记录</div>
+        </EBTable>
       </div>
-    </el-card>
+    </div>
     
     <!-- 绑定用户弹窗 -->
     <el-dialog
@@ -177,6 +131,7 @@ import {
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import EBMeterBindUser from './EBMeterBindUser.vue';
+import { EBFilterBar, EBTable } from '@/components';
 
 const router = useRouter();
 const searchText = ref('');
@@ -191,6 +146,69 @@ const total = ref(0);
 const selectedMeterIds = ref([]);
 const bindDialogVisible = ref(false);
 const currentMeter = ref({});
+
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'input',
+    field: 'searchText',
+    label: '关键词',
+    placeholder: '搜索电表编号或型号'
+  },
+  {
+    type: 'select',
+    field: 'searchStatus',
+    label: '电表状态',
+    options: [
+      { label: '全部', value: '' },
+      { label: '正常', value: '正常' },
+      { label: '故障', value: '故障' },
+      { label: '停用', value: '停用' }
+    ]
+  },
+  {
+    type: 'select',
+    field: 'searchBind',
+    label: '绑定状态',
+    options: [
+      { label: '全部', value: '' },
+      { label: '已绑定', value: 'bound' },
+      { label: '未绑定', value: 'unbound' }
+    ]
+  },
+  {
+    type: 'daterange',
+    field: 'dateRange',
+    label: '安装日期'
+  }
+];
+
+// 初始值
+const initialFilterValues = {
+  searchText: '',
+  searchStatus: '',
+  searchBind: '',
+  dateRange: []
+};
+
+// 表格列配置
+const tableColumns = [
+  { prop: 'meterNo', label: '电表编号', width: '180' },
+  { prop: 'model', label: '电表型号', width: '160' },
+  { prop: 'installDate', label: '安装日期', width: '120' },
+  { 
+    prop: 'status', 
+    label: '状态', 
+    width: '100',
+    type: 'tag',
+    tagMap: {
+      '正常': 'success',
+      '故障': 'danger',
+      '停用': 'info'
+    }
+  },
+  { prop: 'username', label: '绑定用户', width: '180' }
+];
 
 // 获取电表列表
 const fetchMeterList = async (page = currentPage.value, shouldResetPage = false) => {
@@ -223,9 +241,24 @@ const fetchMeterList = async (page = currentPage.value, shouldResetPage = false)
   }
 };
 
-// 搜索处理函数
-const handleSearch = () => {
+// 处理筛选搜索
+const handleFilterSearch = (filterValues) => {
+  // 更新筛选值
+  searchText.value = filterValues.searchText || '';
+  searchStatus.value = filterValues.searchStatus || '';
+  searchBind.value = filterValues.searchBind || '';
+  dateRange.value = filterValues.dateRange || [];
+  
+  // 重新加载数据
   fetchMeterList(1, true);
+};
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchText.value = '';
+  searchStatus.value = '';
+  searchBind.value = '';
+  dateRange.value = [];
 };
 
 // 表格选择变化
@@ -315,35 +348,93 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/admin-card.scss';
-
 .meter-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-/* 组件特定的样式 */
-.search-input {
-  width: 220px;
+.content-wrapper {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-.filter-select {
-  width: 140px;
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
-.filter-date-range {
-  width: 260px;
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+}
+
+.title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
+}
+
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
+  color: #606266;
+  font-weight: 500;
+  padding: 12px 0;
+}
+
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+:deep(.eb-table .el-table) {
+  border: none;
+}
+
+:deep(.eb-pagination) {
+  padding-top: 15px;
+}
+
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
+}
+
+:deep(.el-button--link) {
+  min-width: auto;
 }
 
 .no-bind {
   color: #909399;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.action-group {
-  display: flex;
   gap: 8px;
 }
 

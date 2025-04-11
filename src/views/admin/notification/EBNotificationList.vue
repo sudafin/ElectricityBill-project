@@ -1,96 +1,78 @@
 <template>
   <div class="notification-dashboard">
-    <el-card class="admin-card">
-      <template #header>
-        <div class="header">
-          <h3 class="header-title">
-            <el-icon><Bell /></el-icon>
-            通知管理
-          </h3>
-          <div class="search-area">
-            <el-input v-model="searchText" placeholder="搜索通知" clearable class="search-input"></el-input>
-            <el-select v-model="selectedType" placeholder="通知类型" clearable
-            class="status-select" >
-              <el-option label="全部" value=""></el-option>
-              <el-option label="系统通知" value="系统通知"></el-option>
-              <el-option label="审批通知" value="审批通知"></el-option>
-            </el-select>
-            <el-date-picker
-                v-model="dateRange"
-                type="daterange"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="YYYY-MM-DD"
-                class="filter-date-range"
-              >
-                <template #prefix>
-                  <el-icon><Calendar /></el-icon>
-              </template>
-            </el-date-picker>
-            <div class="action-buttons">
-              <el-button type="primary" class="action-button" @click="handleCreate">
-                <el-icon><Plus /></el-icon>新增通知
-              </el-button>
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><Bell /></el-icon>
+          <h2 class="header-title">通知管理</h2>
         </div>
-      </template>
-      <el-table
-        ref="tableRef"
-        v-loading="loading"
-        :data="notificationList"
-        @selection-change="handleSelectionChange"
-        class="admin-table"
+      </div>
+      
+      <!-- 使用新的筛选栏组件 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleFilterSearch"
+        @reset="clearSearch"
       >
-        <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column label="标题" width="150">
-          <template #default="{ row }">
-              <span class="table-cell" :class="{ 'unread': !row.readStatus }">{{ row.title }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="内容">
-          <template #default="{ row }">
-              <span class="table-cell">{{ row.content }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">
-            <span>{{ row.type }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.level === '重点' ? 'warning' : row.level === '过期' ? 'danger' : row.level === '普通' ? 'success' : 'info'">
-              {{ row.level }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">
-              <span class="table-cell">{{ row.createTime }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <div class="actions">
-              <el-button type="primary" link @click="showDetail(row)">详情</el-button>
-              <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="admin-pagination">
-        <el-pagination
+        <!-- 添加额外按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="primary" 
+            class="action-button" 
+            size="default"
+            @click="handleCreate"
+          >
+            <el-icon><Plus /></el-icon>新增通知
+          </el-button>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleBatchDelete" 
+            :disabled="!selectedNotificationIds.length"
+          >
+            <el-icon><Delete /></el-icon>批量删除
+          </el-button>
+        </template>
+      </EBFilterBar>
+
+      <!-- 使用新的表格组件 -->
+      <div class="table-container">
+        <EBTable
+          ref="tableRef"
+          :columns="tableColumns"
+          :data="notificationList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="120"
+          :auto-height="true"
+          pagination
           :current-page="currentPage"
           :page-size="pageSize"
           :total="total"
-          @current-change="handlePageChange"
-          layout="prev, pager, next, jumper"
-        ></el-pagination>
-        <div class="total-info">共 {{ total }} 条记录</div>
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 状态列自定义渲染 -->
+          <template #level="{ row }">
+            <el-tag :type="row.level === '重点' ? 'warning' : row.level === '过期' ? 'danger' : row.level === '普通' ? 'success' : 'info'">
+              {{ row.level }}
+            </el-tag>
+          </template>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="showDetail(row)">详情</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </EBTable>
       </div>
-    </el-card>
+    </div>
     
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" size="40%" direction="rtl" :with-header="false">
@@ -145,9 +127,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNotificationList, deleteNotification ,fetchNotificationDetail} from '@/api/admin/notification.js';
+import { getNotificationList, deleteNotification, fetchNotificationDetail } from '@/api/admin/notification.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Download, Search, Close, Calendar, Plus } from '@element-plus/icons-vue';
+import { Bell, Search, Close, Calendar, Plus, Delete } from '@element-plus/icons-vue';
+import { EBFilterBar, EBTable } from '@/components';
 
 const router = useRouter();
 const currentPage = ref(1);
@@ -161,19 +144,60 @@ const currentNotification = ref({});
 const dateRange = ref([]);
 const notificationList = ref([]);
 const total = ref(0);
+const selectedNotificationIds = ref([]);
 
-
-const columns = [
-  { type: 'selection', width: '55' },
-  { prop: 'title', label: '标题', slotName: 'title', width: '150' },
-  { prop: 'content', label: '内容', slotName: 'content' },
-  { prop: 'type', label: '类型', width: '120' },
-  { prop: 'status', label: '状态', width: '100' },
-  { prop: 'createdAt', label: '创建时间', slotName: 'createdAt', width: '180' },
-  { prop: 'actions', label: '操作', width: '120', fixed: 'right' },
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'input',
+    field: 'searchText',
+    label: '搜索通知',
+    placeholder: '请输入通知标题'
+  },
+  {
+    type: 'select',
+    field: 'selectedType',
+    label: '通知类型',
+    options: [
+      { label: '全部', value: '' },
+      { label: '系统通知', value: '系统通知' },
+      { label: '审批通知', value: '审批通知' }
+    ]
+  },
+  {
+    type: 'daterange',
+    field: 'dateRange',
+    label: '日期范围'
+  }
 ];
 
-const fetchNotificationList = async (page = currentPage.value,shouldResetPage = false) => {
+// 初始值
+const initialFilterValues = {
+  searchText: '',
+  selectedType: '',
+  dateRange: []
+};
+
+// 表格列配置
+const tableColumns = [
+  { prop: 'title', label: '标题', width: '150' },
+  { prop: 'content', label: '内容' },
+  { prop: 'type', label: '类型', width: '120' },
+  { 
+    prop: 'level', 
+    label: '状态', 
+    width: '100',
+    type: 'tag',
+    tagMap: {
+      '重点': 'warning',
+      '过期': 'danger',
+      '普通': 'success'
+    }
+  },
+  { prop: 'createTime', label: '创建时间', width: '180' }
+];
+
+const fetchNotificationList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   if(shouldResetPage){
     currentPage.value = 1;
@@ -182,13 +206,13 @@ const fetchNotificationList = async (page = currentPage.value,shouldResetPage = 
   }
   try{
     const res = await getNotificationList({
-    pageNo: currentPage.value,
-    pageSize: pageSize.value,
-    title: searchText.value,
-    type: selectedType.value,
-    startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
-    endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
-  })
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      title: searchText.value,
+      type: selectedType.value,
+      startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+      endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+    })
     total.value = Number(res.total);
     notificationList.value = res.list;
   } catch (err) {
@@ -201,9 +225,25 @@ const fetchNotificationList = async (page = currentPage.value,shouldResetPage = 
 onMounted(()=>{
   fetchNotificationList(1,true);
 })
-const handleSearch = () => {
-  fetchNotificationList(1,true);
+
+// 处理筛选搜索
+const handleFilterSearch = (filterValues) => {
+  // 更新筛选值
+  searchText.value = filterValues.searchText || '';
+  selectedType.value = filterValues.selectedType || '';
+  dateRange.value = filterValues.dateRange || [];
+  
+  // 重新加载数据
+  fetchNotificationList(1, true);
 };
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchText.value = '';
+  selectedType.value = '';
+  dateRange.value = [];
+};
+
 const handlePageChange = (page) => {
   fetchNotificationList(page);
 }
@@ -234,19 +274,24 @@ const handleDelete = async (row) => {
 }
 
 
-const selectedNotificationIds = ref([]);
 const handleSelectionChange = (selectedRows) => {
   selectedNotificationIds.value = selectedRows.map((row) => row.id);
 };
+
 const handleBatchDelete = async () => {
-ElMessageBox.confirm(`确定删除选中的 ${selectedNotificationIds.value.length} 个通知吗?`, '提示', {
-  confirmButtonText: '确定',
-  cancelButtonText: '取消',
+  if (selectedNotificationIds.value.length === 0) {
+    ElMessage.warning('请先选择要删除的通知');
+    return;
+  }
+  
+  ElMessageBox.confirm(`确定删除选中的 ${selectedNotificationIds.value.length} 个通知吗?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   })
   .then(async () => {
-    selectedNotificationIds.value = selectedNotificationIds.value.join(',');
-    const res = await deleteNotification(selectedNotificationIds.value);
+    const ids = selectedNotificationIds.value.join(',');
+    const res = await deleteNotification(ids);
     if(res.code === 200){
       fetchNotificationList(1,true);
       ElMessage.success('删除成功');
@@ -256,6 +301,7 @@ ElMessageBox.confirm(`确定删除选中的 ${selectedNotificationIds.value.leng
   })
   .catch(() => {});
 };
+
 const handleCreate = () => {
   router.push({ name: 'NotificationCreate' });
 };
@@ -264,85 +310,87 @@ const handleCreate = () => {
 </script>
 
 <style scoped>
-@import '@/styles/admin-card.scss';
-
 .notification-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
 }
 
-/* 组件特定的样式 */
-.search-input {
-  width: 200px;
-  flex-shrink: 0;
-}
-.search-filter {
-  display: flex;
-  gap: 10px;
-
-}
-.status-select {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.filter-date-range {
-  width: 300px;
-  flex-shrink: 0;
-}
-
-.el-button {
-  min-width: 88px;
+.content-wrapper {
+  background-color: #fff;
   border-radius: 8px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.el-button .el-icon {
-  margin-right: 4px;
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 4px;
-}
-
-.actions .el-button {
-  padding: 4px 8px;
-  min-width: 0;
-}
-
-:deep(.el-table .cell) {
-  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-:deep(.el-table .el-table__cell) {
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
+}
+
+.title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
+}
+
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
+  color: #606266;
+  font-weight: 500;
   padding: 12px 0;
 }
 
-:deep(.el-table .el-table__cell.el-table__cell--right) {
-  padding-right: 20px;
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
 }
 
-.table-cell {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
+:deep(.eb-table .el-table) {
+  border: none;
 }
 
-.table-cell.unread {
-  color: #f56c6c;
+:deep(.eb-pagination) {
+  padding-top: 15px;
+}
+
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
+}
+
+:deep(.el-button--link) {
+  min-width: auto;
 }
 
 .drawer-content {
@@ -419,7 +467,6 @@ const handleCreate = () => {
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-all;
-
 }
 
 /* 修改抽屉的默认样式 */

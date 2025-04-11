@@ -281,7 +281,7 @@ import {
 } from '@element-plus/icons-vue';
 import { EBPageLayout, EBFeedbackForm } from '@/components';
 import { 
-  searchHelp, 
+  searchHelp as apiSearchHelp, 
   getCategoryFAQs, 
   submitFeedback, 
   submitFeedbackForm, 
@@ -385,28 +385,18 @@ const handleCategoryChange = (categoryId) => {
   loadCategoryFAQs(categoryId);
 };
 
-// 搜索帮助内容
-const handleSearch = async () => {
+// 搜索帮助信息
+const searchHelp = () => {
   if (!searchQuery.value.trim()) {
-    ElMessage.warning('请输入搜索关键词');
+    searchResults.value = [];
     return;
   }
-  
-  searchLoading.value = true;
-  try {
-    const response = await searchHelp({ query: searchQuery.value.trim() });
-    if (response.code === 200) {
-      searchResults.value = response.data || [];
-      activeTab.value = 'search';
-    } else {
-      ElMessage.warning(response.message || '搜索结果为空');
-    }
-  } catch (error) {
-    console.error('搜索失败:', error);
-    ElMessage.error('搜索失败，请稍后重试');
-  } finally {
-    searchLoading.value = false;
-  }
+
+  const query = searchQuery.value.toLowerCase();
+  searchResults.value = faqs.value.filter(faq => 
+    faq.question.toLowerCase().includes(query) || 
+    faq.answer.toLowerCase().includes(query)
+  );
 };
 
 // 提交FAQ反馈
@@ -915,20 +905,6 @@ const fetchFaqs = async () => {
 const handleCategorySelect = (key) => {
   activeCategory.value = key;
   clearSearch();
-};
-
-// 搜索帮助信息
-const searchHelp = () => {
-  if (!searchQuery.value.trim()) {
-    searchResults.value = [];
-    return;
-  }
-
-  const query = searchQuery.value.toLowerCase();
-  searchResults.value = faqs.value.filter(faq => 
-    faq.question.toLowerCase().includes(query) || 
-    faq.answer.toLowerCase().includes(query)
-  );
 };
 
 // 清除搜索结果

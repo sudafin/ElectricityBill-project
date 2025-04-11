@@ -41,8 +41,8 @@
       <el-col :span="6">
         <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
-            <h3>用户管理</h3>
-            <p>User management</p>
+            <h3>审批统计</h3>
+            <p>Approval statistics</p>
           </div>
           <div class="stat-card-body">
             <div class="stat-number">{{ totalUsers }}</div>
@@ -140,8 +140,8 @@
             <el-card class="chart-card materials-card" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>待处理订单数</h3>
-                  <p>Pending orders</p>
+                  <h3>待处理反馈数</h3>
+                  <p>Pending feedback</p>
                 </div>
               </template>
               <div class="stat-big-number">{{ pendingOrders }}</div>

@@ -1,168 +1,95 @@
 <template>
   <div class="log-setting">
-    <el-card class="glass-card">
-      <template #header>
-        <div class="header">
-          <div class="search-area">
-            <el-input
-              v-model="searchText"
-              placeholder="搜索用户名"
-              clearable
-              class="search-input glass-input"
-            >
-              <template #prefix>
-                <el-icon><Search /></el-icon>
-              </template>
-            </el-input>
-
-            <el-select
-              v-model="filterForm.operationType"
-              placeholder="操作类型"
-              clearable
-              class="filter-select glass-select"
-            >
-              <el-option 
-                v-for="type in operationTypes" 
-                :key="type.value" 
-                :label="type.label" 
-                :value="type.value"
-              />
-            </el-select>
-
-            <el-select
-              v-model="filterForm.module"
-              placeholder="模块名称"
-              clearable
-              class="filter-select glass-select"
-            >
-              <el-option 
-                v-for="module in moduleTypes" 
-                :key="module.value" 
-                :label="module.label" 
-                :value="module.value"
-              />
-            </el-select>
-
-            <el-date-picker
-              v-model="filterForm.dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              :shortcuts="dateShortcuts"
-              value-format="YYYY-MM-DD"
-              class="date-picker glass-date-picker"
-            />
-
-            <div class="action-buttons">
-              <el-button 
-                type="primary" 
-                class="action-button"
-                @click="handleSearch"
-              >
-                <el-icon><Search /></el-icon>
-                搜索
-              </el-button>
-            <!-- 导出时旋转 -->
-               <el-button 
-                type="success" 
-                class="action-button"
-                @click="handleExport"
-              >
-                <el-icon><Download /></el-icon>
-                导出日志
-              </el-button>
-              <el-button 
-                type="danger" 
-                class="action-button"
-                @click="handleClearLogs"
-              >
-                <el-icon><Delete /></el-icon>
-                清理日志
-              </el-button>
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><Document /></el-icon>
+          <h2 class="header-title">系统日志</h2>
         </div>
-      </template>
-      <el-table
-        :data="logList"
-        v-loading="loading"
-        class="glass-table"
-        @selection-change="handleSelectionChange"
+      </div>
+      
+      <!-- 使用新的筛选栏组件 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleSearch"
+        @reset="clearSearch"
       >
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column prop="createTime" label="操作时间" width="180" sortable>
-          <template #default="{ row }">
-            {{ formatDate(row.createTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="operatorName" label="操作用户" width="140" />
-        <el-table-column prop="operationType" label="操作类型" width="140">
-          <template #default="{ row }">
+        <!-- 添加额外按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="success" 
+            class="action-button" 
+            size="default"
+            @click="handleExport"
+          >
+            <el-icon><Download /></el-icon>导出日志
+          </el-button>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleClearLogs"
+            :disabled="!selectedRows.length"
+          >
+            <el-icon><Delete /></el-icon>清理日志
+          </el-button>
+        </template>
+      </EBFilterBar>
+
+      <!-- 使用新的表格组件 -->
+      <div class="table-container">
+        <EBTable
+          ref="tableRef"
+          :columns="tableColumns"
+          :data="logList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="120"
+          :auto-height="true"
+          pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 操作类型列自定义渲染 -->
+          <template #operationType="{ row }">
             <el-tag 
               :type="getOperationTypeTag(row.operationType)"
-              class="glass-tag"
             >
               {{ row.operationType }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column prop="module" label="模块名称" width="160" />
-        <el-table-column prop="description" label="操作描述" width="160" show-overflow-tooltip />
-        <el-table-column prop="ip" label="IP地址" width="140" />
-        <el-table-column prop="status" label="操作状态" width="140">
-          <template #default="{ row }">
+
+          <!-- 操作状态列自定义渲染 -->
+          <template #status="{ row }">
             <el-tag 
               :type="row.status === 'success' ? 'success' : 'danger'"
-              class="glass-tag"
             >
               {{ row.status === 'success' ? '成功' : '失败' }}
             </el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="80" align="center">
-          <template #default="{ row }">
-            <div class="operation-buttons">
-            <el-button 
-              type="primary" 
-              link
-              @click="handleDetail(row)"
-            >
-              详情
-            </el-button>
-            <el-button 
-                type="danger" 
-                link
-                @click="handleDelete(row)"
-              >
-                删除
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
 
-      <div class="pagination">
-        <el-pagination
-          :current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          :disabled="loading"
-          @current-change="handlePageChange"
-          layout="prev, pager, next, jumper"
-          prev-text="上一页"
-          next-text="下一页"
-        ></el-pagination>
-        <div class="total">共 {{ total }} 条</div>
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </EBTable>
       </div>
-    </el-card>
+    </div>
 
     <!-- 日志详情对话框 -->
     <el-dialog
       v-model="dialogVisible"
       title="日志详情"
       width="600px"
-      class="glass-dialog"
     >
       <el-descriptions :column="2" border>
         <el-descriptions-item label="操作时间" :span="2">
@@ -206,19 +133,19 @@
         <pre class="param-content">{{ logDetail.errorMsg ? logDetail.errorMsg : '无' }}</pre>
       </div>
     </el-dialog>
+    
+    <!-- 导出时页面等待 -->
+    <el-dialog
+      v-model="isExport"
+      title="导出中"
+      width="300px"
+    >
+      <!-- 设置旋转css -->
+      <div class="spin-container">
+        <el-icon><Loading /></el-icon>
+      </div>
+    </el-dialog>
   </div>
-  <!-- 导出时页面等待 -->
-  <el-dialog
-    v-model="isExport"
-    title="导出中"
-    width="300px"
-    class="glass-dialog"
-  >
-    <!-- 设置旋转css -->
-    <div class="spin-container">
-      <el-icon><Loading /></el-icon>
-    </div>
-  </el-dialog>
 </template>
 
 <script setup>
@@ -229,14 +156,16 @@ import {
   Download,
   Delete,
   Loading,
-  Warning
+  Document,
+  Warning,
+  Calendar
 } from '@element-plus/icons-vue';
 import { getLogList, detailLog, deleteLog, getLogReport } from '@/api/admin/log.js';
-
+import { EBFilterBar, EBTable } from '@/components';
 
 // 搜索和筛选条件
 const searchText = ref('');
-const isExport = ref(false)
+const isExport = ref(false);
 const filterForm = reactive({
   operationType: '',
   module: '',
@@ -265,6 +194,59 @@ const moduleTypes = [
   { label: '通知提醒', value: '通知提醒' },
   { label: '支付管理', value: '支付管理' }
 ];
+
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'input',
+    field: 'searchText',
+    label: '操作用户',
+    placeholder: '请输入用户名'
+  },
+  {
+    type: 'select',
+    field: 'operationType',
+    label: '操作类型',
+    options: [
+      { label: '全部', value: '' },
+      ...operationTypes
+    ]
+  },
+  {
+    type: 'select',
+    field: 'module',
+    label: '模块名称',
+    options: [
+      { label: '全部', value: '' },
+      ...moduleTypes
+    ]
+  },
+  {
+    type: 'daterange',
+    field: 'dateRange',
+    label: '操作时间'
+  }
+];
+
+// 初始值
+const initialFilterValues = {
+  searchText: '',
+  operationType: '',
+  module: '',
+  dateRange: []
+};
+
+// 表格列配置
+const tableColumns = [
+  { prop: 'createTime', label: '操作时间', width: '180', sortable: true, formatter: row => formatDate(row.createTime) },
+  { prop: 'operatorName', label: '操作用户', width: '140' },
+  { prop: 'operationType', label: '操作类型', width: '140' },
+  { prop: 'module', label: '模块名称', width: '160' },
+  { prop: 'description', label: '操作描述', width: '160', showOverflowTooltip: true },
+  { prop: 'ip', label: 'IP地址', width: '140' },
+  { prop: 'status', label: '操作状态', width: '140' }
+];
+
 // 获取操作类型标签样式
 const getOperationTypeTag = (type) => {
   const typeMap = {
@@ -279,43 +261,11 @@ const getOperationTypeTag = (type) => {
   return typeMap[type] || 'info';
 };
 
-
-// 日期快捷选项
-const dateShortcuts = [
-  {
-    text: '最近一周',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-      return [start, end];
-    },
-  },
-  {
-    text: '最近一个月',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
-      return [start, end];
-    },
-  },
-  {
-    text: '最近三个月',
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
-      return [start, end];
-    },
-  },
-];
-
 // 表格数据
 const loading = ref(false);
 const logList = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(5);
+const pageSize = ref(10);
 const total = ref(0);
 
 // 详情弹窗
@@ -323,8 +273,7 @@ const dialogVisible = ref(false);
 const logDetail = ref({});
 
 // 获取日志列表
-const fetchLogList = async (page = currentPage.value,
-shouldResetPage = false) => {
+const fetchLogList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   if(shouldResetPage){
     currentPage.value = 1;
@@ -334,7 +283,6 @@ shouldResetPage = false) => {
   try {
     // 构建查询参数
     const res = await getLogList({  
-      //searchText判断是数字还是中文
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       operatorName: searchText.value,
@@ -352,10 +300,26 @@ shouldResetPage = false) => {
   }
 };
 
-// 搜索
-const handleSearch = () => {
+// 处理筛选搜索
+const handleSearch = (filterValues) => {
+  // 更新筛选值
+  searchText.value = filterValues.searchText || '';
+  filterForm.operationType = filterValues.operationType || '';
+  filterForm.module = filterValues.module || '';
+  filterForm.dateRange = filterValues.dateRange || [];
+  
+  // 重新加载数据
   fetchLogList(1, true);
 };
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchText.value = '';
+  filterForm.operationType = '';
+  filterForm.module = '';
+  filterForm.dateRange = [];
+};
+
 // 导出日志
 const handleExport = async () => {
   isExport.value = true;
@@ -419,14 +383,19 @@ const handleSelectionChange = (selectionRows) => {
 };
 // 清理日志
 const handleClearLogs = async () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先选择要清理的日志');
+    return;
+  }
+  
   ElMessageBox.confirm(`确定要清理选中的 ${selectedRows.value.length} 条日志吗？此操作不可恢复。`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   })
   .then(async () => {
-    selectedRows.value  = selectedRows.value.join(',');
-    const res = await deleteLog(selectedRows.value);
+    const ids = selectedRows.value.join(',');
+    const res = await deleteLog(ids);
     if(res.code === 200){
       ElMessage.success('清理日志成功');
       fetchLogList();
@@ -446,126 +415,90 @@ onMounted(() => {
 <style scoped>
 .log-setting {
   padding: 20px;
-  background:#f5f7fa
+  background-color: #f5f7fa;
 }
 
-/* 玻璃态卡片 */
-.glass-card {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  border-radius: 16px !important;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.6) !important;
+.content-wrapper {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-}
-
-/* 筛选区域 */
-.filter-section {
   margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
-.search-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
-.search-input {
-  width: 200px;
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
 }
 
-.filter-select {
-  width: 120px;
-}
-
-.date-picker {
-  width: 260px;
-}
-
-/* 按钮区域 */
-.action-buttons {
+.title-area {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 
-.glass-button,
-.glass-button-primary {
-  height: 36px;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  transition: all 0.3s;
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
 }
 
-.glass-button-primary {
-  background: linear-gradient(135deg, #409eff, #36acfe) !important;
-  border: none !important;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
 }
 
-.glass-button {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
   color: #606266;
-}
-
-/* 表格样式 */
-.glass-table {
-  margin-top: 16px;
-}
-
-.glass-table :deep(.el-table__header) {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.glass-table :deep(.el-table__row) {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.glass-tag {
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.total {
-  color: #999;
-  font-size: 14px;
-}
-
-
-/* 详情弹窗 */
-.glass-dialog :deep(.el-dialog) {
-  /* 设置弹窗背景 */
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.6) !important;
-}
-
-.log-detail {
-  margin-top: 20px;
-}
-
-.detail-title {
   font-weight: 500;
-  margin-bottom: 8px;
-  color: #2c3e50;
+  padding: 12px 0;
+}
+
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
+}
+
+:deep(.eb-table .el-table) {
+  border: none;
+}
+
+:deep(.eb-pagination) {
+  padding-top: 15px;
+}
+
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
+}
+
+:deep(.el-button--link) {
+  min-width: auto;
+}
+
+/* 日志详情样式 */
+.log-params {
+  margin-top: 20px;
 }
 
 .param-title {
@@ -585,128 +518,22 @@ onMounted(() => {
   word-wrap: break-word;
 }
 
-.detail-content {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 14px;
-  margin-bottom: 16px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-/* 选择器选项样式 */
-.select-option {
+/* 导出加载动画 */
+.spin-container {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.select-option .el-icon {
-  font-size: 16px;
-  color: #409eff;
-}
-
-/* 响应式布局 */
-@media screen and (max-width: 768px) {
-  .search-input,
-  .glass-select,
-  .glass-date-picker {
-    width: 100%;
-  }
-  
-  .action-buttons {
-    justify-content: flex-end;
-  }
-}
-
-/* 导出按钮样式 */
-.action-button[type="success"] {
-  background: #67c23a !important;
-  color: #ffffff !important;
-}
-
-.action-button[type="success"]:hover {
-  background: #85ce61 !important;
-}
-
-/* 表格列宽调整 */
-.glass-table :deep(.el-table__header) {
-  table-layout: fixed;
-}
-
-.glass-table :deep(.el-table__body) {
-  table-layout: fixed;
-}
-
-/* 分页样式调整 */
-.pagination-wrapper {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-start;
-  padding: 16px;
-}
-
-/* 搜索区域样式优化 */
-.header {
-  padding: 16px 0;
-}
-
-/* 调整各个元素的宽度 */
-.search-input {
-  width: 200px; /* 减小搜索框宽度 */
-}
-
-.filter-select {
-  width: 120px; /* 减小选择框宽度 */
-}
-
-.date-picker {
-  width: 260px; /* 减小日期选择器宽度 */
-}
-
-/* 按钮组样式 */
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto; /* 让按钮组靠右对齐 */
-}
-
-.action-button {
-  height: 32px;
-  padding: 0 12px;
-  font-size: 14px;
-}
-
-/* 响应式布局优化 */
-@media screen and (max-width: 1400px) {
-  .search-area {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .search-input,
-  .filter-select,
-  .date-picker {
-    flex: 1;
-    min-width: 120px;
-  }
-  
-  .action-buttons {
-    margin-left: 0;
-    flex-wrap: nowrap;
-  }
-}
-.operation-buttons {
-  display: flex;
-  gap: 8px;
   justify-content: center;
-}
-.spin-container{
-  /* 让icon变大且旋转 */
+  align-items: center;
+  height: 100px;
+  font-size: 24px;
   animation: spin 2s linear infinite;
-  font-size: 24px; /* 增大icon大小 */
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style> 

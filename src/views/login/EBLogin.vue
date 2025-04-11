@@ -1,10 +1,36 @@
 <template>
   <div class="login-page">
     <div class="login-container">
+      <!-- 左侧装饰区域 -->
+      <div class="login-decoration">
+        <div class="decoration-content">
+          <div class="circles">
+            <div class="circle-1"></div>
+            <div class="circle-2"></div>
+            <div class="circle-3"></div>
+          </div>
+          <div class="wave-group">
+            <div class="wave wave-1"></div>
+            <div class="wave wave-2"></div>
+            <div class="wave wave-3"></div>
+          </div>
+          <div class="floating-squares">
+            <div class="square square-1"></div>
+            <div class="square square-2"></div>
+            <div class="square square-3"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 右侧登录表单 -->
       <div class="login-box">
         <div class="login-box-inner">
           <div class="login-header">
-            <img src="@/assets/images/logo.png" alt="logo" class="login-logo">
+            <h2 class="welcome-text">Hello !</h2>
+            <p class="sub-title">欢迎使用电费管理系统</p>
+            <el-button-group class="role-toggle-button">
+              <el-button :type="!isAdmin ? 'primary' : 'default'" @click="setRole(false)">学生</el-button>
+              <el-button :type="isAdmin ? 'primary' : 'default'" @click="setRole(true)">管理员</el-button>
+            </el-button-group>
           </div>
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
             <el-form-item prop="account">
@@ -18,12 +44,12 @@
               <el-input
                 v-model="loginForm.password"
                 type="password"
-                            placeholder="请输入密码"
+                placeholder="请输入密码"
                 show-password
                 size="large"
               ></el-input>
             </el-form-item>
-            <el-form-item prop="captcha">
+            <el-form-item v-if="!isAdmin" prop="captcha">
               <div class="captcha-container">
                 <el-input
                   v-model="loginForm.captcha"
@@ -58,7 +84,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { ElMessage } from 'element-plus';
 import { encryptWithRSA } from '@/utils/encrypt';
-import { getPublicKey,getCaptcha } from '@/api/admin/user';
+import { getPublicKey, getCaptcha } from '@/api/admin/user';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = useRouter();
@@ -89,8 +115,16 @@ const loginRules = {
 };
 
 const loginFormRef = ref(null);
-
 const captchaUrl = ref('');
+const isAdmin = ref(false);
+
+const setRole = (role) => {
+  isAdmin.value = role;
+};
+
+const toggleRole = () => {
+  isAdmin.value = !isAdmin.value;
+};
 
 // 获取公钥
 async function fetchPublicKey() {
@@ -105,11 +139,9 @@ async function fetchPublicKey() {
 
 // 获取验证码的方法
 const fetchCaptcha = async () => {
-  //生成uuid
   const uuid = uuidv4();
   loginForm.uuid = uuid;
   const res = await getCaptcha(uuid);
-  //返回的是PNG格式的验证码图片，通过HTTP响应头content-type: image/png返回
   captchaUrl.value = URL.createObjectURL(new Blob([res], { type: 'image/png' }));
 };
 
@@ -125,7 +157,7 @@ onMounted(async () => {
   try {
     const publicKey = await fetchPublicKey();
     userStore.setPublicKey(publicKey);
-    fetchCaptcha(); // 获取验证码
+    fetchCaptcha();
   } catch (error) {
     ElMessage.error('网络出现问题,请刷新页面重试');
   }
@@ -137,19 +169,17 @@ const handleLogin = async () => {
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        // 使用 store 中的公钥加密密码
         const encryptedPassword = encryptWithRSA(loginForm.password, userStore.publicKey);
-        // 发送登录请求
         await userStore.login({
           account: loginForm.account,
           password: encryptedPassword,
-          //验证码
           code: loginForm.captcha,
           key: loginForm.uuid,
           rememberMe: loginForm.rememberMe
         });
         router.push('/dashboard');
       } catch (error) {
+        ElMessage.error('登录失败');
       }
     } else {
       ElMessage.error('请填写正确的账号和密码');
@@ -161,61 +191,258 @@ const handleLogin = async () => {
 <style scoped>
 .login-page {
   width: 100%;
-  height: 120vh;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   background-image: url('/src/assets/images/background.jpg');
-  
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
 .login-container {
-  width: 100%;
-  max-width: 600px;
-  padding: 60px;
-  border-radius: 10px;
-  box-shadow: 0px 14px 80px rgba(34, 35, 58, 0.2);
-  background-color: #cfddf6;
+  width: 1000px;
+  height: 600px;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  background: white;
+  overflow: hidden;
+}
+
+.login-decoration {
+  flex: 1;
+  background: linear-gradient(135deg, #66aaff 0%, #3388cc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.decoration-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.circles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.circle-1, .circle-2, .circle-3 {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: 10%;
+  left: -50px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.circle-2 {
+  width: 150px;
+  height: 150px;
+  top: 40%;
+  right: -30px;
+  animation: float 8s ease-in-out infinite;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  bottom: 10%;
+  left: 30%;
+  animation: float 7s ease-in-out infinite;
+}
+
+.wave-group {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transform-origin: center bottom;
+}
+
+.wave-1 {
+  animation: wave 10s linear infinite;
+}
+
+.wave-2 {
+  animation: wave 15s linear infinite;
+  opacity: 0.5;
+}
+
+.wave-3 {
+  animation: wave 20s linear infinite;
+  opacity: 0.2;
+}
+
+.floating-squares {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.square {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+.square-1 {
+  width: 50px;
+  height: 50px;
+  top: 20%;
+  left: 20%;
+  transform: rotate(45deg);
+}
+
+.square-2 {
+  width: 30px;
+  height: 30px;
+  top: 50%;
+  right: 20%;
+  transform: rotate(30deg);
+}
+
+.square-3 {
+  width: 40px;
+  height: 40px;
+  bottom: 30%;
+  left: 40%;
+  transform: rotate(60deg);
+}
+
+@keyframes float {
+  0% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+@keyframes wave {
+  0% { transform: translateX(0) scaleY(0.1); }
+  50% { transform: translateX(-25%) scaleY(0.2); }
+  100% { transform: translateX(-50%) scaleY(0.1); }
 }
 
 .login-box {
-  width: 100%;
-  max-width: 400px;
+  flex: 1;
   padding: 40px;
-  border-radius: 10px;
-  background: linear-gradient(to bottom right, #ffffff, #ffffff);
-  box-shadow: 0px 8px 20px rgba(135, 135, 135, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .login-box-inner {
   width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .login-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
+  text-align: center;
+  margin-bottom: 40px;
 }
 
-.login-logo {
-  width: 300px;
-  height: 80px;
+.welcome-text {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.sub-title {
+  font-size: 16px;
+  color: #666;
   margin-bottom: 20px;
-  margin-left: 30px;
+}
+
+.role-toggle-button {
+  margin-top: 20px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  display: inline-block;
+}
+
+.role-toggle-button :deep(.el-button) {
+  padding: 8px 24px;
+  border: none;
+  background: transparent;
+  color: #606266;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.role-toggle-button :deep(.el-button:first-child) {
+  border-radius: 10px 0 0 10px;
+}
+
+.role-toggle-button :deep(.el-button:last-child) {
+  border-radius: 0 10px 10px 0;
+}
+
+.role-toggle-button :deep(.el-button.is-active),
+.role-toggle-button :deep(.el-button--primary) {
+  background: #66aaff;
+  color: white;
+  box-shadow: 0 2px 12px 0 rgba(102, 170, 255, 0.2);
+}
+
+.role-toggle-button :deep(.el-button:hover) {
+  color: #66aaff;
+}
+
+.role-toggle-button :deep(.el-button--primary:hover) {
+  color: white;
+  background: #80bbff;
 }
 
 .login-form {
   width: 100%;
 }
 
+.login-form :deep(.el-input__wrapper) {
+  background-color: #ffffff;
+  border: 1px solid #dcdcdc;
+  box-shadow: none;
+}
+
+.login-form :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #66aaff inset;
+}
+
+.login-form :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #66aaff inset;
+}
+
 .login-button {
   width: 100%;
-  background-color: #3f51b5;
-  border-color: #3f51b5;
+  background: linear-gradient(135deg, #66aaff 0%, #3388cc 100%);
+  border: none;
+  height: 44px;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.login-button:hover {
+  background: linear-gradient(135deg, #80bbff 0%, #4d9ed9 100%);
 }
 
 .captcha-container {
@@ -229,4 +456,4 @@ const handleLogin = async () => {
   cursor: pointer;
   border-radius: 4px;
 }
-</style> 
+</style>

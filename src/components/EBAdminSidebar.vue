@@ -35,6 +35,10 @@
         <el-icon><Bell /></el-icon>
         <template #title>通知管理</template>
       </el-menu-item>
+      <el-menu-item index="/admin/feedback">
+        <el-icon><ChatDotSquare /></el-icon>
+        <template #title>反馈管理</template>
+      </el-menu-item>
       <el-menu-item index="/admin/payment">
         <el-icon><Wallet /></el-icon>
         <template #title>支付管理</template>
@@ -70,6 +74,7 @@ import {
   Fold,
   Expand,
   Odometer,
+  ChatDotSquare,
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
@@ -87,6 +92,7 @@ const activeIndex = computed(() => {
     '/admin/report',
     '/admin/reconciliation',
     '/admin/notification',
+    '/admin/feedback',
     '/admin/payment',
     '/admin/setting/role',
     '/admin/setting/rate',

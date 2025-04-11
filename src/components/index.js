@@ -6,6 +6,8 @@ import EBPageLayout from '../layouts/EBPageLayout.vue';
 import EBSidebar from './EBAdminSidebar.vue';
 import EBButton from './EBButton.vue';
 import EBFeedbackForm from './EBFeedbackForm.vue';
+import EBCard from './EBCard.vue';
+import EBFilterBar from './EBFilterBar.vue';
 
 // 导出所有组件
 export {
@@ -16,7 +18,9 @@ export {
   EBPageLayout,
   EBSidebar,
   EBButton,
-  EBFeedbackForm
+  EBFeedbackForm,
+  EBCard,
+  EBFilterBar
 };
 
 // 批量注册组件
@@ -31,5 +35,7 @@ export default {
     app.component('EBSidebar', EBSidebar);
     app.component('EBButton', EBButton);
     app.component('EBFeedbackForm', EBFeedbackForm);
+    app.component('EBCard', EBCard);
+    app.component('EBFilterBar', EBFilterBar);
   }
 }; 

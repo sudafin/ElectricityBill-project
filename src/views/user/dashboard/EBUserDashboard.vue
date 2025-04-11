@@ -48,6 +48,9 @@ import { getCurrentBill } from '@/api/user/bill';
 import { getAccountBalance, getAccountInfo } from '@/api/user/account';
 import { getUnreadCount } from '@/api/user/notification';
 import { getElectricityTrend, getEnergySavingTips } from '@/api/user/analysis';
+import EBUserDashboardNotifications from './components/EBUserDashboardNotifications.vue';
+import EBUserDashboardElectricity from './components/EBUserDashboardElectricity.vue';
+import EBUserDashboardPayment from './components/EBUserDashboardPayment.vue';
 
 const router = useRouter();
 
@@ -92,12 +95,12 @@ const activeTab = ref('notifications'); // 默认显示最新通知
 const currentComponent = computed(() => {
   switch(activeTab.value) {
     case 'electricity':
-      return EBUserElectricityRecord;
+      return EBUserDashboardElectricity;
     case 'payment':
-      return EBUserPaymentRecord;
+      return EBUserDashboardPayment;
     case 'notifications':
     default:
-      return EBUserNotifications;
+      return EBUserDashboardNotifications;
   }
 });
 
