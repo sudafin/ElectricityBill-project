@@ -15,6 +15,7 @@
         
         <!-- 主内容区域 -->
         <el-main class="eb-app-main">
+          <EBBreadcrumb />
           <router-view />
         </el-main>
         
@@ -34,6 +35,7 @@ import { ElMessage } from 'element-plus';
 import EBAdminSidebar from '@/components/EBAdminSidebar.vue';
 import EBHeader from '@/components/EBHeader.vue';
 import EBFooter from '@/components/EBFooter.vue';
+import EBBreadcrumb from '@/components/EBBreadcrumb.vue';
 
 const router = useRouter();
 const sidebarExpanded = ref(false);

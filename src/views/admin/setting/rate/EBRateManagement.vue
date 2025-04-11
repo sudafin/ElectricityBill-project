@@ -1,633 +1,476 @@
 <template>
   <div class="rate-management">
-    <!-- 当前设置信息展示卡片 -->
-    <div class="info-cards">
-      <el-card class="glass-card info-card">
-        <div class="info-header">
-          <div class="info-title">
-            <el-icon><Money /></el-icon>
-            费率信息
-          </div>
-          <div class="info-subtitle">当前费率设置</div>
+    <div class="content-wrapper">
+      <!-- 添加标题区域 -->
+      <div class="dashboard-header">
+        <div class="title-area">
+          <el-icon class="header-icon"><Money /></el-icon>
+          <h2 class="header-title">费率管理</h2>
         </div>
-        <div class="info-content">
-          <div class="info-item">
-            <div class="info-label">住宅费率</div>
-            <div class="info-value highlight">{{ currentSettings.houseFeeRate }} 元/度</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">商业费率</div>
-            <div class="info-value highlight">{{ currentSettings.businessFeeRate }} 元/度</div>
-          </div>
-        </div>
-      </el-card>
+      </div>
+      
+      <!-- 使用筛选栏组件 -->
+      <EBFilterBar
+        :filters="filterConfig"
+        :initial-values="initialFilterValues"
+        button-size="default"
+        @search="handleFilterSearch"
+        @reset="clearSearch"
+      >
+        <!-- 添加额外按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="primary" 
+            class="action-button" 
+            size="default"
+            @click="handleAddRate"
+          >
+            <el-icon><Plus /></el-icon>新增费率
+          </el-button>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleBatchDelete" 
+            :disabled="!selectedRateIds.length"
+          >
+            <el-icon><Delete /></el-icon>批量删除
+          </el-button>
+        </template>
+      </EBFilterBar>
 
-      <el-card class="glass-card info-card">
-        <div class="info-header">
-          <div class="info-title">
-            <el-icon><Setting /></el-icon>
-            参数信息
-          </div>
-          <div class="info-subtitle">当前参数设置</div>
-        </div>
-        <div class="info-content">
-          <div class="info-item">
-            <div class="info-label">缴费提醒时间</div>
-            <div class="info-value">{{ currentSettings.paymentRemindDays }} 天</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">异常用电阈值</div>
-            <div class="info-value">{{ currentSettings.abnormalUsageThreshold }} 度</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">报表生成周期</div>
-            <div class="info-value" style="width: 200px;">{{ formatReportCycle(currentSettings.reportGenerateCycle) }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">最后更新时间</div>
-            <div class="info-value time">{{ formatDate(currentSettings.lastUpdateTime) }}</div>
-          </div>
-        </div>
-      </el-card>
+      <!-- 使用表格组件 -->
+      <div class="table-container">
+        <EBTable
+          ref="tableRef"
+          :columns="tableColumns"
+          :data="rateList"
+          :loading="loading"
+          :border="false"
+          selection
+          show-actions
+          actions-width="120"
+          :auto-height="true"
+          pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @selection-change="handleSelectionChange"
+          @page-change="handlePageChange"
+        >
+          <!-- 用户类型列自定义渲染 -->
+          <template #user_type="{ row }">
+            <el-tag :type="row.user_type === '居民用户' ? 'success' : 'primary'">
+              {{ row.user_type }}
+            </el-tag>
+          </template>
+
+          <!-- 状态列自定义渲染 -->
+          <template #status="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+              {{ row.status === 1 ? '启用' : '禁用' }}
+            </el-tag>
+          </template>
+
+          <!-- 操作列 -->
+          <template #actions="{ row }">
+            <el-button type="primary" link size="small" @click="handleDetail(row)">
+              详情
+            </el-button>
+            <el-button type="primary" link size="small" @click="handleEdit(row)">
+              修改
+            </el-button>
+          </template>
+        </EBTable>
+      </div>
     </div>
 
-    <!-- 设置表单 -->
-    <el-card class="glass-card setting-card">
-      <div class="setting-header">
-        <div class="switch-buttons">
-          <el-button 
-            :class="['switch-button', { active: activeSection === 'rate' }]"
-            @click="activeSection = 'rate'"
-          >
-            <el-icon><Money /></el-icon>
-            费率设置
-          </el-button>
-          <el-button 
-            :class="['switch-button', { active: activeSection === 'param' }]"
-            @click="activeSection = 'param'"
-          >
-            <el-icon><Setting /></el-icon>
-            参数设置
-          </el-button>
-        </div>
-      </div>
-
-      <div class="setting-content">
-        <!-- 费率设置部分 -->
-        <transition name="fade-transform" mode="out-in">
-          <div v-show="activeSection === 'rate'" class="form-section">
-            <div class="rate-forms">
-              <el-form
-                ref="rateFormRef"
-                :model="rateForm"
-                :rules="rateRules"
-                label-width="120px"
-                class="glass-form"
-              >
-                <!-- 住宅费率 -->
-                <el-form-item label="住宅费率" prop="houseFeeRate">
-                  <div class="rate-input">
-                    <el-input 
-                      v-model="rateForm.houseFeeRate"
-                      class="glass-input"
-                      placeholder="请输入住宅费率"
-                    >
-                      <template #prefix>
-                        <el-icon><House /></el-icon>
-                      </template>
-                      <template #append>元/度</template>
-                    </el-input>
-                    <div class="rate-buttons">
-                      <el-button
-                        type="primary"
-                        class="glass-button-primary"
-                        @click="submitRateForm('houseFeeRate')"
-                      >
-                        <el-icon><Check /></el-icon>
-                        保存
-                      </el-button>
-                      <el-button 
-                        class="glass-button" 
-                        @click="resetRateForm"
-                      >
-                        <el-icon><RefreshRight /></el-icon>
-                        重置
-                      </el-button>
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <!-- 商业费率 -->
-                <el-form-item label="商业费率" prop="businessFeeRate">
-                  <div class="rate-input">
-                    <el-input 
-                      v-model="rateForm.businessFeeRate"
-                      class="glass-input"
-                      placeholder="请输入商业费率"
-                    >
-                      <template #prefix>
-                        <el-icon><Shop /></el-icon>
-                      </template>
-                      <template #append>元/度</template>
-                    </el-input>
-                    <div class="rate-buttons">
-                      <el-button
-                        type="primary"
-                        class="glass-button-primary"
-                        @click="submitRateForm('businessFeeRate')"
-                      >
-                        <el-icon><Check /></el-icon>
-                        保存
-                      </el-button>
-                      <el-button 
-                        class="glass-button" 
-                        @click="resetRateForm"
-                      >
-                        <el-icon><RefreshRight /></el-icon>
-                        重置
-                      </el-button>
-                    </div>
-                  </div>
-                </el-form-item>
-              </el-form>
-            </div>
-          </div>
-        </transition>
-
-        <!-- 参数设置部分 -->
-        <transition name="fade-transform" mode="out-in">
-          <div v-show="activeSection === 'param'" class="form-section">
-            <el-form
-              ref="paramFormRef"
-              :model="paramForm"
-              :rules="paramRules"
-              label-width="150px"
-              class="glass-form"
-            >
-              <el-form-item label="缴费提醒时间" prop="paymentRemindDays">
-                <div class="param-input">
-                  <el-input 
-                    v-model.number="paramForm.paymentRemindDays"
-                    class="glass-input"
-                  >
-                    <template #prefix>
-                      <el-icon><Bell /></el-icon>
-                    </template>
-                    <template #append>天</template>
-                  </el-input>
-                  <div class="param-buttons">
-                    <el-button
-                      type="primary"
-                      class="glass-button-primary"
-                      @click="submitParamForm"
-                    >
-                      <el-icon><Check /></el-icon>
-                      保存
-                    </el-button>
-                    <el-button 
-                      class="glass-button" 
-                      @click="resetParamForm"
-                    >
-                      <el-icon><RefreshRight /></el-icon>
-                      重置
-                    </el-button>
-                  </div>
-                </div>
-              </el-form-item>
-              <el-form-item label="异常用电提醒阈值" prop="abnormalUsageThreshold">
-                <div class="param-input">
-                  <el-input 
-                    v-model.number="paramForm.abnormalUsageThreshold"
-                    class="glass-input"
-                  >
-                    <template #prefix>
-                      <el-icon><Warning /></el-icon>
-                    </template>
-                    <template #append>度</template>
-                  </el-input>
-                  <div class="param-buttons">
-                    <el-button
-                      type="primary"
-                      class="glass-button-primary"
-                      @click="submitParamForm"
-                    >
-                      <el-icon><Check /></el-icon>
-                      保存
-                    </el-button>
-                    <el-button 
-                      class="glass-button" 
-                      @click="resetParamForm"
-                    >
-                      <el-icon><RefreshRight /></el-icon>
-                      重置
-                    </el-button>
-                  </div>
-                </div>
-              </el-form-item>
-              <el-form-item label="报表生成周期" prop="reportGenerateCycle">
-                <div class="param-input">
-                  <el-select 
-                    v-model="paramForm.reportGenerateCycle" 
-                    placeholder="请选择报表生成周期"
-                    style="width: 200px;"
-                  >
-                    <el-option 
-                      v-for="(option, index) in cycleOptions" 
-                      :key="index"
-                      :label="option.label"
-                      :value="option.value"
-                    >
-                      <div class="select-option">
-                        <el-icon><Calendar /></el-icon>
-                        <span>{{ option.label }}</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                  <div class="param-buttons">
-                    <el-button
-                      type="primary"
-                      class="glass-button-primary"
-                      @click="submitParamForm"
-                    >
-                      <el-icon><Check /></el-icon>
-                      保存
-                    </el-button>
-                    <el-button 
-                      class="glass-button" 
-                      @click="resetParamForm"
-                    >
-                      <el-icon><RefreshRight /></el-icon>
-                      重置
-                    </el-button>
-                  </div>
-                </div>
-              </el-form-item>
-            </el-form>
-          </div>
-        </transition>
-      </div>
-    </el-card>
+    <!-- 表单对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogType === 'add' ? '新增费率' : dialogType === 'edit' ? '修改费率' : '费率详情'"
+      width="700px"
+      destroy-on-close
+    >
+      <EBRateForm 
+        :form-data="currentRate" 
+        :type="dialogType"
+        @submit="handleFormSubmit"
+        @cancel="dialogVisible = false"
+      />
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
-import {
-  Money,
-  Setting,
-  RefreshRight,
-  Check,
-  InfoFilled,
-  House,
-  Shop,
-  Bell,
-  Warning,
-  Calendar
+import { ref, reactive, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { 
+  Money, Search, Calendar, View, Edit, Plus, Delete 
 } from '@element-plus/icons-vue';
-import { getRateList, updateRate } from '@/api/admin/rate.js';
+import { EBFilterBar, EBTable } from '@/components';
+import EBRateForm from './EBRateForm.vue';
 
-// 当前设置信息
-const currentSettings = reactive({
-  houseFeeId:0,
-  businessFeeId:0,
-  houseFeeRate: 0,
-  businessFeeRate: 0,
-  paymentRemindDays: "7",
-  abnormalUsageThreshold: "100",
-  reportGenerateCycle: 'daily',
-  lastUpdateTime: "2025/12/12",
-});
-// 添加切换状态
-const activeSection = ref('rate');
+// 表格数据
+const loading = ref(false);
+const rateList = ref([]);
+const selectedRateIds = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const dialogVisible = ref(false);
+const dialogType = ref(''); // add, edit, detail
+const currentRate = ref({});
 
-// 修改周期选项配置
-const cycleOptions = [
-  { label: '日报', value: 'daily' },
-  { label: '周报', value: 'weekly' },
-  { label: '月报', value: 'monthly' }
+// 搜索条件
+const searchUserType = ref('');
+const searchStatus = ref('');
+const dateRange = ref([]);
+
+// 筛选条件配置
+const filterConfig = [
+  {
+    type: 'select',
+    field: 'searchUserType',
+    label: '用户类型',
+    options: [
+      { label: '全部', value: '' },
+      { label: '居民用户', value: '居民用户' },
+      { label: '商业用户', value: '商业用户' }
+    ]
+  },
+  {
+    type: 'select',
+    field: 'searchStatus',
+    label: '状态',
+    options: [
+      { label: '全部', value: '' },
+      { label: '启用', value: '1' },
+      { label: '禁用', value: '0' }
+    ]
+  },
+  {
+    type: 'daterange',
+    field: 'dateRange',
+    label: '生效日期'
+  }
 ];
 
-// 定义 rateForm
-const rateForm = reactive({
-  houseFeeRate: '',
-  businessFeeRate: '',
-});
-// 参数设置表单数据
-const paramForm = reactive({
-  paymentRemindDays: 0,
-  abnormalUsageThreshold: 0,
-  reportGenerateCycle: '',
-});
-
-// 定义费率表单验证规则
-const rateRules = {
-  houseFeeRate: [
-    { required: true, message: '请输入住宅费率', trigger: 'blur' },
-  ],
-  businessFeeRate: [
-    { required: true, message: '请输入商业费率', trigger: 'blur' },
-  ],
+// 初始值
+const initialFilterValues = {
+  searchUserType: '',
+  searchStatus: '',
+  dateRange: []
 };
 
-// 定义参数设置表单验证规则
-const paramRules = {
-  paymentRemindDays: [
-    { required: true, message: '请输入缴费提醒时间', trigger: 'blur' },
-  ],
-  abnormalUsageThreshold: [
-    { required: true, message: '请输入异常用电提醒阈值', trigger: 'blur' },
-  ],
-  reportGenerateCycle: [
-    { required: true, message: '请选择报表生成周期', trigger: 'change' }
-  ],
+// 表格列配置
+const tableColumns = [
+  { prop: 'id', label: '费率ID', width: '80' },
+  { prop: 'user_type', label: '用户类型', width: '100' },
+  { prop: 'peak_price', label: '峰时电价(元/度)', minWidth: '140' }, 
+  { prop: 'flat_price', label: '平时电价(元/度)', minWidth: '140' },
+  { prop: 'valley_price', label: '谷时电价(元/度)', minWidth: '140' },
+  { prop: 'status', label: '状态', width: '80' },
+  { prop: 'effective_date', label: '生效日期', minWidth: '120' },
+  { prop: 'expire_date', label: '失效日期', minWidth: '120' }
+];
+
+// 获取费率列表
+const fetchRateList = async (page = currentPage.value, shouldResetPage = false) => {
+  loading.value = true;
+  
+  if (shouldResetPage) {
+    currentPage.value = 1;
+  } else {
+    currentPage.value = page;
+  }
+  
+  try {
+    // 这里替换为实际的API调用
+    // const res = await getRateList({
+    //   pageNo: currentPage.value,
+    //   pageSize: pageSize.value,
+    //   userType: searchUserType.value,
+    //   status: searchStatus.value,
+    //   startDate: dateRange.value?.[0],
+    //   endDate: dateRange.value?.[1]
+    // });
+    
+    // 模拟数据
+    const mockData = [
+      {
+        id: 1,
+        user_type: '居民用户',
+        peak_price: 0.9876,
+        flat_price: 0.5678,
+        valley_price: 0.2345,
+        summer_peak_price: 1.2345,
+        peak_start: '08:00:00',
+        peak_end: '22:00:00',
+        valley_start: '22:00:00',
+        valley_end: '08:00:00',
+        summer_period: '06-01至08-31',
+        status: 1,
+        effective_date: '2023-01-01',
+        expire_date: '2023-12-31',
+        created_by: 'admin',
+        updated_by: 'admin',
+        created_at: '2023-01-01 12:00:00',
+        updated_at: '2023-01-01 12:00:00',
+        discount: 0.9500
+      },
+      {
+        id: 2,
+        user_type: '商业用户',
+        peak_price: 1.2345,
+        flat_price: 0.8765,
+        valley_price: 0.4567,
+        summer_peak_price: 1.5678,
+        peak_start: '08:00:00',
+        peak_end: '22:00:00',
+        valley_start: '22:00:00',
+        valley_end: '08:00:00',
+        summer_period: '06-01至08-31',
+        status: 1,
+        effective_date: '2023-01-01',
+        expire_date: '2023-12-31',
+        created_by: 'admin',
+        updated_by: 'admin',
+        created_at: '2023-01-01 12:00:00',
+        updated_at: '2023-01-01 12:00:00',
+        discount: 0.8500
+      }
+    ];
+    
+    rateList.value = mockData;
+    total.value = mockData.length;
+  } catch (error) {
+    ElMessage.error('获取费率列表失败');
+    console.error('获取费率列表失败', error);
+  } finally {
+    loading.value = false;
+  }
 };
 
-// 格式化报表周期显示
-const formatReportCycle = (cycle) => {
-  const cycleMap = {
-    daily: '日报',
-    weekly: '周报',
-    monthly: '月报'
+// 处理筛选搜索
+const handleFilterSearch = (filterValues) => {
+  // 更新筛选值
+  searchUserType.value = filterValues.searchUserType || '';
+  searchStatus.value = filterValues.searchStatus || '';
+  dateRange.value = filterValues.dateRange || [];
+  
+  // 重新加载数据
+  fetchRateList(1, true);
+};
+
+// 清空搜索条件
+const clearSearch = () => {
+  searchUserType.value = '';
+  searchStatus.value = '';
+  dateRange.value = [];
+};
+
+// 表格选择变化
+const handleSelectionChange = (selection) => {
+  selectedRateIds.value = selection.map(item => item.id);
+};
+
+// 分页处理
+const handlePageChange = (page) => {
+  fetchRateList(page);
+};
+
+// 新增费率
+const handleAddRate = () => {
+  currentRate.value = {
+    user_type: '',
+    peak_price: '',
+    flat_price: '',
+    valley_price: '',
+    summer_peak_price: '',
+    peak_start: '',
+    peak_end: '',
+    valley_start: '',
+    valley_end: '',
+    summer_period: '',
+    status: 1,
+    effective_date: '',
+    expire_date: '',
+    discount: ''
   };
-  return cycleMap[cycle] || cycle;
+  dialogType.value = 'add';
+  dialogVisible.value = true;
 };
 
-// 格式化日期
-const formatDate = (date) => {
-  if (!date) return '暂无更新';
-  return new Date(date).toLocaleString();
+// 查看费率详情
+const handleDetail = (row) => {
+  currentRate.value = { ...row };
+  dialogType.value = 'detail';
+  dialogVisible.value = true;
 };
 
-// 获取当前设置信息
-const fetchCurrentSettings = async () => {
+// 编辑费率
+const handleEdit = (row) => {
+  currentRate.value = { ...row };
+  dialogType.value = 'edit';
+  dialogVisible.value = true;
+};
+
+// 处理表单提交
+const handleFormSubmit = async (formData) => {
   try {
-    const res = await getRateList();
-    res.forEach(item => {
-      if(item.rateName === '居民电价') {
-        currentSettings.houseFeeRate = item.rateValue;
-        currentSettings.houseFeeId = item.rateId;
-      } else if(item.rateName === '商业电价') {
-        currentSettings.businessFeeRate = item.rateValue;
-        currentSettings.businessFeeId = item.rateId;
-      }
-    });
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-
-// 初始化时获取当前设置信息
-fetchCurrentSettings();
-
-
-
-// 费率表单提交
-const submitRateForm = async (type) => {
-  try {
-    let res = null;
-    if(type === 'houseFeeRate'){
-      let houseFeeRate = Number(rateForm.houseFeeRate).toFixed(2);
-      //转换错误
-      if(isNaN(houseFeeRate)){
-        ElMessage.error('住宅费率输入错误');
-        return;
-      }
-      res = await updateRate(currentSettings.houseFeeId,houseFeeRate);
-    }else{
-      let businessFeeRate = Number(rateForm.businessFeeRate).toFixed(2);
-      //转换错误
-      if(isNaN(businessFeeRate)){
-        ElMessage.error('商业费率输入错误');
-        return;
-      }
-      res = await updateRate(currentSettings.businessFeeId,businessFeeRate);
+    // 根据dialogType处理不同的提交逻辑
+    if (dialogType.value === 'add') {
+      // 这里替换为实际的API调用
+      // await addRate(formData);
+      ElMessage.success('新增费率成功');
+    } else if (dialogType.value === 'edit') {
+      // 这里替换为实际的API调用
+      // await updateRate(formData);
+      ElMessage.success('修改费率成功');
     }
-    if(res.code === 200){
-      ElMessage.success('费率保存成功');
-      fetchCurrentSettings();
-    }else{
-      ElMessage.error('费率保存失败');
+    
+    dialogVisible.value = false;
+    fetchRateList(currentPage.value);
+  } catch (error) {
+    ElMessage.error('操作失败');
+    console.error('操作失败', error);
+  }
+};
+
+// 批量删除费率
+const handleBatchDelete = () => {
+  if (selectedRateIds.value.length === 0) {
+    ElMessage.warning('请选择要删除的费率');
+    return;
+  }
+  
+  ElMessageBox.confirm(`确定要删除选中的 ${selectedRateIds.value.length} 个费率吗？删除后无法恢复`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      // 这里替换为实际的API调用
+      // await batchDeleteRates(selectedRateIds.value);
+      ElMessage.success('批量删除成功');
+      fetchRateList(1, true);
+    } catch (error) {
+      ElMessage.error('批量删除失败');
+      console.error('批量删除费率失败', error);
     }
-  } catch (error) {
-    ElMessage.error('费率保存失败');
-  }
+  }).catch(() => {});
 };
 
-// 参数设置表单提交
-const submitParamForm = async () => {
-  try {
-    //不用请求后端直接假数据生成,按照输入的数据生成
-    currentSettings.paymentRemindDays = paramForm.paymentRemindDays;
-    currentSettings.abnormalUsageThreshold = paramForm.abnormalUsageThreshold;
-    currentSettings.reportGenerateCycle = paramForm.reportGenerateCycle;
-    currentSettings.lastUpdateTime = new Date().toISOString();
-    ElMessage.success('参数设置保存成功');
-    fetchCurrentSettings();
-  } catch (error) {
-    ElMessage.error('参数设置保存失败');
-  }
-};
-
-
-// 重置费率表单
-const resetRateForm = () => {
-  rateForm.houseFeeRate = '';
-  rateForm.businessFeeRate = '';
-};
-
-
-// 重置参数设置表单
-const resetParamForm = () => {
-  paramForm.paymentRemindDays = 0;
-  paramForm.abnormalUsageThreshold = 0;
-  paramForm.reportGenerateCycle = '';
-};
+onMounted(() => {
+  fetchRateList(1, true);
+});
 </script>
 
 <style scoped>
 .rate-management {
-  padding: 26px;
+  padding: 20px;
   background-color: #f5f7fa;
 }
-/* 新增和优化的样式 */
-.info-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
 
-.info-card {
-  height: 100%;
+.content-wrapper {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 20px;
   transition: all 0.3s ease;
 }
 
-.info-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+.content-wrapper:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
-.info-header {
-  margin-bottom: 20px;
+/* 标题区域样式 */
+.dashboard-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #fff;
 }
 
-.info-title {
+.title-area {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.header-title {
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 4px;
+  color: #303133;
+  line-height: 1.5;
 }
 
-.info-subtitle {
-  font-size: 14px;
-  color: #909399;
-  margin-left: 28px;
+.table-container {
+  padding: 0 20px 20px 20px;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
 }
 
-.info-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.info-item {
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-.info-item:hover {
-  background: rgba(255, 255, 255, 0.8);
-  transform: translateY(-2px);
-}
-
-.info-label {
-  font-size: 14px;
+/* 自定义表头样式 */
+:deep(.el-table th.el-table__cell) {
+  background-color: #f8f9fb;
   color: #606266;
-  margin-bottom: 8px;
-  width: 100px;
+  font-weight: 500;
+  padding: 12px 0;
 }
 
-.info-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
+/* 统一移除EBFilterBar和EBTable的边框样式 */
+:deep(.eb-filter-bar .filter-container) {
+  box-shadow: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0;
 }
 
-.info-value.highlight {
-  color: #409eff;
+:deep(.eb-table .el-table) {
+  border: none;
 }
 
-.info-value.time {
-  font-size: 16px;
-  color: #909399;
+:deep(.eb-pagination) {
+  padding-top: 15px;
 }
 
-/* 切换按钮样式优化 */
-.switch-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 32px;
+/* 统一操作区按钮样式 */
+:deep(.action-button) {
+  min-width: 90px;
 }
 
-.switch-button {
-  height: 44px;
-  padding: 0 32px;
-  font-size: 16px;
-  border-radius: 22px;
+:deep(.el-button--link) {
+  min-width: auto;
+}
+
+/* 对话框内容样式 */
+:deep(.el-dialog__body) {
+  padding-top: 10px;
+}
+
+/* 确保表格撑满容器 */
+:deep(.eb-table) {
+  width: 100%;
+}
+
+:deep(.el-table) {
+  width: 100%;
+}
+
+/* 表格行悬停效果 */
+:deep(.el-table__row) {
   transition: all 0.3s ease;
 }
 
-.switch-button.active {
-  background: linear-gradient(135deg, #409eff, #36acfe);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(64, 158, 255, 0.3);
-}
-
-/* 表单动画 */
-.fade-transform-enter-active,
-.fade-transform-leave-active {
-  transition: all 0.5s;
-}
-
-.fade-transform-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.fade-transform-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
-/* 响应式优化 */
-@media screen and (max-width: 768px) {
-  .info-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .info-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .switch-button {
-    padding: 0 20px;
-    font-size: 14px;
-  }
-}
-
-/* 选择器选项样式优化 */
-.select-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.select-option .el-icon {
-  font-size: 16px;
-  color: #409eff;
-}
-
-.rate-forms {
-  margin-bottom: 24px;
-}
-
-.rate-input {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.rate-buttons {
-  display: flex;
-  gap: 16px;
-}
-
-.rate-buttons .el-button {
-  width: 100px;
-}
-
-.param-input {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.param-buttons {
-  display: flex;
-  gap: 16px;
-}
-
-.param-buttons .el-button {
-  width: 100px;
+:deep(.el-table__row:hover) {
+  background-color: #f8faff !important;
 }
 </style> 

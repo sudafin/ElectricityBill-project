@@ -17,7 +17,18 @@
         @search="handleFilterSearch"
         @reset="clearSearch"
       >
-        <!-- 添加额外按钮，如果需要 -->
+        <!-- 添加批量操作按钮 -->
+        <template #append-buttons>
+          <el-button 
+            type="danger" 
+            class="action-button" 
+            size="default"
+            @click="handleBatchClose" 
+            :disabled="!selectedIds.length"
+          >
+            <el-icon><Close /></el-icon>批量关闭
+          </el-button>
+        </template>
       </EBFilterBar>
 
       <!-- 使用新的表格组件 -->
@@ -28,6 +39,7 @@
           :data="list"
           :loading="loading"
           :border="false"
+          selection
           show-actions
           actions-width="120"
           :auto-height="true"
@@ -35,6 +47,7 @@
           :current-page="listQuery.page"
           :page-size="listQuery.limit"
           :total="total"
+          @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
         >
           <!-- 状态列自定义渲染 -->
@@ -57,13 +70,15 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { parseTime } from '@/utils';
-import { ChatDotSquare, Search, Calendar } from '@element-plus/icons-vue';
+import { ChatDotSquare, Search, Calendar, Close } from '@element-plus/icons-vue';
 import { EBFilterBar, EBTable } from '@/components';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 状态数据
 const loading = ref(false);
 const list = ref([]);
 const total = ref(0);
+const selectedIds = ref([]);
 const listQuery = reactive({
   page: 1,
   limit: 10,
@@ -178,6 +193,35 @@ const clearSearch = () => {
 const handlePageChange = (page) => {
   listQuery.page = page;
   getList();
+};
+
+// 表格选择变化
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id);
+};
+
+// 批量关闭反馈
+const handleBatchClose = () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要关闭的反馈');
+    return;
+  }
+  
+  ElMessageBox.confirm(`确定要关闭选中的 ${selectedIds.value.length} 条反馈吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      // 这里替换为实际的API调用
+      // await batchCloseFeedback(selectedIds.value);
+      ElMessage.success('批量关闭成功');
+      getList();
+    } catch (error) {
+      ElMessage.error('批量关闭失败');
+      console.error('批量关闭反馈失败', error);
+    }
+  }).catch(() => {});
 };
 
 onMounted(() => {

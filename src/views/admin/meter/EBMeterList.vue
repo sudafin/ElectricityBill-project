@@ -89,10 +89,10 @@
           <!-- 操作列 -->
           <template #actions="{ row }">
             <el-button type="primary" link size="small" @click="handleEdit(row)">
-              <el-icon><Edit /></el-icon>编辑
+              编辑
             </el-button>
             <el-button type="primary" link size="small" @click="handleDetail(row)">
-              <el-icon><View /></el-icon>详情
+              详情
             </el-button>
             <el-button 
               type="danger" 
@@ -100,7 +100,7 @@
               size="small"
               @click="handleDelete(row.id)"
             >
-              <el-icon><Delete /></el-icon>删除
+              删除
             </el-button>
           </template>
         </EBTable>
@@ -194,8 +194,8 @@ const initialFilterValues = {
 // 表格列配置
 const tableColumns = [
   { prop: 'meterNo', label: '电表编号', width: '180' },
-  { prop: 'model', label: '电表型号', width: '160' },
-  { prop: 'installDate', label: '安装日期', width: '120' },
+  { prop: 'model', label: '电表型号', minWidth: '160' },
+  { prop: 'installDate', label: '安装日期', minWidth: '120' },
   { 
     prop: 'status', 
     label: '状态', 
@@ -207,7 +207,7 @@ const tableColumns = [
       '停用': 'info'
     }
   },
-  { prop: 'username', label: '绑定用户', width: '180' }
+  { prop: 'username', label: '绑定用户', minWidth: '180' }
 ];
 
 // 获取电表列表
@@ -440,5 +440,23 @@ onMounted(() => {
 
 :deep(.el-dialog__body) {
   padding-top: 10px;
+}
+
+/* 确保表格撑满容器 */
+:deep(.eb-table) {
+  width: 100%;
+}
+
+:deep(.el-table) {
+  width: 100%;
+}
+
+/* 表格行悬停效果 */
+:deep(.el-table__row) {
+  transition: all 0.3s ease;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: #f8faff !important;
 }
 </style> 

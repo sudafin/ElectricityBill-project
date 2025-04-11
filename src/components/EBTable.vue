@@ -21,6 +21,7 @@
         :prop="column.prop"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
         :fixed="column.fixed"
         :formatter="column.formatter"
         :show-overflow-tooltip="column.showOverflowTooltip || true"
