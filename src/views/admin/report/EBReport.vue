@@ -3,36 +3,40 @@
     <el-card class="admin-card">
       <template #header>
         <div class="header">
-          <h3 class="header-title">
-            <el-icon><DataAnalysis /></el-icon>
-            数据报表
-          </h3>
-          <div class="search-area">
-            <div class="search-row">
-              <el-date-picker
-                v-model="dateRange"
-                type="daterange"
-                unlink-panels
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                @change="fetchReportData"
-                class="filter-date-range"
-              >
-                <template #prefix>
-                  <el-icon><Calendar /></el-icon>
-                </template>
-              </el-date-picker>
-            </div>
-            <div class="action-buttons">
-              <el-button type="primary" class="action-button" @click="fetchReportData">
-                <el-icon><Search /></el-icon>查询
-              </el-button>
-              <el-button type="success" class="action-button" @click="exportReport">
-                <el-icon><Download /></el-icon>导出
-              </el-button>
-            </div>
+          <div class="title-area">
+            <h3 class="header-title">
+              <el-icon><DataAnalysis /></el-icon>
+              数据报表
+            </h3>
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              unlink-panels
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              @change="fetchReportData"
+              class="filter-date-range"
+            >
+              <template #prefix>
+                <el-icon><Calendar /></el-icon>
+              </template>
+            </el-date-picker>
+          </div>
+          <div class="toolbar-area">
+            <el-button type="primary" class="toolbar-button" @click="downloadData">
+              <el-icon size="18"><Download /></el-icon>
+              <span>下载数据</span>
+            </el-button>
+            <el-button type="success" class="toolbar-button" @click="exportImage">
+              <el-icon size="18"><Picture /></el-icon>
+              <span>导出图表</span>
+            </el-button>
+            <el-button type="warning" class="toolbar-button" @click="refreshChart">
+              <el-icon size="18"><Refresh /></el-icon>
+              <span>刷新</span>
+            </el-button>
           </div>
         </div>
       </template>
@@ -43,6 +47,8 @@
           <EBPeriodReport 
             contentType="electricity"
             :dailyElectricityUsageOption="dailyElectricityUsageOption"
+            :loading="loading"
+            ref="electricityReportRef"
           />
         </el-tab-pane>
         
@@ -50,19 +56,37 @@
           <EBPeriodReport 
             contentType="fee"
             :dailyFeeAmountOption="dailyFeeAmountOption"
+            :loading="loading"
+            ref="feeReportRef"
+          />
+        </el-tab-pane>
+        
+        <el-tab-pane label="区域统计" name="region">
+          <EBRegionReport 
+            :loading="loading" 
+            ref="regionReportRef" 
           />
         </el-tab-pane>
         
         <el-tab-pane label="反馈信息统计" name="feedback">
-          <EBFeedbackReport :feedbackData="feedbackData" />
+          <EBFeedbackReport 
+            :feedbackData="feedbackData" 
+            ref="feedbackReportRef"
+          />
         </el-tab-pane>
         
         <el-tab-pane label="对账审批统计" name="reconciliation">
-          <EBReconciliationReport :reconciliationData="reconciliationData" />
+          <EBReconciliationReport 
+            :reconciliationData="reconciliationData" 
+            ref="reconciliationReportRef"
+          />
         </el-tab-pane>
         
         <el-tab-pane label="用户类型分析" name="userType">
-          <EBUserTypeReport :userData="userData" />
+          <EBUserTypeReport 
+            :userData="userData" 
+            ref="userTypeReportRef"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -75,7 +99,8 @@ import EBPeriodReport from './EBPeriodReport.vue';
 import EBFeedbackReport from './EBFeedbackReport.vue';
 import EBReconciliationReport from './EBReconciliationReport.vue';
 import EBUserTypeReport from './EBUserTypeReport.vue';
-import { Calendar, Search, Download, DataAnalysis } from '@element-plus/icons-vue';
+import EBRegionReport from './EBRegionReport.vue';
+import { Calendar, Search, Download, DataAnalysis, Picture, Refresh } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getReportData, getReportExcel } from '@/api/admin/report.js';
 
@@ -84,6 +109,14 @@ const dateRange = ref([]);
 const reportData = ref([]);
 const activeTabName = ref('electricity'); // 默认显示电量统计
 
+// 各个报表组件的引用
+const electricityReportRef = ref(null);
+const feeReportRef = ref(null);
+const regionReportRef = ref(null);
+const feedbackReportRef = ref(null);
+const reconciliationReportRef = ref(null);
+const userTypeReportRef = ref(null);
+
 // 记录上一次的日期范围（为了避免重复加载数据）
 const prevDateRange = ref(dateRange.value);
 
@@ -91,6 +124,51 @@ const prevDateRange = ref(dateRange.value);
 const feedbackData = ref([]);
 const reconciliationData = ref([]);
 const userData = ref([]);
+
+// 获取当前活动的图表组件引用
+const getActiveChartRef = () => {
+  const refMap = {
+    'electricity': electricityReportRef,
+    'fee': feeReportRef,
+    'region': regionReportRef,
+    'feedback': feedbackReportRef,
+    'reconciliation': reconciliationReportRef,
+    'userType': userTypeReportRef
+  };
+  
+  return refMap[activeTabName.value]?.value?.chartRef;
+};
+
+// 刷新图表
+const refreshChart = () => {
+  const chartRef = getActiveChartRef();
+  if (chartRef?.value?.refreshChart) {
+    chartRef.value.refreshChart();
+    ElMessage.success('图表已刷新');
+  } else {
+    ElMessage.warning('无法刷新当前图表');
+  }
+};
+
+// 下载数据
+const downloadData = () => {
+  const chartRef = getActiveChartRef();
+  if (chartRef?.value?.downloadData) {
+    chartRef.value.downloadData();
+  } else {
+    ElMessage.warning('无法下载当前数据');
+  }
+};
+
+// 导出图片
+const exportImage = () => {
+  const chartRef = getActiveChartRef();
+  if (chartRef?.value?.exportImage) {
+    chartRef.value.exportImage();
+  } else {
+    ElMessage.warning('无法导出当前图表');
+  }
+};
 
 // 生成模拟数据
 const generateMockData = () => {
@@ -254,32 +332,6 @@ const updateChartOptions = () => {
   dailyFeeAmountOption.value.series[0].data = feeValues;
 };
 
-// 导出报表
-const exportReport = async () => {
-  if (!dateRange.value) {
-    ElMessage.warning('请先选择日期范围');
-    return;
-  }
-  
-  const [startDate, endDate] = dateRange.value;
-  const res = await getReportExcel('daily', startDate, endDate);
-  
-  // 创建 Blob 对象并下载
-  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'report.xlsx';
-  link.click();
-  window.URL.revokeObjectURL(url);
-  
-  if(res.size > 0){
-    ElMessage.success('报表导出成功');
-  }else{
-    ElMessage.error('报表导出失败');
-  }
-};
-
 onMounted(() => {
   // 设置默认日期范围为最近7天
   const end = new Date();
@@ -307,79 +359,56 @@ onMounted(() => {
   background-color: #f5f7fa;
 }
 
-/* 报表组件特定样式 */
-.filter-date-range {
-  width: 240px;
-  flex-shrink: 0;
-}
-
-.action-buttons {
+.header {
   display: flex;
-  gap: 8px;
-  padding: 12px 0;
-  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
-.action-buttons .el-button {
-  min-width: 88px;
-  border-radius: 8px;
-  padding: 8px 16px;
+.title-area {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  white-space: nowrap;
+  gap: 20px;
 }
 
-.chart-container {
-  height: 100%;
-  margin: 12px 0;
+.header-title {
   display: flex;
-}
-
-.chart-header,
-.table-header {
-  padding: 0;
-}
-
-.chart-header h3,
-.table-header h3 {
-  margin: 0;
-  font-size: 14px;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: #303133;
+  margin: 0;
 }
 
-/* 响应式布局 */
-@media screen and (max-width: 768px) {
-  .header {
-    flex-direction: column;
-  }
-  
-  .filter-date-range {
-    width: 100%;
-  }
-  
-  .action-buttons {
-    width: 100%;
-    justify-content: flex-end;
-  }
+.filter-date-range {
+  width: 300px;
 }
 
-/* 确保图表容器高度一致 */
-:deep(.echarts) {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 300px;
+.toolbar-area {
+  display: flex;
+  gap: 10px;
 }
 
-.el-radio-group {
-  margin-left: 12px;
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.toolbar-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* 选项卡样式 */
 .demo-tabs {
-  margin-top: 10px;
+  margin-top: 20px;
   width: 100%;
 }
 
@@ -407,5 +436,28 @@ onMounted(() => {
 :deep(.el-tabs__item.is-active) {
   color: #409EFF;
   font-weight: bold;
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .title-area {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .filter-date-range {
+    width: 100%;
+  }
+  
+  .toolbar-area {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style> 

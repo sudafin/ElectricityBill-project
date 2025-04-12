@@ -1,7 +1,9 @@
 <template>
   <div class="user-type-report">
     <div class="report-header">
-      <h3>用户类型分析</h3>
+      <div class="title-section">
+        <h3>用户类型分析</h3>
+      </div>
       <div class="chart-actions">
         <el-radio-group v-model="chartType" size="small" @change="changeChartType">
           <el-radio-button label="pie">饼图</el-radio-button>
@@ -30,6 +32,8 @@ const props = defineProps({
 
 // 图表类型
 const chartType = ref('pie');
+// 时间粒度
+const timePeriod = ref('daily');
 
 // 饼图配置
 const pieChartOption = computed(() => ({
@@ -399,6 +403,12 @@ const changeChartType = (type) => {
   chartType.value = type;
 };
 
+// 处理时间粒度变化
+const handleTimePeriodChange = (period) => {
+  timePeriod.value = period;
+  // 在这里可以添加时间粒度变化后的数据加载逻辑
+};
+
 // 组件挂载后自动填充模拟数据（实际项目中应替换为真实数据）
 onMounted(() => {
   // 初始化处理
@@ -422,6 +432,14 @@ watch(() => props.userData, () => {
   margin-bottom: 16px;
   padding: 10px 0;
   border-bottom: 1px solid #ebeef5;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .report-header h3 {
@@ -429,6 +447,11 @@ watch(() => props.userData, () => {
   font-size: 16px;
   font-weight: 600;
   color: #303133;
+  white-space: nowrap;
+}
+
+.time-period-select {
+  width: 100px;
 }
 
 .chart-actions {
