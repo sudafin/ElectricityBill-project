@@ -119,5 +119,142 @@ import { EBPageLayout, EBButton } from '@/components';
 </script>
 
 <style scoped>
-/* ... existing styles ... */
+.eb-help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
+}
+
+.eb-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.eb-help-search {
+  width: 300px;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-icon {
+  color: #909399;
+}
+
+.eb-help-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 20px;
+}
+
+.help-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.category-card {
+  flex: 1;
+  min-width: 150px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-card:hover {
+  border-color: #e4e7ed;
+  background-color: #f5f7fa;
+}
+
+.category-card.active {
+  border-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.category-icon {
+  font-size: 30px;
+  color: #409eff;
+  margin-bottom: 15px;
+}
+
+.category-name {
+  font-size: 14px;
+  color: #606266;
+}
+
+.faq-section {
+  margin-bottom: 30px;
+}
+
+.faq-answer {
+  color: #606266;
+  line-height: 1.6;
+}
+
+.faq-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  border-top: 1px solid #ebeef5;
+  padding-top: 15px;
+}
+
+.faq-helpful {
+  font-size: 14px;
+  color: #909399;
+}
+
+.faq-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.contact-support {
+  text-align: center;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 20px;
+}
+
+.contact-support h3 {
+  font-size: 18px;
+  color: #303133;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.contact-support p {
+  color: #606266;
+  margin-bottom: 20px;
+}
+
+.contact-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.eb-loading-container {
+  padding: 20px;
+}
 </style> 

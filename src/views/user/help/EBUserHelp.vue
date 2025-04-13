@@ -975,8 +975,21 @@ onMounted(() => {
 
 <style scoped>
 .eb-help-header {
-  padding: 5px 0;
-  min-height: 5px; /* 为了保持最小高度 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
+}
+
+.help-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .search-section {
@@ -1016,6 +1029,31 @@ onMounted(() => {
 .guide-card,
 .search-results-card {
   margin-bottom: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  transition: all 0.2s;
+  background-color: #ffffff;
+  box-shadow: none;
+}
+
+.nav-card:hover,
+.contact-card:hover,
+.faq-card:hover,
+.guide-card:hover,
+.search-results-card:hover {
+  border-color: #e4e7ed;
+  background-color: #f9f9f9;
+}
+
+.nav-card :deep(.el-card__header),
+.contact-card :deep(.el-card__header),
+.faq-card :deep(.el-card__header),
+.guide-card :deep(.el-card__header),
+.search-results-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #ffffff;
 }
 
 .help-menu {
@@ -1080,6 +1118,23 @@ onMounted(() => {
 
 .guide-card {
   margin-bottom: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  transition: all 0.2s;
+  background-color: #ffffff;
+  box-shadow: none;
+}
+
+.guide-card:hover {
+  border-color: #e4e7ed;
+  background-color: #f9f9f9;
+}
+
+.guide-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #ffffff;
 }
 
 .guide-tabs {
@@ -1152,12 +1207,13 @@ onMounted(() => {
   padding: 15px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
+  margin-bottom: 15px;
+  transition: all 0.2s;
 }
 
 .result-item:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-color: #e4e7ed;
+  background-color: #f9f9f9;
 }
 
 .result-title {
@@ -1243,5 +1299,62 @@ onMounted(() => {
 
 .chat-input .el-textarea {
   flex: 1;
+}
+
+/* 为活动类别下的内容区域添加背景色 */
+.faq-card {
+  background-color: #ffffff !important;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* 折叠面板项样式 */
+:deep(.el-collapse-item) {
+  background-color: #ffffff !important;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+
+/* 统一问题和答案区域的背景色为白色 */
+:deep(.el-collapse-item__wrap),
+:deep(.el-collapse-item__header) {
+  background-color: #ffffff !important;
+}
+
+/* 左侧导航选中状态样式增强 */
+:deep(.el-menu-item.is-active) {
+  background-color: #f0f2f5;
+  color: #409EFF;
+  font-weight: 500;
+}
+
+/* 为指向导航项的悬浮样式添加过渡效果 */
+:deep(.el-menu-item) {
+  transition: all 0.3s;
+}
+
+:deep(.el-menu-item:hover) {
+  background-color: #f5f7fa;
+}
+
+/* 问题项的悬浮效果 */
+:deep(.el-collapse-item__header:hover) {
+  background-color: #f5f7fa;
+}
+
+/* 保持问题回答区域与标题区域保持一致的样式 */
+:deep(.el-collapse-item__wrap) {
+  background-color: #ffffff !important;
+}
+
+.faq-card :deep(.el-card__header) {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.faq-card :deep(.el-card__body) {
+  background-color: #ffffff !important;
 }
 </style> 

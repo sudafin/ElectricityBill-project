@@ -129,4 +129,52 @@ export function exportReport(params) {
     params,
     responseType: 'blob'
   });
+}
+
+/**
+ * 获取电量统计数据（按时间粒度）
+ * @param {Object} params 查询参数
+ * @param {string} params.granularity 时间粒度（daily/weekly/monthly/yearly）
+ * @param {string} params.startDate 开始日期
+ * @param {string} params.endDate 结束日期
+ * @returns {Promise} 返回Promise对象，包含电量统计数据
+ */
+export function getElectricityStatistics(params) {
+  return request({
+    url: '/api/admin/statistics/electricity',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取电费统计数据（按时间粒度）
+ * @param {Object} params 查询参数
+ * @param {string} params.granularity 时间粒度（daily/weekly/monthly/yearly）
+ * @param {string} params.startDate 开始日期
+ * @param {string} params.endDate 结束日期
+ * @returns {Promise} 返回Promise对象，包含电费统计数据
+ */
+export function getFeeStatistics(params) {
+  return request({
+    url: '/api/admin/statistics/fee',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取区域统计数据
+ * @param {Object} params 查询参数
+ * @param {string} params.dataType 数据类型（electricity/fee/users）
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @returns {Promise} 返回Promise对象，包含区域统计数据
+ */
+export function getRegionStatistics(params) {
+  return request({
+    url: '/api/admin/statistics/region',
+    method: 'get',
+    params
+  });
 } 

@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import { getFeedbackDetail, updateFeedback } from '@/api/feedback'
+import { getFeedbackDetail, updateFeedback } from '@/api/admin/feedback'
 
 export default {
   data() {

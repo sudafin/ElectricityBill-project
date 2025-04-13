@@ -56,6 +56,8 @@
 import { ref, defineProps, computed, watch, onMounted } from 'vue';
 import EBChart from '@/components/EBChart.vue';
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { getElectricityReport, getFeeReport, getReportMetrics } from '@/api/admin/report';
+import { ElMessage } from 'element-plus';
 
 const props = defineProps({
   // 支持所有原有组件的属性
@@ -106,7 +108,7 @@ const showSummary = ref(true);
 // 图表引用
 const chartRef = ref(null);
 
-// 模拟数据 - 实际项目中应从props.dailyElectricityUsageOption和props.dailyFeeAmountOption中提取
+// 模拟数据 - 实际项目中应从API获取
 const mockData = {
   daily: {
     dates: ['2023-05-01', '2023-05-02', '2023-05-03', '2023-05-04', '2023-05-05', '2023-05-06', '2023-05-07'],
@@ -169,7 +171,7 @@ const highestDate = computed(() => {
 
 // 计算同比增长率（模拟数据）
 const growthRate = computed(() => {
-  // 模拟一个-20到20之间的增长率
+  // 实际应从API获取的数据
   return Math.round((Math.random() * 40) - 20);
 });
 
@@ -293,11 +295,52 @@ const changeChartType = (type) => {
 // 处理时间粒度变化
 const handleTimePeriodChange = (period) => {
   timePeriod.value = period;
+  // 加载对应时间粒度的数据
+  loadReportData();
 };
 
 // 更新图表选项
 const updateChartOption = () => {
   // 图表实例已通过computed自动更新
+};
+
+// 加载报表数据
+const loadReportData = async () => {
+  try {
+    loading.value = true;
+    
+    // 根据内容类型和时间粒度获取数据
+    const apiMethod = props.contentType === 'electricity' ? getElectricityReport : getFeeReport;
+    const params = {
+      granularity: timePeriod.value,
+      startDate: '', // 这里可以根据实际需求设置日期范围
+      endDate: ''
+    };
+    
+    // 获取报表数据
+    const reportData = await apiMethod(params);
+    
+    // 获取报表指标数据
+    const metricsParams = {
+      type: props.contentType,
+      granularity: timePeriod.value,
+      startDate: '',
+      endDate: ''
+    };
+    const metricsData = await getReportMetrics(metricsParams);
+    
+    // 在实际项目中，这里应该用接口返回的数据替换mockData
+    // mockData[timePeriod.value] = reportData.data;
+    
+    // 这里可以处理metricsData，更新总量、平均值等数据
+    // 例如：totalValue.value = metricsData.data.total;
+    
+    loading.value = false;
+  } catch (error) {
+    console.error('加载报表数据失败:', error);
+    ElMessage.error('加载报表数据失败');
+    loading.value = false;
+  }
 };
 
 // 监听内容类型变化
@@ -308,10 +351,14 @@ watch(() => props.contentType, () => {
   } else {
     chartType.value = 'line'; // 电费默认使用折线图
   }
+  
+  // 重新加载数据
+  loadReportData();
 }, { immediate: true });
 
 onMounted(() => {
-  // 初始化逻辑
+  // 初始化时加载数据
+  loadReportData();
 });
 </script>
 

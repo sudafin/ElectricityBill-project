@@ -661,7 +661,11 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 5px 0;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
 }
 
 .header-spacer {
@@ -673,18 +677,28 @@ onMounted(() => {
   gap: 10px;
 }
 
+.analysis-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
 .summary-cards {
   margin-bottom: 20px;
 }
 
 .summary-card {
-  height: 120px;
-  transition: all 0.3s;
+  height: 100%;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  box-shadow: none !important;
+  transition: all 0.2s;
 }
 
 .summary-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-color: #e4e7ed;
+  background-color: #f5f7fa;
 }
 
 .card-content {
@@ -757,6 +771,27 @@ onMounted(() => {
 .suggestions-card,
 .comparison-card {
   margin-bottom: 20px;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  box-shadow: none !important;
+  transition: all 0.2s;
+}
+
+.chart-card:hover,
+.distribution-card:hover,
+.suggestions-card:hover,
+.comparison-card:hover {
+  border-color: #e4e7ed;
+  background-color: #fafafa;
+}
+
+.chart-card :deep(.el-card__header),
+.distribution-card :deep(.el-card__header),
+.suggestions-card :deep(.el-card__header),
+.comparison-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #ffffff;
 }
 
 .chart-header,

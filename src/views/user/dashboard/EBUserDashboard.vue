@@ -252,6 +252,10 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   padding: 20px 0 15px 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
 }
 
 .tab-buttons {
@@ -301,5 +305,9 @@ onMounted(() => {
 .dashboard-container {
   margin-top: 15px;
   padding: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  padding: 20px;
 }
 </style> 

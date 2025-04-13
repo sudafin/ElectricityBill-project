@@ -135,9 +135,9 @@ export function resetUserPassword(userId) {
  * 获取用户统计数据
  * @returns {Promise} 返回Promise对象，包含用户统计数据
  */
-export function getUserStatistics() {
+export function getUserGeneralStatistics() {
   return request({
-    url: '/api/admin/users/statistics',
+    url: '/api/users/statistics',
     method: 'get'
   });
 }
@@ -472,4 +472,4 @@ export const downloadPaymentReceipt = (paymentId) => {
       });
     }, 500);
   });
-};
+}; 

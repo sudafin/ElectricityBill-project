@@ -21,6 +21,8 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue';
 import EBChart from '@/components/EBChart.vue';
+import { getFeedbackReport } from '@/api/admin/report';
+import { ElMessage } from 'element-plus';
 
 // 定义接收的属性
 const props = defineProps({
@@ -228,12 +230,42 @@ const changeChartType = (type) => {
 // 处理时间粒度变化
 const handleTimePeriodChange = (period) => {
   timePeriod.value = period;
-  // 在这里可以添加时间粒度变化后的数据加载逻辑
+  // 加载数据
+  loadFeedbackData();
+};
+
+// 加载反馈数据
+const loadFeedbackData = async () => {
+  try {
+    const loading = ref(true);
+    
+    // 获取反馈报表数据
+    const params = {
+      granularity: timePeriod.value,
+      startDate: '', // 可根据实际需求设置日期范围
+      endDate: ''
+    };
+    
+    const response = await getFeedbackReport(params);
+    
+    // 处理返回的数据
+    if (response && response.data) {
+      // 在实际项目中，这里应该用接口返回的数据更新组件的数据
+      // props.feedbackData = response.data;
+    }
+    
+    loading.value = false;
+  } catch (error) {
+    console.error('加载反馈数据失败:', error);
+    ElMessage.error('加载反馈数据失败');
+    loading.value = false;
+  }
 };
 
 // 组件挂载后自动填充模拟数据（实际项目中应替换为真实数据）
 onMounted(() => {
   // 初始化处理
+  loadFeedbackData();
 });
 
 watch(() => props.feedbackData, () => {

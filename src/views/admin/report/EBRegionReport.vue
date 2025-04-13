@@ -50,6 +50,9 @@ import EBChart from '@/components/EBChart.vue';
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
 import 'echarts/extension/bmap/bmap';
 import * as echarts from 'echarts/core';
+import { getRegionReport } from '@/api/admin/report';
+import { getRegionStatistics } from '@/api/admin/statistics';
+import { ElMessage } from 'element-plus';
 
 // 定义属性
 const props = defineProps({
@@ -390,12 +393,44 @@ const changeChartType = (type) => {
 // 处理数据类型变化
 const handleDataTypeChange = (type) => {
   dataType.value = type;
+  // 加载数据
+  loadRegionData();
 };
 
 // 处理时间粒度变化
 const handleTimePeriodChange = (period) => {
   timePeriod.value = period;
-  // 可以在这里添加时间粒度变化后的数据加载逻辑
+  // 加载数据
+  loadRegionData();
+};
+
+// 加载区域数据
+const loadRegionData = async () => {
+  try {
+    props.loading ? null : loading.value = true;
+    
+    // 获取区域报表数据
+    const params = {
+      dataType: dataType.value,
+      startDate: '', // 可根据实际需求设置日期范围
+      endDate: ''
+    };
+    
+    // 可以选择使用report的API或statistics的API
+    const response = await getRegionReport(params);
+    
+    // 处理返回的数据
+    if (response && response.data) {
+      // 在实际项目中，这里应该用接口返回的数据替换mockRegionData
+      // tableData.value = response.data;
+    }
+    
+    loading.value = false;
+  } catch (error) {
+    console.error('加载区域数据失败:', error);
+    ElMessage.error('加载区域数据失败');
+    loading.value = false;
+  }
 };
 
 // 组件挂载时执行
@@ -405,6 +440,9 @@ onMounted(() => {
     // 注意：实际项目中需要从CDN或本地资源加载地图JSON数据
     // echarts.registerMap('china', chinaJSON);
   }
+  
+  // 加载区域数据
+  loadRegionData();
 });
 
 // 监听图表类型变化

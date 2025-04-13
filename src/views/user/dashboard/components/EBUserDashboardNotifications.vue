@@ -162,19 +162,20 @@ onMounted(() => {
   display: flex;
   padding: 16px;
   border-radius: 4px;
-  background-color: #f5f7fa;
+  background-color: #ffffff;
   transition: all 0.2s;
-  border: none !important;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #ebeef5 !important;
+  box-shadow: none;
 }
 
 .notification-item:hover {
-  background-color: #ecf5ff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background-color: #f5f7fa;
+  box-shadow: none;
+  border-color: #e4e7ed;
 }
 
 .notification-item.unread {
-  background-color: #ecf5ff;
+  background-color: #f0f7ff;
 }
 
 .notification-dot {
@@ -246,6 +247,10 @@ onMounted(() => {
 .view-more-container {
   margin-top: 16px;
   text-align: center;
+  padding: 10px 0;
+  background-color: #ffffff;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
 }
 
 .view-more-link {

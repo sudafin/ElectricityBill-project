@@ -76,4 +76,68 @@ export function getReconciliationReport(params) {
     method: 'get',
     params
   });
+}
+
+/**
+ * 获取电量统计报表
+ * @param {Object} params - 查询参数
+ * @param {string} params.granularity - 时间粒度（daily/weekly/monthly/yearly）
+ * @param {string} params.startDate - 开始日期
+ * @param {string} params.endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getElectricityReport(params) {
+  return request({
+    url: '/admin/report/electricity',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取电费统计报表
+ * @param {Object} params - 查询参数
+ * @param {string} params.granularity - 时间粒度（daily/weekly/monthly/yearly）
+ * @param {string} params.startDate - 开始日期
+ * @param {string} params.endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getFeeReport(params) {
+  return request({
+    url: '/admin/report/fee',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取区域统计报表
+ * @param {Object} params - 查询参数
+ * @param {string} params.dataType - 数据类型（electricity/fee/users）
+ * @param {string} params.startDate - 开始日期
+ * @param {string} params.endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getRegionReport(params) {
+  return request({
+    url: '/admin/report/region',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取报表主要指标数据（如总量、平均值、最高值等）
+ * @param {Object} params - 查询参数
+ * @param {string} params.type - 报表类型（electricity/fee/region/feedback/reconciliation/userType）
+ * @param {string} params.startDate - 开始日期
+ * @param {string} params.endDate - 结束日期
+ * @returns {Promise}
+ */
+export function getReportMetrics(params) {
+  return request({
+    url: '/admin/report/metrics',
+    method: 'get',
+    params
+  });
 } 

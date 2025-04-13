@@ -661,15 +661,59 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 5px 0;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
 }
 
 .header-spacer {
   flex: 1;
 }
 
-.user-card {
+.profile-container {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.user-card,
+.security-card,
+.info-card {
   margin-bottom: 20px;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  box-shadow: none !important;
+  transition: all 0.2s;
+}
+
+.user-card:hover,
+.security-card:hover,
+.info-card:hover {
+  border-color: #e4e7ed;
+  background-color: #f9f9f9;
+}
+
+.user-card :deep(.el-card__header),
+.security-card :deep(.el-card__header),
+.info-card :deep(.el-card__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #ffffff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
 }
 
 .user-card-content {
@@ -710,22 +754,6 @@ onMounted(() => {
 
 .user-status.active {
   color: #67C23A;
-}
-
-.security-card,
-.info-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .security-item {

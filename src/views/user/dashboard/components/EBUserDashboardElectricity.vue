@@ -300,30 +300,28 @@ onMounted(() => {
 }
 
 .summary-card {
-  border-radius: 4px;
-  border: none;
   height: 100%;
-  transition: all 0.3s;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  box-shadow: none !important;
+  transition: all 0.2s;
 }
 
 .summary-card:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.summary-card :deep(.el-card__body) {
-  padding: 16px;
+  border-color: #e4e7ed;
+  background-color: #f5f7fa;
 }
 
 .card-content {
   display: flex;
   align-items: center;
+  padding: 5px;
 }
 
 .card-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -389,18 +387,19 @@ onMounted(() => {
 .chart-card, .records-card {
   margin-bottom: 20px;
   border-radius: 4px;
-  border: none;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #ebeef5;
+  box-shadow: none !important;
 }
 
 .chart-card:hover, .records-card:hover {
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+  border-color: #e4e7ed;
+  background-color: #fafafa;
 }
 
 .chart-card :deep(.el-card__header), .records-card :deep(.el-card__header) {
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  background-color: #f9f9f9;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #ffffff;
 }
 
 .chart-header, .card-header {
