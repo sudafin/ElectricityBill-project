@@ -28,6 +28,14 @@
             <el-icon><Plus /></el-icon>新增用户
           </el-button>
           <el-button 
+            type="success" 
+            class="action-button" 
+            size="default"
+            @click="handleAddUserType"
+          >
+            <el-icon><Plus /></el-icon>新增用户类型
+          </el-button>
+          <el-button 
             type="danger" 
             class="action-button" 
             size="default"
@@ -87,15 +95,18 @@
           <el-descriptions :column="2" border>
             <el-descriptions-item label="用户姓名">{{ currentUser.username }}</el-descriptions-item>
             <el-descriptions-item label="电话">{{ currentUser.phone }}</el-descriptions-item>
+            <el-descriptions-item label="身份证号">{{ currentUser.idCardNo }}</el-descriptions-item>
             <el-descriptions-item label="地址">{{ currentUser.address }}</el-descriptions-item>
+            <el-descriptions-item label="电表编号">{{ currentUser.meterId }}</el-descriptions-item>
             <el-descriptions-item label="用户类型">{{ currentUser.userType }}</el-descriptions-item>
             <el-descriptions-item label="账号状态">
               <el-tag :type="currentUser.accountStatus === '正常' ? 'success' : 'danger'">
                 {{ currentUser.accountStatus }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="当前电费余额">{{ currentUser.balance }}</el-descriptions-item>
-            <el-descriptions-item label="当前剩余用电量">{{ currentUser.electricityUsage }}</el-descriptions-item>
+            <el-descriptions-item label="欠费账单数">{{ currentUser.outstandingBill || 0 }}</el-descriptions-item>
+            <el-descriptions-item label="当月用电量">{{ currentUser.currentMonthlyElectricityUsage !== null ? currentUser.currentMonthlyElectricityUsage : '0' }}</el-descriptions-item>
+            <el-descriptions-item label="最近缴费时间">{{ currentUser.lastPaymentDate }}</el-descriptions-item>
           </el-descriptions>
           <el-divider></el-divider>
           <div class="payment-history">
@@ -103,7 +114,7 @@
             <el-table :data="currentUser.userPaymentRecordVOList" stripe>
               <el-table-column prop="paymentTime" label="缴费时间" width="180"></el-table-column>
               <el-table-column prop="paymentAmount" label="缴费金额" width="120"></el-table-column>
-              <el-table-column prop="accountStatus" label="支付状态" width="100">
+              <el-table-column prop="paymentStatus" label="支付状态" width="100">
                 <template #default="{ row }">
                   <el-tag :type="row.paymentStatus === '成功' ? 'success' : 'danger'">
                     {{ row.paymentStatus }}
@@ -111,13 +122,17 @@
                 </template>
               </el-table-column>
               <el-table-column prop="paymentMethod" label="支付方式" width="100"></el-table-column>
-              <el-table-column prop="operator" label="操作人员" width="120"></el-table-column>
-              <el-table-column prop="remark" label="备注"></el-table-column>
             </el-table>
           </div>
         </div>
       </div>
     </el-drawer>
+    
+    <!-- 用户类型表单 -->
+    <EBUserTypeForm
+      v-model:visible="userTypeFormVisible"
+      @success="handleUserTypeSuccess"
+    />
   </div>
 </template>
 
@@ -126,8 +141,9 @@ import { ref, reactive, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Search, User, InfoFilled, Calendar, Plus, Delete, Odometer } from '@element-plus/icons-vue';
-import { getUserList, getUserDetail, deleteUser } from '@/api/admin/user.js';
+import { getUserList, getUserDetail, deleteUser, getUserTypeList } from '@/api/admin/user.js';
 import { EBFilterBar, EBTable } from '@/components';
+import EBUserTypeForm from './EBUserTypeForm.vue';
 
 const router = useRouter();
 const userTableRef = ref(null);
@@ -201,7 +217,7 @@ const selectedUserIds = ref([]);
 const tableColumns = [
   { prop: 'username', label: '用户姓名', minWidth: '100' },
   { prop: 'phone', label: '电话', minWidth: '120' },
-  { prop: 'meterNo', label: '电表编号', minWidth: '120' },
+  { prop: 'meterId', label: '电表编号', minWidth: '120' },
   { prop: 'address', label: '地址', minWidth: '180' },
   { prop: 'userType', label: '用户类型', minWidth: '100' },
   { 
@@ -214,13 +230,13 @@ const tableColumns = [
       '欠费': 'danger'
     }
   },
-  { prop: 'balance', label: '当前电费余额', minWidth: '120' },
-  { prop: 'electricityUsage', label: '用电量', minWidth: '100' },
-  { prop: 'lastPaymentDate', label: '最近缴费时间', minWidth: '140', type: 'date' }
+  { prop: 'lastPaymentDate', label: '最近缴费时间', minWidth: '140', type: 'date' },
+  { prop: 'idCardNo', label: '身份证号', minWidth: '180' }
 ];
 
 // 获取用户列表
 const fetchUserList = async (page = currentPage.value, shouldResetPage = false) => {
+  console.log('开始获取用户列表数据...');
   loading.value = true;
   
   if (shouldResetPage) {
@@ -235,17 +251,28 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     pageSize: pageSize.value,
     userType: searchUserType.value,
     accountStatus: searchAccountStatus.value,
-    meterNo: searchMeterNo.value,
+    meterId: searchMeterNo.value,
     startDate: searchDateRange.value && searchDateRange.value.length === 2 ? searchDateRange.value[0] : undefined,
     endDate: searchDateRange.value && searchDateRange.value.length === 2 ? searchDateRange.value[1] : undefined,
     name: searchText.value && !isNaN(searchText.value) ? undefined : searchText.value,
     phone: searchText.value && isNaN(searchText.value) ? undefined : searchText.value
   };
 
+  console.log('发送查询参数:', userPageQuery);
+  
   try {
     const res = await getUserList(userPageQuery);
-    userList.value = res.list;
-    total.value = Number(res.total);
+    console.log('获取到的用户列表数据:', res);
+    
+    if (res && res.list) {
+      userList.value = res.list;
+      total.value = Number(res.total || 0);
+      console.log(`成功加载 ${userList.value.length} 条用户数据，总计 ${total.value} 条`);
+    } else {
+      console.warn('用户列表数据格式异常:', res);
+      userList.value = [];
+      total.value = 0;
+    }
     
     // 数据加载完成后手动更新表格布局
     nextTick(() => {
@@ -254,10 +281,13 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
       }
     });
   } catch (err) {
-    console.error(err);
+    console.error('获取用户列表失败:', err);
     ElMessage.error('获取用户列表失败');
+    userList.value = [];
+    total.value = 0;
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 };
 
 // 处理筛选搜索
@@ -283,14 +313,44 @@ const detailVisible = ref(false);
 const currentUser = ref({});
 
 const showDetail = async (userId) => {
-  const userDetail = await fetchUserDetail(userId);
-  currentUser.value = userDetail;
-  detailVisible.value = true;
+  try {
+    console.log('开始获取用户详情，用户ID:', userId);
+    const userDetail = await fetchUserDetail(userId);
+    console.log('获取到的用户详情数据:', userDetail);
+    
+    // 删除id字段
+    if (userDetail && userDetail.id) {
+      delete userDetail.id;
+    }
+    
+    // 将billRecords映射到userPaymentRecordVOList
+    if (userDetail && userDetail.billRecords && Array.isArray(userDetail.billRecords)) {
+      userDetail.userPaymentRecordVOList = userDetail.billRecords.map(bill => {
+        return {
+          paymentTime: bill.paymentDate,
+          paymentAmount: bill.billTotalAmount,
+          paymentStatus: bill.paymentMethod ? '成功' : '未支付',
+          paymentMethod: bill.paymentMethod || ' ',
+          operator: '系统',
+          remark: `用电量: ${bill.usageAmount} 度`
+        };
+      });
+    } else {
+      userDetail.userPaymentRecordVOList = [];
+    }
+    
+    currentUser.value = userDetail;
+    detailVisible.value = true;
+    console.log('用户详情数据处理完成:', currentUser.value);
+  } catch (error) {
+    console.error('获取用户详情失败:', error);
+    ElMessage.error('获取用户详情失败');
+  }
 };
 
 const handleCreate = () => {
   // 跳转到用户新增页面
-  router.push({ name: 'UserForm' });
+  router.push({ name: 'AdminUserForm' });
 };
 
 // 删除单个用户
@@ -325,8 +385,8 @@ const handleBatchDelete = async () => {
     type: 'warning',
   })
   .then(async () => {
-    const ids = selectedUserIds.value.join(',');
-    const res = await deleteUser(ids);
+    selectedUserIds.value = selectedUserIds.value.join(',');
+    const res = await deleteUser(selectedUserIds.value);
     if(res.code === 200){
       fetchUserList();
       ElMessage.success('删除成功');
@@ -354,13 +414,111 @@ const clearSearch = () => {
 // 编辑用户
 const handleEdit = (row) => {
   router.push({ 
-    name: 'UserEdit', 
+    name: 'AdminUserEdit', 
     params: { id: row.id }
   });
 };
 
+// 用户类型表单相关
+const userTypeFormVisible = ref(false);
+
+// 处理添加用户类型
+const handleAddUserType = () => {
+  userTypeFormVisible.value = true;
+};
+
+// 用户类型添加成功
+const handleUserTypeSuccess = () => {
+  ElMessage.success('用户类型添加成功');
+  // 刷新用户类型列表
+  fetchUserTypeList();
+};
+
+// 获取用户类型列表
+const fetchUserTypeList = async () => {
+  console.log('开始获取用户类型列表...');
+  try {
+    const res = await getUserTypeList();
+    console.log('获取到的用户类型列表数据:', res);
+    
+    // 更新筛选器选项
+    const userTypeFilterOption = filterConfig.find(f => f.field === 'searchUserType');
+    
+    if (userTypeFilterOption) {
+      // 保存全部选项
+      const defaultOption = { label: '全部', value: '' };
+      
+      // 如果是简单的字符串数组 (List<String>)
+      if (Array.isArray(res) && res.length > 0 && typeof res[0] === 'string') {
+        userTypeFilterOption.options = [
+          defaultOption,
+          ...res.map(typeName => ({ label: typeName, value: typeName }))
+        ];
+      } 
+      // 如果是对象数组 (List<UserType>)
+      else if (Array.isArray(res) && res.length > 0 && typeof res[0] === 'object') {
+        userTypeFilterOption.options = [
+          defaultOption,
+          ...res.map(type => ({ label: type.typeName, value: type.typeName }))
+        ];
+      }
+      // 如果返回为空或非数组，保持默认选项
+      else {
+        console.warn('获取用户类型列表返回数据异常:', res);
+        userTypeFilterOption.options = [
+          defaultOption,
+          { label: '居民用户', value: '居民用户' },
+          { label: '商业用户', value: '商业用户' }
+        ];
+      }
+      
+      console.log('更新后的用户类型筛选选项:', userTypeFilterOption.options);
+    }
+    
+    return res;
+  } catch (error) {
+    console.error('获取用户类型列表失败:', error);
+    return null;
+  }
+};
+
+// 组件挂载时加载数据
 onMounted(() => {
-  fetchUserList(1); // 组件初始化时获取第一页数据
+  console.log('用户管理组件已加载，开始获取数据...');
+  
+  // 创建一个Promise数组来收集所有加载任务
+  const loadingTasks = [];
+  
+  // 添加用户列表加载任务
+  loadingTasks.push(
+    fetchUserList(1, true)
+      .then(() => {
+        console.log('用户列表数据加载完成');
+      })
+      .catch(error => {
+        console.error('用户列表加载失败:', error);
+      })
+  );
+  
+  // 添加用户类型列表加载任务
+  loadingTasks.push(
+    fetchUserTypeList()
+      .then(() => {
+        console.log('用户类型列表加载完成');
+      })
+      .catch(error => {
+        console.error('用户类型列表加载失败:', error);
+      })
+  );
+  
+  // 等待所有任务完成
+  Promise.all(loadingTasks)
+    .then(() => {
+      console.log('所有数据加载完成');
+    })
+    .catch(error => {
+      console.error('数据加载过程中出现错误:', error);
+    });
 });
 </script>
 

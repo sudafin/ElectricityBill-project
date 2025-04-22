@@ -85,4 +85,15 @@ export function downloadReceipt(paymentId) {
     method: 'get',
     responseType: 'blob'
   });
+}
+
+/**
+ * 获取用户缴费记录
+ * @returns {Promise} 返回Promise对象，包含用户缴费记录
+ */
+export function getPaymentRecords() {
+  return request({
+    url: '/user/payment',
+    method: 'get'
+  });
 } 

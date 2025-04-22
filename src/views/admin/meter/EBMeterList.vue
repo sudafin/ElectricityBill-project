@@ -90,11 +90,14 @@
 
           <!-- 操作列 -->
           <template #actions="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
             <el-button type="primary" link size="small" @click="handleDetail(row)">
               详情
+            </el-button>
+            <el-button type="primary" link size="small" @click="handleEdit(row)">
+              修改
+            </el-button>
+            <el-button type="warning" link size="small" @click="handleRepair(row)">
+              维修
             </el-button>
             <el-button 
               type="danger" 
@@ -159,17 +162,6 @@ const filterConfig = [
   },
   {
     type: 'select',
-    field: 'searchStatus',
-    label: '电表状态',
-    options: [
-      { label: '全部', value: '' },
-      { label: '正常', value: '正常' },
-      { label: '故障', value: '故障' },
-      { label: '停用', value: '停用' }
-    ]
-  },
-  {
-    type: 'select',
     field: 'searchBind',
     label: '绑定状态',
     options: [
@@ -181,27 +173,34 @@ const filterConfig = [
   {
     type: 'daterange',
     field: 'dateRange',
-    label: '安装日期'
+    label: '抄表日期',
+    defaultTime: [
+      new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+      new Date().toISOString().split('T')[0]
+    ]
   }
 ];
 
 // 初始值
 const initialFilterValues = {
   searchText: '',
-  searchStatus: '',
   searchBind: '',
-  dateRange: []
+  dateRange: [
+    new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+    new Date().toISOString().split('T')[0]
+  ]
 };
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'meterNo', label: '电表编号', minWidth: '180' },
-  { prop: 'model', label: '电表型号', minWidth: '160' },
-  { prop: 'installDate', label: '安装日期', minWidth: '120' },
+  { prop: 'meterNo', label: '电表编号', minWidth: '150' },
+  { prop: 'model', label: '电表型号', minWidth: '120' },
+  { prop: 'installPlace', label: '安装位置', minWidth: '120' },
+  { prop: 'lastMeterReadingDate', label: '抄表日期', minWidth: '120' },
   { 
     prop: 'status', 
     label: '状态', 
-    minWidth: '100',
+    minWidth: '80',
     type: 'tag',
     tagMap: {
       '正常': 'success',
@@ -209,7 +208,7 @@ const tableColumns = [
       '停用': 'info'
     }
   },
-  { prop: 'username', label: '绑定用户', minWidth: '180' }
+  { prop: 'username', label: '绑定用户', minWidth: '150' }
 ];
 
 // 获取电表列表
@@ -222,15 +221,16 @@ const fetchMeterList = async (page = currentPage.value, shouldResetPage = false)
   }
   
   try {
-    // 这里替换为实际的API调用
-    const res = await getMeterList({
+    // 使用正确的API调用
+    const res = await queryMeterPage({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      keyword: searchText.value,
-      status: searchStatus.value,
-      bindStatus: searchBind.value,
+      meterId: searchText.value,
+      model: searchText.value,
       startDate: dateRange.value?.[0],
-      endDate: dateRange.value?.[1]
+      endDate: dateRange.value?.[1],
+      isAsc: false,
+      sortBy: 'lastMeterReadingDate'
     });
     
     meterList.value = res.list;
@@ -247,9 +247,11 @@ const fetchMeterList = async (page = currentPage.value, shouldResetPage = false)
 const handleFilterSearch = (filterValues) => {
   // 更新筛选值
   searchText.value = filterValues.searchText || '';
-  searchStatus.value = filterValues.searchStatus || '';
   searchBind.value = filterValues.searchBind || '';
-  dateRange.value = filterValues.dateRange || [];
+  dateRange.value = filterValues.dateRange || [
+    new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+    new Date().toISOString().split('T')[0]
+  ];
   
   // 重新加载数据
   fetchMeterList(1, true);
@@ -258,9 +260,11 @@ const handleFilterSearch = (filterValues) => {
 // 清空搜索条件
 const clearSearch = () => {
   searchText.value = '';
-  searchStatus.value = '';
   searchBind.value = '';
-  dateRange.value = [];
+  dateRange.value = [
+    new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+    new Date().toISOString().split('T')[0]
+  ];
 };
 
 // 表格选择变化
@@ -342,6 +346,11 @@ const handleBindSuccess = () => {
   bindDialogVisible.value = false;
   fetchMeterList(currentPage.value);
   ElMessage.success('绑定用户成功');
+};
+
+// 维修电表
+const handleRepair = (row) => {
+  router.push(`/admin/meter/repair/${row.id}`);
 };
 
 onMounted(() => {

@@ -1,13 +1,22 @@
 import request from '@/utils/request';
 
 /**
- * 获取日志列表
+ * 分页查询日志列表
  * @param {Object} params - 查询参数
+ * @param {String} params.module - 模块
+ * @param {String} params.operationType - 操作类型
+ * @param {String} params.operatorName - 操作人
+ * @param {String} params.startDate - 开始日期
+ * @param {String} params.endDate - 结束日期
+ * @param {Number} params.pageNo - 页码
+ * @param {Number} params.pageSize - 每页大小
+ * @param {Boolean} params.isAsc - 是否升序
+ * @param {String} params.sortBy - 排序字段
  * @returns {Promise}
  */
-export function getLogList(params) {
+export function queryPage(params) {
   return request({
-    url: '/admin/log/list',
+    url: '/admin/log/page',
     method: 'get',
     params
   });
@@ -18,35 +27,34 @@ export function getLogList(params) {
  * @param {String|Number} id - 日志ID
  * @returns {Promise}
  */
-export function detailLog(id) {
+export function queryDetail(id) {
   return request({
-    url: `/admin/log/${id}`,
+    url: `/admin/log/detail/${id}`,
     method: 'get'
   });
 }
 
 /**
  * 删除日志
- * @param {String|Number} id - 日志ID
+ * @param {Array} ids - 日志ID数组
  * @returns {Promise}
  */
-export function deleteLog(id) {
+export function deleteLog(ids) {
   return request({
-    url: `/admin/log/${id}`,
-    method: 'delete'
+    url: '/admin/log/delete',
+    method: 'delete',
+    params: { ids }
   });
 }
 
 /**
- * 获取日志报表
- * @param {Object} params - 查询参数
+ * 导出日志报表
  * @returns {Promise}
  */
-export function getLogReport(params) {
+export function exportLog() {
   return request({
-    url: '/admin/log/report',
+    url: '/admin/log/export',
     method: 'get',
-    params,
     responseType: 'blob'
   });
 }

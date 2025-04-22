@@ -118,8 +118,8 @@
             <el-card class="chart-card stat-elements" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>已处理对账审批</h3>
-                  <p>Processed orders</p>
+                  <h3>反馈数据</h3>
+                  <p>Feedback data</p>
                 </div>
               </template>
               <div class="stat-big-number">{{ processedOrders }}</div>
@@ -166,12 +166,9 @@ import {
   User, Document, Plus, Setting, Key, 
   Wallet, Stopwatch, PieChart, Histogram, TrendCharts
 } from '@element-plus/icons-vue';
-import { getDashboardOverview } from '@/api/admin/statistics';
-import { getElectricityUsageStatistics } from '@/api/admin/statistics';
-import { getRevenueStatistics } from '@/api/admin/statistics';
+import { getAdminDashboardInfo } from '@/api/admin/dashboard';
 import { getUserGrowthStatistics } from '@/api/admin/statistics';
 import { getPaymentMethodDistribution } from '@/api/admin/statistics';
-import { getBillPaymentRateStatistics } from '@/api/admin/statistics';
 
 // 加载状态
 const loading = ref(false);
@@ -390,34 +387,16 @@ const updateChart = () => {
 const fetchDashboardInfo = async () => {
   loading.value = true;
   try {
-    const res = await getDashboardOverview();
-    totalUsers.value = res.userCount || 0;
-    totalFees.value = res.electricityUsage || 0;
-    totalIncome.value = res.revenueMonth || 0;
-    abnormalBills.value = res.unpaidBills || 0;
-    processedOrders.value = res.completedPayments || 0;
-    pendingOrders.value = res.pendingPayments || 0;
-    systemLogs.value = res.operationLogs || 0;
+    const res = await getAdminDashboardInfo();
+    totalUsers.value = res.totalUser || 0;
+    totalFees.value = res.totalElectricityUsage || 0;
+    totalIncome.value = res.totalAmount || 0;
+    abnormalBills.value = res.totalPaymentBill || 0;
+    processedOrders.value = res.processedFeedbackCount || 0;
+    pendingOrders.value = res.unprocessedFeedbackCount || 0;
+    systemLogs.value = res.systemLogCount || 0;
     
     // 更新用户类型数据
-    fetchUserTypeData();
-    
-    // 初始化访问数量数据
-    initAccessData();
-  } catch (error) {
-    console.error('获取仪表盘信息失败:', error);
-    ElMessage.error('获取仪表盘信息失败，请稍后重试');
-  } finally {
-    loading.value = false;
-  }
-};
-
-// 获取用户类型数据
-const fetchUserTypeData = async () => {
-  userTypesLoading.value = true;
-  try {
-    const res = await getUserGrowthStatistics({ period: 'month' });
-    
     if (res.userTypeMap) {
       // 处理用户类型数据
       const userTypeMap = res.userTypeMap;
@@ -432,11 +411,22 @@ const fetchUserTypeData = async () => {
       
       updateChart();
     }
+    
+    // 初始化访问数量数据
+    initAccessData();
+    
+    // 如果有电量使用数据
+    if (res.electricityWeekUsageList) {
+      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+      chartData.value.powerUsage.labels = days;
+      chartData.value.powerUsage.values = res.electricityWeekUsageList;
+    }
+    
   } catch (error) {
-    console.error('获取用户类型数据失败:', error);
-    ElMessage.error('获取用户类型数据失败，请稍后重试');
+    console.error('获取仪表盘信息失败:', error);
+    ElMessage.error('获取仪表盘信息失败，请稍后重试');
   } finally {
-    userTypesLoading.value = false;
+    loading.value = false;
   }
 };
 
@@ -444,7 +434,7 @@ const fetchUserTypeData = async () => {
 const fetchElectricityData = async () => {
   chartLoading.value = true;
   try {
-    const res = await getElectricityUsageStatistics({ period: 'month' });
+    const res = await getUserGrowthStatistics({ period: 'month' });
     if (res.data && res.data.length) {
       chartData.value.powerUsage.labels = res.data.map(item => item.period);
       chartData.value.powerUsage.values = res.data.map(item => item.usage);

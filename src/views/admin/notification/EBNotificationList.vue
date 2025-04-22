@@ -159,11 +159,11 @@ const filterConfig = [
   {
     type: 'select',
     field: 'selectedType',
-    label: '通知类型',
+    label: '阅读状态',
     options: [
       { label: '全部', value: '' },
-      { label: '系统通知', value: '系统通知' },
-      { label: '审批通知', value: '审批通知' }
+      { label: '已读', value: '已读' },
+      { label: '未读', value: '未读' }
     ]
   },
   {
@@ -211,7 +211,7 @@ const fetchNotificationList = async (page = currentPage.value, shouldResetPage =
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       title: searchText.value,
-      type: selectedType.value,
+      readStatus: selectedType.value,
       startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
       endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
     })

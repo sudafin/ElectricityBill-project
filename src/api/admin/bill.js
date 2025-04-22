@@ -114,4 +114,16 @@ export function exportBills(params) {
     params,
     responseType: 'blob'
   });
+}
+
+/**
+ * 管理端查询用户账单
+ * @param {string|number} userId 用户ID
+ * @returns {Promise} 返回Promise对象，包含用户账单数据
+ */
+export function queryUserBill(userId) {
+  return request({
+    url: `/admin/bill/${userId}`,
+    method: 'get'
+  });
 } 

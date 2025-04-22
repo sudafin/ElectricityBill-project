@@ -1,20 +1,22 @@
 import request from '@/utils/request';
 
 /**
- * 获取电表列表
+ * 分页查询电表
  * @param {Object} params 查询参数
- * @param {number} params.pageNo 页码
- * @param {number} params.pageSize 每页数量
- * @param {string} params.keyword 搜索关键词（可选）
- * @param {string} params.status 电表状态（可选）
- * @param {string} params.bindStatus 绑定状态（可选）
- * @param {string} params.startDate 安装开始日期（可选）
- * @param {string} params.endDate 安装结束日期（可选）
- * @returns {Promise} 返回Promise对象，包含电表列表和总数
+ * @param {number} params.pageNo 页码（可选）
+ * @param {number} params.pageSize 每页数量（可选）
+ * @param {string} params.meterId 电表ID（可选）
+ * @param {string} params.model 型号（可选）
+ * @param {string} params.status 状态（可选）
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {boolean} params.isAsc 是否升序（可选）
+ * @param {string} params.sortBy 排序字段（可选）
+ * @returns {Promise} 返回Promise对象，包含电表列表数据
  */
-export function getMeterList(params) {
+export function queryMeterPage(params) {
   return request({
-    url: '/api/meters',
+    url: '/admin/meter/page',
     method: 'get',
     params
   });
@@ -22,150 +24,95 @@ export function getMeterList(params) {
 
 /**
  * 获取电表详情
- * @param {string} id 电表ID
+ * @param {string} meterId 电表ID
  * @returns {Promise} 返回Promise对象，包含电表详情
  */
-export function getMeterDetail(id) {
+export function getMeterDetail(meterId) {
   return request({
-    url: `/api/meters/${id}`,
+    url: `/admin/meter/${meterId}`,
     method: 'get'
   });
 }
 
 /**
- * 添加电表
+ * 创建电表
  * @param {Object} data 电表数据
- * @param {string} data.meterNo 电表编号
- * @param {string} data.model 电表型号
+ * @param {string} data.model 型号
+ * @param {string} data.installPlace 安装地点
  * @param {string} data.installDate 安装日期
  * @param {string} data.status 状态
- * @returns {Promise} 返回Promise对象，包含添加结果
+ * @returns {Promise} 返回Promise对象，包含创建结果
  */
-export function addMeter(data) {
+export function createMeter(data) {
   return request({
-    url: '/api/meters',
+    url: '/admin/meter/create',
     method: 'post',
     data
   });
 }
 
 /**
- * 更新电表信息
+ * 编辑电表
  * @param {Object} data 电表数据
- * @param {string} data.id 电表ID
- * @param {string} data.meterNo 电表编号（可选）
- * @param {string} data.model 电表型号（可选）
+ * @param {number} data.meterId 电表ID
+ * @param {string} data.model 型号（可选）
+ * @param {string} data.installPlace 安装地点（可选）
  * @param {string} data.installDate 安装日期（可选）
  * @param {string} data.status 状态（可选）
- * @returns {Promise} 返回Promise对象，包含更新结果
+ * @param {string} data.idCardNo 身份证号（可选）
+ * @returns {Promise} 返回Promise对象，包含编辑结果
  */
-export function updateMeter(data) {
+export function editMeter(data) {
   return request({
-    url: `/api/meters/${data.id}`,
-    method: 'put',
+    url: '/admin/meter/edit',
+    method: 'post',
     data
   });
 }
 
 /**
  * 删除电表
- * @param {string} id 电表ID
+ * @param {string} meterId 电表ID
  * @returns {Promise} 返回Promise对象，包含删除结果
  */
-export function deleteMeter(id) {
+export function deleteMeter(meterId) {
   return request({
-    url: `/api/meters/${id}`,
-    method: 'delete'
+    url: `/admin/meter/delete/${meterId}`,
+    method: 'put'
   });
 }
 
 /**
- * 批量删除电表
- * @param {Array} ids 电表ID数组
- * @returns {Promise} 返回Promise对象，包含批量删除结果
+ * 获取电表型号列表
+ * @returns {Promise} 返回Promise对象，包含电表型号列表
  */
-export function batchDeleteMeters(ids) {
+export function getMeterModel() {
   return request({
-    url: '/api/meters/batch-delete',
-    method: 'post',
-    data: { ids }
+    url: '/admin/meter/model',
+    method: 'get'
   });
 }
 
 /**
- * 绑定电表到用户
- * @param {Object} data 绑定数据
+ * 电表检查
+ * @param {Object} data 检查数据
  * @param {string} data.meterId 电表ID
- * @param {string} data.userId 用户ID
- * @returns {Promise} 返回Promise对象，包含绑定结果
- */
-export function bindMeterToUser(data) {
-  return request({
-    url: '/api/meters/bind-user',
-    method: 'post',
-    data
-  });
-}
-
-/**
- * 解绑用户电表
- * @param {string} meterId 电表ID
- * @returns {Promise} 返回Promise对象，包含解绑结果
- */
-export function unbindMeter(meterId) {
-  return request({
-    url: `/api/meters/${meterId}/unbind`,
-    method: 'post'
-  });
-}
-
-/**
- * 获取电表读数历史
- * @param {string} meterId 电表ID
- * @param {Object} params 查询参数
- * @param {number} params.pageNo 页码
- * @param {number} params.pageSize 每页数量
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @returns {Promise} 返回Promise对象，包含电表读数历史
- */
-export function getMeterReadings(meterId, params) {
-  return request({
-    url: `/api/meters/${meterId}/readings`,
-    method: 'get',
-    params
-  });
-}
-
-/**
- * 添加电表读数
- * @param {string} meterId 电表ID
- * @param {Object} data 读数数据
- * @param {number} data.reading 读数值
- * @param {string} data.readingDate 读数日期
+ * @param {string} data.inspectionType 检查类型
+ * @param {string} data.inspectionTime 检查时间
+ * @param {string} data.inspectionStatus 检查状态
+ * @param {string} data.inspectionResult 检查结果
+ * @param {string} data.inspectorName 检查人
+ * @param {string} data.faultDescription 故障描述（可选）
+ * @param {string} data.solution 解决方案（可选）
+ * @param {number} data.repairCost 维修费用（可选）
  * @param {string} data.remark 备注（可选）
- * @returns {Promise} 返回Promise对象，包含添加结果
+ * @param {string} data.nextInspectionTime 下次检查时间（可选）
+ * @returns {Promise} 返回Promise对象，包含检查结果
  */
-export function addMeterReading(meterId, data) {
+export function inspectionCreate(data) {
   return request({
-    url: `/api/meters/${meterId}/readings`,
+    url: `/admin/meter/inspection/${data.meterId}`,
     method: 'post',
     data
-  });
-}
-
-/**
- * 获取电表异常记录
- * @param {string} meterId 电表ID
- * @param {Object} params 查询参数
- * @param {number} params.pageNo 页码
- * @param {number} params.pageSize 每页数量
- * @returns {Promise} 返回Promise对象，包含电表异常记录
- */
-export function getMeterAbnormalRecords(meterId, params) {
-  return request({
-    url: `/api/meters/${meterId}/abnormal-records`,
-    method: 'get',
-    params
   });
 } 

@@ -6,21 +6,21 @@
           <span>处理反馈</span>
         </div>
       </template>
-      <el-form ref="form" :model="form" :rules="rules" label-width="120px" class="feedback-form">
+      <el-form ref="form" :model="form" :rules="rules" label-width="120px" class="feedback-form" v-loading="loading">
         <el-form-item label="反馈ID" prop="id">
           <el-input v-model="form.id" disabled />
         </el-form-item>
-        <el-form-item label="用户ID" prop="user_id">  
-          <el-input v-model="form.user_id" disabled />
+        <el-form-item label="用户名" prop="userName">  
+          <el-input v-model="form.userName" disabled />
         </el-form-item>
-        <el-form-item label="反馈类型" prop="feedback_type">
-          <el-input v-model="form.feedback_type" disabled />  
+        <el-form-item label="反馈类型" prop="feedbackType">
+          <el-input v-model="form.feedbackType" disabled />  
         </el-form-item>
         <el-form-item label="反馈内容" prop="content">
           <el-input v-model="form.content" type="textarea" :rows="4" disabled />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择">
+        <el-form-item label="状态" prop="feedbackStatus">
+          <el-select v-model="form.feedbackStatus" placeholder="请选择">
             <el-option label="待处理" value="pending" />
             <el-option label="已处理" value="processed" />  
             <el-option label="已关闭" value="closed" />
@@ -30,7 +30,7 @@
           <el-input v-model="form.response" type="textarea" :rows="4" placeholder="请输入回复内容" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="onSubmit">提交</el-button>
+          <el-button type="primary" @click="onSubmit" :loading="submitting">提交</el-button>
           <el-button @click="onCancel">取消</el-button>
         </el-form-item>
       </el-form>
@@ -39,20 +39,27 @@
 </template>
 
 <script>
-import { getFeedbackDetail, updateFeedback } from '@/api/admin/feedback'
+import { getFeedBackDetail, processFeedBack } from '@/api/admin/feedback';
+import { ElMessage } from 'element-plus';
 
 export default {
   data() {
     return {
+      loading: false,
+      submitting: false,
       form: {
         id: undefined,
-        user_id: undefined,
-        feedback_type: '',
+        userName: '',
+        feedbackType: '',
         content: '',
-        status: '',
-        response: ''  
+        feedbackStatus: '',
+        response: '',
+        submitTime: ''
       },
       rules: {
+        feedbackStatus: [
+          { required: true, message: '请选择处理状态', trigger: 'change' }
+        ],
         response: [
           { required: true, message: '请输入回复内容', trigger: 'blur' }
         ]  
@@ -64,33 +71,41 @@ export default {
   },
   methods: {
     async getFeedback() {
-      const id = this.$route.params.id
+      const id = this.$route.params.id;
+      if (!id) {
+        ElMessage.error('缺少反馈ID');
+        this.onCancel();
+        return;
+      }
+      
+      this.loading = true;
       try {
-        const response = await getFeedbackDetail(id)
-        if (response.code === 200) {
-          this.form = response.data
-        } else {
-          this.$message.error('获取反馈详情失败')
-        }
+        const response = await getFeedBackDetail(id);
+        this.form = response || {};
       } catch (error) {
-        console.error(error)
-        this.$message.error('获取反馈详情失败')
+        console.error(error);
+        ElMessage.error('获取反馈详情失败');
+      } finally {
+        this.loading = false;
       }
     },
-    onSubmit() {
+    async onSubmit() {
       this.$refs.form.validate(async (valid) => {
         if (valid) {
+          this.submitting = true;
           try {
-            const response = await updateFeedback(this.form)
-            if (response.code === 200) {
-              this.$message.success('提交成功')
-              this.$router.pushName('FeedbackList')
-            } else {
-              this.$message.error('提交失败')  
-            }
+            await processFeedBack({
+              feedbackId: this.form.id,
+              feedbackStatus: this.form.feedbackStatus,
+              response: this.form.response
+            });
+            ElMessage.success('提交成功');
+            this.onCancel();
           } catch (error) {
-            console.error(error)
-            this.$message.error('提交失败')
+            console.error(error);
+            ElMessage.error('提交失败');
+          } finally {
+            this.submitting = false;
           }
         } else {
           return false;
@@ -98,7 +113,7 @@ export default {
       });
     },
     onCancel() {
-      this.$router.pushName('FeedbackList')
+      this.$router.push('/admin/feedback');
     }
   }
 }

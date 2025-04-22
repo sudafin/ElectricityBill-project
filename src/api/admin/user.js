@@ -1,133 +1,169 @@
 import request from '@/utils/request';
 
-
+/**
+ * 管理员登录
+ * @param {Object} data 登录信息
+ * @returns {Promise} 返回Promise对象
+ */
 export function login(data) {
   return request({
-    url: '/admin/login',
+    url: '/login/login',
     method: 'post',
     data,
   });
 }
 
+/**
+ * 获取公钥
+ * @returns {Promise} 返回Promise对象，包含公钥
+ */
 export function getPublicKey() {
   return request({
-    url: '/admin',
+    url: '/login',
     method: 'get',
     responseType: 'text',
   });
 }
 
+/**
+ * 获取验证码
+ * @param {string} uuid 唯一标识
+ * @returns {Promise} 返回Promise对象，包含验证码图片
+ */
 export function getCaptcha(uuid) {
   return request({
-    url: '/admin/captcha',
+    url: '/login/captcha',
     method: 'get',
     params: { key: uuid },
     responseType: 'blob',
   });
 }
 
+/**
+ * 退出登录
+ * @returns {Promise} 返回Promise对象
+ */
 export function logout() {
   return request({
-    url: '/admin/logout',
+    url: '/login/logout',
     method: 'post',
-  });
-} 
-
-export function getDashboardInfo() {
-  return request({
-    url: '/dashboard',
-    method: 'get',
   });
 }
 
 /**
- * 获取用户列表
+ * 刷新访问令牌
+ * @returns {Promise} 返回Promise对象
+ */
+export function refreshAccessToken() {
+  return request({
+    url: '/login/refresh',
+    method: 'get',
+    withCredentials: true
+  });
+}
+
+/**
+ * 管理端分页查询用户
  * @param {Object} params 查询参数
- * @param {number} params.page 页码
- * @param {number} params.pageSize 每页数量
- * @param {string} params.keyword 搜索关键词（可选）
- * @param {string} params.status 用户状态（可选）
- * @returns {Promise} 返回Promise对象，包含用户列表
+ * @param {number} params.pageNo 页码（可选）
+ * @param {number} params.pageSize 每页数量（可选）
+ * @param {string} params.name 用户名（可选）
+ * @param {string} params.phone 手机号（可选）
+ * @param {string} params.userType 用户类型（可选）
+ * @param {string} params.meterId 电表编号（可选）
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {boolean} params.isAsc 是否升序（可选）
+ * @param {string} params.sortBy 排序字段（可选）
+ * @returns {Promise} 返回Promise对象，包含用户列表数据
  */
 export function getUserList(params) {
   return request({
-    url: '/api/admin/users',
+    url: '/admin/user/page',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取用户详情
- * @param {string} userId 用户ID
+ * 管理端查询用户详情
+ * @param {number} userId 用户ID
  * @returns {Promise} 返回Promise对象，包含用户详情
  */
 export function getUserDetail(userId) {
   return request({
-    url: `/api/admin/users/${userId}`,
+    url: `/admin/user/detail/${userId}`,
     method: 'get'
   });
 }
 
 /**
- * 添加用户
+ * 管理端创建用户
  * @param {Object} data 用户数据
- * @param {string} data.username 用户名
- * @param {string} data.password 密码
- * @param {string} data.name 姓名
- * @param {string} data.phone 手机号
- * @param {string} data.email 邮箱
- * @param {string} data.address 地址
- * @returns {Promise} 返回Promise对象，包含添加结果
+ * @returns {Promise} 返回Promise对象，包含创建结果
  */
-export function addUser(data) {
+export function createUser(data) {
   return request({
-    url: '/api/admin/users',
+    url: '/admin/user/create',
     method: 'post',
     data
   });
 }
 
 /**
- * 更新用户信息
- * @param {string} userId 用户ID
- * @param {Object} data 更新数据
- * @param {string} data.name 姓名（可选）
- * @param {string} data.phone 手机号（可选）
- * @param {string} data.email 邮箱（可选）
- * @param {string} data.address 地址（可选）
- * @param {string} data.status 状态（可选）
+ * 管理端编辑用户信息
+ * @param {Object} data 用户数据
  * @returns {Promise} 返回Promise对象，包含更新结果
  */
-export function updateUser(userId, data) {
+export function editUser(data) {
   return request({
-    url: `/api/admin/users/${userId}`,
+    url: '/admin/user/edit',
     method: 'put',
     data
   });
 }
 
 /**
- * 删除用户
- * @param {string} userId 用户ID
+ * 管理端删除用户
+ * @param {Array} userIds 用户ID数组
  * @returns {Promise} 返回Promise对象，包含删除结果
  */
-export function deleteUser(userId) {
+export function deleteUser(userIds) {
   return request({
-    url: `/api/admin/users/${userId}`,
-    method: 'delete'
+    url: '/admin/user/delete',
+    method: 'delete',
+    params: { userIds: userIds },
   });
 }
 
 /**
- * 重置用户密码
- * @param {string} userId 用户ID
- * @returns {Promise} 返回Promise对象，包含重置结果
+ * 管理端获取用户类型
+ * @returns {Promise} 返回Promise对象，包含用户类型列表
  */
-export function resetUserPassword(userId) {
+export function getUserTypeList() {
   return request({
-    url: `/api/admin/users/${userId}/reset-password`,
-    method: 'post'
+    url: '/admin/user/userType',
+    method: 'get'
+  });
+}
+
+/**
+ * 管理端新增用户类型
+ * @param {Object} data 用户类型数据
+ * @returns {Promise} 返回Promise对象，包含添加结果
+ */
+export function addUserType(data) {
+  return request({
+    url: '/admin/user/addUserType',
+    method: 'post',
+    data
+  });
+}
+
+export function getDashboardInfo() {
+  return request({
+    url: '/dashboard',
+    method: 'get',
   });
 }
 
@@ -202,14 +238,6 @@ export function getUserBill(id){
   return request({
     url: `/user/bill/${id}`,
     method: 'get',
-  });
-}
-
-export function refreshAccessToken() {
-  return request({
-    url: '/admin/refresh',
-    method: 'get',
-    withCredentials: true
   });
 }
 
@@ -472,4 +500,16 @@ export const downloadPaymentReceipt = (paymentId) => {
       });
     }, 500);
   });
-}; 
+};
+
+/**
+ * 重置用户密码
+ * @param {string} userId 用户ID
+ * @returns {Promise} 返回Promise对象，包含重置结果
+ */
+export function resetUserPassword(userId) {
+  return request({
+    url: `/api/admin/users/${userId}/reset-password`,
+    method: 'post'
+  });
+} 

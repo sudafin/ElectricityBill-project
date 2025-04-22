@@ -30,7 +30,31 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="电表型号" prop="model">
-              <el-input v-model="meterForm.model" placeholder="请输入电表型号" />
+              <el-select v-model="meterForm.model" placeholder="请选择电表型号" style="width: 100%">
+                <el-option
+                  v-for="item in meterModels"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="安装位置" prop="installPlace">
+              <el-input v-model="meterForm.installPlace" placeholder="请输入安装位置" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="电表状态" prop="status">
+              <el-select v-model="meterForm.status" placeholder="请选择电表状态" style="width: 100%">
+                <el-option label="正常" value="正常" />
+                <el-option label="故障" value="故障" />
+                <el-option label="停用" value="停用" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -45,15 +69,6 @@
                 style="width: 100%"
                 value-format="YYYY-MM-DD"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="电表状态" prop="status">
-              <el-select v-model="meterForm.status" placeholder="请选择电表状态" style="width: 100%">
-                <el-option label="正常" value="正常" />
-                <el-option label="故障" value="故障" />
-                <el-option label="停用" value="停用" />
-              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -113,6 +128,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Odometer } from '@element-plus/icons-vue';
 import EBMeterBindUser from './EBMeterBindUser.vue';
+import { getMeterDetail, createMeter, editMeter, getMeterModel } from '@/api/admin/meter';
 
 const route = useRoute();
 const router = useRouter();
@@ -128,10 +144,13 @@ const meterForm = reactive({
   meterNo: '',
   model: '',
   installDate: '',
+  installPlace: '',
   status: '正常',
   userId: null,
   username: ''
 });
+
+const meterModels = ref([]);
 
 const rules = {
   meterNo: [
@@ -139,7 +158,10 @@ const rules = {
     { min: 3, max: 50, message: '长度在 3 到 50 个字符', trigger: 'blur' }
   ],
   model: [
-    { required: true, message: '请输入电表型号', trigger: 'blur' }
+    { required: true, message: '请选择电表型号', trigger: 'change' }
+  ],
+  installPlace: [
+    { required: true, message: '请输入安装位置', trigger: 'blur' }
   ],
   installDate: [
     { required: true, message: '请选择安装日期', trigger: 'change' }
@@ -147,6 +169,16 @@ const rules = {
   status: [
     { required: true, message: '请选择电表状态', trigger: 'change' }
   ]
+};
+
+// 获取电表型号列表
+const fetchMeterModels = async () => {
+  try {
+    const res = await getMeterModel();
+    meterModels.value = res || [];
+  } catch (error) {
+    console.error('获取电表型号列表失败', error);
+  }
 };
 
 // 获取电表详情
@@ -231,6 +263,7 @@ const goBack = () => {
 };
 
 onMounted(() => {
+  fetchMeterModels();
   if (isEdit.value) {
     fetchMeterDetail(route.params.id);
   }

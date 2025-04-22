@@ -77,4 +77,23 @@ export function updateNotificationSettings(data) {
     method: 'put',
     data
   });
+}
+
+/**
+ * 获取用户新通知列表
+ * @param {Object} params 查询参数
+ * @param {number} params.pageNo 页码（可选）
+ * @param {number} params.pageSize 每页数量（可选）
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {boolean} params.isAsc 是否升序（可选）
+ * @param {string} params.sortBy 排序字段（可选）
+ * @returns {Promise} 返回Promise对象，包含新通知列表
+ */
+export function getNewNotificationList(params) {
+  return request({
+    url: '/user/notification/newList',
+    method: 'get',
+    params
+  });
 } 

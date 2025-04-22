@@ -45,8 +45,8 @@
           actions-fixed="right"
           :auto-height="true"
           pagination
-          :current-page="listQuery.page"
-          :page-size="listQuery.limit"
+          :current-page="listQuery.pageNo"
+          :page-size="listQuery.pageSize"
           :total="total"
           @selection-change="handleSelectionChange"
           @page-change="handlePageChange"
@@ -54,7 +54,7 @@
         >
           <!-- 状态列自定义渲染 -->
           <template #status="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="getStatusType(row.feedbackStatus)">{{ row.feedbackStatus }}</el-tag>
           </template>
 
           <!-- 操作列 -->
@@ -75,6 +75,7 @@ import { parseTime } from '@/utils';
 import { ChatDotSquare, Search, Calendar, Close } from '@element-plus/icons-vue';
 import { EBFilterBar, EBTable } from '@/components';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { queryFeedBackPage, processFeedBack, getFeedbackType } from '@/api/admin/feedback';
 
 // 状态数据
 const loading = ref(false);
@@ -82,29 +83,39 @@ const list = ref([]);
 const total = ref(0);
 const selectedIds = ref([]);
 const listQuery = reactive({
-  page: 1,
-  limit: 10,
-  feedback_type: '',
-  status: '',
-  submit_time: ''
+  pageNo: 1,
+  pageSize: 10,
+  feedbackType: '',
+  feedbackStatus: '',
+  feedbackId: '',
+  startDate: '',
+  endDate: '',
+  isAsc: false
 });
+
+// 获取反馈类型列表
+const feedbackTypes = ref([]);
 
 // 筛选条件配置
 const filterConfig = [
   {
+    type: 'input',
+    field: 'feedbackId',
+    label: '反馈ID',
+    placeholder: '请输入反馈ID'
+  },
+  {
     type: 'select',
-    field: 'feedback_type',
+    field: 'feedbackType',
     label: '反馈类型',
     options: [
       { label: '全部类型', value: '' },
-      { label: '投诉', value: 'complaint' },
-      { label: '建议', value: 'suggestion' },
-      { label: '问题', value: 'question' }
+      // 动态生成的选项
     ]
   },
   {
     type: 'select',
-    field: 'status',
+    field: 'feedbackStatus',
     label: '状态',
     options: [
       { label: '全部', value: '' },
@@ -115,26 +126,27 @@ const filterConfig = [
   },
   {
     type: 'daterange',
-    field: 'submit_time',
+    field: 'dateRange',
     label: '提交时间'
   }
 ];
 
 // 初始值
 const initialFilterValues = {
-  feedback_type: '',
-  status: '',
-  submit_time: ''
+  feedbackId: '',
+  feedbackType: '',
+  feedbackStatus: '',
+  dateRange: []
 };
 
 // 表格列配置
 const tableColumns = [
   { prop: 'id', label: 'ID', minWidth: '80' },
-  { prop: 'user_id', label: '用户ID', minWidth: '80' },
-  { prop: 'feedback_type', label: '反馈类型', minWidth: '120' },
+  { prop: 'userName', label: '用户名', minWidth: '100' },
+  { prop: 'feedbackType', label: '反馈类型', minWidth: '120' },
   { prop: 'content', label: '反馈内容', minWidth: '400', showOverflowTooltip: true },
   { 
-    prop: 'status', 
+    prop: 'feedbackStatus', 
     label: '状态',
     minWidth: '100',
     type: 'tag',
@@ -144,7 +156,7 @@ const tableColumns = [
       'closed': 'warning'
     }
   },
-  { prop: 'submit_time', label: '提交时间', minWidth: '180', formatter: (row) => parseTime(row.submit_time, '{y}-{m}-{d} {h}:{i}') }
+  { prop: 'submitTime', label: '提交时间', minWidth: '180' }
 ];
 
 // 获取标签类型
@@ -161,40 +173,82 @@ const getStatusType = (status) => {
   }
 };
 
+// 获取反馈类型列表
+const fetchFeedbackTypes = async () => {
+  try {
+    const res = await getFeedbackType();
+    if (res && typeof res === 'object') {
+      // 转换成选项格式
+      const types = [];
+      for (const [key, values] of Object.entries(res)) {
+        values.forEach(value => {
+          types.push({ label: value, value });
+        });
+      }
+      feedbackTypes.value = types;
+      // 更新过滤器配置
+      const typeFilterIndex = filterConfig.findIndex(f => f.field === 'feedbackType');
+      if (typeFilterIndex > -1) {
+        filterConfig[typeFilterIndex].options = [
+          { label: '全部类型', value: '' },
+          ...types
+        ];
+      }
+    }
+  } catch (error) {
+    console.error('获取反馈类型失败', error);
+  }
+};
+
 // 获取列表数据
-const getList = () => {
+const getList = async () => {
   loading.value = true;
-  // 根据筛选条件获取反馈列表数据
-  // ... 实际的API调用
-  setTimeout(() => {
+  try {
+    const res = await queryFeedBackPage(listQuery);
+    list.value = res.list || [];
+    total.value = res.total || 0;
+  } catch (error) {
+    console.error('获取反馈列表失败', error);
+    ElMessage.error('获取反馈列表失败');
+  } finally {
     loading.value = false;
-  }, 500);
+  }
 };
 
 // 处理筛选搜索
 const handleFilterSearch = (filterValues) => {
   // 更新筛选值
-  listQuery.feedback_type = filterValues.feedback_type || '';
-  listQuery.status = filterValues.status || '';
-  listQuery.submit_time = filterValues.submit_time || '';
+  listQuery.feedbackId = filterValues.feedbackId || '';
+  listQuery.feedbackType = filterValues.feedbackType || '';
+  listQuery.feedbackStatus = filterValues.feedbackStatus || '';
   
-  listQuery.page = 1;
+  if (filterValues.dateRange && filterValues.dateRange.length === 2) {
+    listQuery.startDate = filterValues.dateRange[0];
+    listQuery.endDate = filterValues.dateRange[1];
+  } else {
+    listQuery.startDate = '';
+    listQuery.endDate = '';
+  }
+  
+  listQuery.pageNo = 1;
   getList();
 };
 
 // 清空搜索条件
 const clearSearch = () => {
   Object.assign(listQuery, {
-    page: 1,
-    feedback_type: '',
-    status: '',
-    submit_time: ''
+    pageNo: 1,
+    feedbackId: '',
+    feedbackType: '',
+    feedbackStatus: '',
+    startDate: '',
+    endDate: ''
   });
 };
 
 // 分页处理
 const handlePageChange = (page) => {
-  listQuery.page = page;
+  listQuery.pageNo = page;
   getList();
 };
 
@@ -216,8 +270,14 @@ const handleBatchClose = () => {
     type: 'warning'
   }).then(async () => {
     try {
-      // 这里替换为实际的API调用
-      // await batchCloseFeedback(selectedIds.value);
+      // 逐个处理关闭操作
+      for (const id of selectedIds.value) {
+        await processFeedBack({
+          feedbackId: id,
+          feedbackStatus: 'closed',
+          response: '批量关闭'
+        });
+      }
       ElMessage.success('批量关闭成功');
       getList();
     } catch (error) {
@@ -228,6 +288,7 @@ const handleBatchClose = () => {
 };
 
 onMounted(() => {
+  fetchFeedbackTypes();
   getList();
 });
 </script>

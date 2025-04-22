@@ -2,39 +2,33 @@ import request from '@/utils/request';
 
 /**
  * 获取报表数据
- * @param {String} type - 报表类型
- * @param {String} startDate - 开始日期
- * @param {String} endDate - 结束日期
+ * @param {Object} params - 查询参数
+ * @param {string} params.reportType - 报表类型（可选）
+ * @param {string} params.startDate - 开始时间（可选）
+ * @param {string} params.endDate - 结束时间（可选）
  * @returns {Promise}
  */
-export function getReportData(type, startDate, endDate) {
+export function getReportData(params) {
   return request({
-    url: '/admin/report/data',
+    url: '/report',
     method: 'get',
-    params: {
-      type,
-      startDate,
-      endDate
-    }
+    params
   });
 }
 
 /**
- * 导出报表Excel
- * @param {String} type - 报表类型
- * @param {String} startDate - 开始日期
- * @param {String} endDate - 结束日期
+ * 导出运营数据报表
+ * @param {Object} params - 查询参数
+ * @param {string} params.reportType - 报表类型（可选）
+ * @param {string} params.startDate - 开始时间（可选）
+ * @param {string} params.endDate - 结束时间（可选）
  * @returns {Promise}
  */
-export function getReportExcel(type, startDate, endDate) {
+export function exportReport(params) {
   return request({
-    url: '/admin/report/excel',
+    url: '/report/export',
     method: 'get',
-    params: {
-      type,
-      startDate,
-      endDate
-    },
+    params,
     responseType: 'blob'
   });
 }

@@ -260,7 +260,7 @@ const handleDelete = async (row) => {
     type: 'warning',
   })
     .then(async () => {
-      await deleteUser(row.id);
+      await deleteUser([row.id]);
       fetchUserList();
       ElMessage.success('删除成功');
     })
@@ -280,7 +280,6 @@ const handleBatchDelete = async () => {
     type: 'warning',
   })
   .then(async () => {
-    selectedUserIds.value = selectedUserIds.value.join(',');
     const res = await deleteUser(selectedUserIds.value);
     if(res.code === 200){
       fetchUserList();

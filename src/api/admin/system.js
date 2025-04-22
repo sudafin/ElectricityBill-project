@@ -132,4 +132,71 @@ export function restoreData(backupId) {
     url: `/admin/system/restore/${backupId}`,
     method: 'post'
   });
+}
+
+/**
+ * 获取公钥
+ * @returns {Promise} 返回Promise对象，包含公钥
+ */
+export function getPublicKey() {
+  return request({
+    url: '/login',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取验证码
+ * @param {string} key 验证码key
+ * @returns {Promise} 返回Promise对象，包含验证码图片
+ */
+export function captcha(key) {
+  return request({
+    url: '/login/captcha',
+    method: 'get',
+    params: { key },
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 登录
+ * @param {Object} data 登录数据
+ * @param {string} data.account 账号
+ * @param {string} data.password 密码
+ * @param {string} data.code 验证码
+ * @param {string} data.key 验证码key
+ * @param {boolean} data.rememberMe 记住我
+ * @returns {Promise} 返回Promise对象，包含登录结果
+ */
+export function login(data) {
+  return request({
+    url: '/login/login',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 登出
+ * @returns {Promise} 返回Promise对象，包含登出结果
+ */
+export function logout() {
+  return request({
+    url: '/login/logout',
+    method: 'post'
+  })
+}
+
+/**
+ * 刷新token
+ * @param {string} adminToken 管理员token
+ * @returns {Promise} 返回Promise对象，包含新token
+ */
+export function refreshToken(adminToken) {
+  return request({
+    url: '/login/refresh',
+    method: 'get',
+    params: { adminToken }
+  })
 } 

@@ -1,6 +1,80 @@
 import request from '@/utils/request';
 
 /**
+ * 分页查询费率
+ * @param {Object} params 查询参数
+ * @param {number} params.pageNo 页码（可选）
+ * @param {number} params.pageSize 每页数量（可选）
+ * @param {string} params.rateId 费率ID（可选）
+ * @param {string} params.status 状态（可选）
+ * @param {string} params.userType 用户类型（可选）
+ * @param {string} params.startDate 开始日期（可选）
+ * @param {string} params.endDate 结束日期（可选）
+ * @param {boolean} params.isAsc 是否升序（可选）
+ * @param {string} params.sortBy 排序字段（可选）
+ * @returns {Promise} 返回Promise对象，包含费率列表数据
+ */
+export function queryRatePage(params) {
+  return request({
+    url: '/rate/page',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取费率详情
+ * @param {number} id 费率ID
+ * @returns {Promise} 返回Promise对象，包含费率详情
+ */
+export function getRateDetail(id) {
+  return request({
+    url: `/rate/detail/${id}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 创建费率
+ * @param {Object} data 费率数据
+ * @returns {Promise} 返回Promise对象，包含创建结果
+ */
+export function createRate(data) {
+  return request({
+    url: '/rate/create',
+    method: 'post',
+    data
+  });
+}
+
+/**
+ * 编辑费率
+ * @param {number} id 费率ID
+ * @param {Object} data 费率数据
+ * @returns {Promise} 返回Promise对象，包含编辑结果
+ */
+export function editRate(id, data) {
+  return request({
+    url: `/rate/edit/${id}`,
+    method: 'put',
+    data
+  });
+}
+
+/**
+ * 删除费率
+ * @param {Array} ids 费率ID数组
+ * @returns {Promise} 返回Promise对象，包含删除结果
+ */
+export function deleteRate(ids) {
+  return request({
+    url: '/rate/delete',
+    method: 'delete',
+    params: { ids }
+  });
+}
+
+/**
  * 获取费率列表
  * @param {Object} params 查询参数
  * @param {number} params.pageNo 页码
@@ -16,18 +90,6 @@ export function getRateList(params) {
     url: '/api/rates',
     method: 'get',
     params
-  });
-}
-
-/**
- * 获取费率详情
- * @param {string} id 费率ID
- * @returns {Promise} 返回Promise对象，包含费率详情
- */
-export function getRateDetail(id) {
-  return request({
-    url: `/api/rates/${id}`,
-    method: 'get'
   });
 }
 
@@ -83,18 +145,6 @@ export function updateRate(data) {
     url: `/api/rates/${data.id}`,
     method: 'put',
     data
-  });
-}
-
-/**
- * 删除费率
- * @param {string} id 费率ID
- * @returns {Promise} 返回Promise对象，包含删除结果
- */
-export function deleteRate(id) {
-  return request({
-    url: `/api/rates/${id}`,
-    method: 'delete'
   });
 }
 

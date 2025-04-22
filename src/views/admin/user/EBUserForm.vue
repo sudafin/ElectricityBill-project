@@ -1,336 +1,427 @@
 <template>
-  <div class="user-form">
-    <el-card class="glass-card">
-      <template #header>
-        <div class="form-header">
-          <div class="title">用户信息</div>
-          <div class="subtitle">请填写或修改用户基本信息</div>
-        </div>
-      </template>
+  <div class="user-form-container">
       <el-form 
-        ref="userFormRef" 
+      ref="formRef"
         :model="userForm" 
         :rules="rules" 
         label-width="120px"
-        class="glass-form"
-      >
-        <el-form-item label="用户姓名" prop="username">
-          <el-input v-model="userForm.username" placeholder="请输入用户姓名"></el-input>
+      class="user-form"
+    >
+      <el-form-item label="身份证号" prop="idCardNo">
+        <el-input v-model="userForm.idCardNo" placeholder="请输入18位身份证号" />
+      </el-form-item>
+      <el-form-item label="用户名" prop="username">
+        <el-input v-model="userForm.username" placeholder="请输入用户名" />
+      </el-form-item>
+      <el-form-item label="手机号" prop="phone">
+        <el-input v-model="userForm.phone" placeholder="请输入手机号" />
         </el-form-item>
-        <el-form-item label="电话" prop="phone">
-          <el-input v-model="userForm.phone" placeholder="请输入电话"></el-input>
+      <el-form-item label="所在地区" prop="region">
+        <el-cascader
+          v-model="userForm.region"
+          :options="regionOptions"
+          placeholder="请选择省/市/区"
+          @change="handleRegionChange"
+        />
         </el-form-item>
-        <el-form-item label="地址" prop="address">
-          <el-input v-model="userForm.address" placeholder="请输入地址"></el-input>
+      <el-form-item label="详细地址" prop="addressDetail">
+        <el-input v-model="userForm.addressDetail" placeholder="请输入详细地址" />
         </el-form-item>
         <el-form-item label="电表编号" prop="meterNo">
-          <el-input v-model="userForm.meterNo" placeholder="请输入电表编号"></el-input>
-        </el-form-item>
-        <el-form-item label="用户状态" prop="accountStatus">
-          <el-select v-model="userForm.accountStatus" placeholder="请选择用户状态">
-            <el-option label="正常" value="正常"></el-option>
-            <el-option label="欠费" value="欠费"></el-option>
-          </el-select>
+        <el-input v-model="userForm.meterNo" placeholder="请输入电表编号" />
         </el-form-item>
         <el-form-item label="用户类型" prop="userType">
           <el-select v-model="userForm.userType" placeholder="请选择用户类型">
-            <el-option label="居民用户" value="居民用户"></el-option>
-            <el-option label="商业用户" value="商业用户"></el-option>
+          <el-option 
+            v-for="item in userTypeOptions" 
+            :key="item.value" 
+            :label="item.label" 
+            :value="item.value" 
+          />
           </el-select>
         </el-form-item>
-        <el-form-item label="电费余额" prop="balance">
-          <el-input-number v-model="userForm.balance" :precision="2" :step="0.1"></el-input-number>
+      <el-form-item class="form-button-group">
+        <el-button @click="resetForm">重置</el-button>
+        <el-button type="primary" @click="submitForm">提交</el-button>
         </el-form-item>
-        <div class="form-buttons">
-          <el-button 
-            class="glass-button" 
-            @click="resetForm"
-            :disabled="isEdit"
-          >
-            <el-icon><RefreshRight /></el-icon>
-            重置
-          </el-button>
-          <el-button 
-            class="glass-button-primary" 
-            type="primary" 
-            @click="submitForm"
-          >
-            <el-icon><Check /></el-icon>
-            提交
-          </el-button>
-        </div>
       </el-form>
-    </el-card>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { 
-  User, 
-  Phone, 
-  Location, 
-  House, 
-  Shop, 
-  RefreshRight, 
-  Check 
-} from '@element-plus/icons-vue';
-import { getUserDetail, editUser, createUser } from '@/api/admin/user.js';
+<script>
+import { reactive, ref, toRefs, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import { createUser, editUser, getUserDetail, getUserTypeList } from '@/api/admin/user'
+import { regionData } from './regionData'
+import { useRoute } from 'vue-router'
 
-const router = useRouter();
-const userFormRef = ref(null);
-
-const route = useRoute();
-const isEdit = ref(false);
-const userForm = reactive({
+export default {
+  name: 'EBUserForm',
+  props: {
+    userId: {
+      type: [String, Number],
+      default: null
+    }
+  },
+  emits: ['submit-success'],
+  setup(props, { emit }) {
+    const formRef = ref(null)
+    const regionOptions = ref(regionData)
+    const route = useRoute()
+    const isEditMode = ref(false)
+    const loading = ref(false)
+    
+    // 用户类型选项
+    const userTypeOptions = ref([
+      { value: 0, label: '居民' },
+      { value: 1, label: '商业' }
+    ])
+    
+    const state = reactive({
+      userForm: {
+        idCardNo: '',
   username: '',
   phone: '',
-  address: '',
+        region: [], // 存储省市区的值
+        addressDetail: '', // 详细地址
+        address: '', // 完整地址（提交时拼接）
   meterNo: '',
-  accountStatus: '',
-  userType: '',
-  balance: 0,
-});
-const rules = reactive({
-  username: [{ required: true, message: '请输入用户姓名', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入电话', trigger: 'blur' },{
-    validator: (rule, value, callback) => {
-      if (!value || !/^\d{11}$/.test(value)) {
-        callback(new Error('请输入正确的电话号码'));
+        userType: 0
       }
-      callback();
-    },
-  }],
-  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
-  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
-  meterNo: [{ required: true, message: '请输入电表编号', trigger: 'blur' }],
-});
+    })
 
-onMounted(async () => {
-  const userId = route.params.id;
-  //假如路由参数有id，则表示是编辑用户
-  if (userId) {
-    isEdit.value = true;
-    try {
-      const res = await getUserDetail(userId);
-      const { username, phone, address, meterNo, accountStatus, userType, balance } = res;
-      userForm.username = username;
-      userForm.phone = phone;
-      userForm.address = address;
-      userForm.meterNo = meterNo;
-      userForm.accountStatus = accountStatus;
-      userForm.userType = userType;
-      userForm.balance = balance;
+    // 表单验证规则
+    const rules = reactive({
+      idCardNo: [
+        { required: true, message: '请输入身份证号', trigger: 'blur' },
+        { 
+          pattern: /(^\d{18}$)|(^\d{17}(\d|X|x)$)/, 
+          message: '请输入正确的18位身份证号', 
+          trigger: 'blur' 
+        }
+      ],
+      username: [
+        { required: true, message: '请输入用户名', trigger: 'blur' },
+        { min: 2, max: 20, message: '用户名长度应为2-20个字符', trigger: 'blur' }
+      ],
+      phone: [
+        { required: true, message: '请输入手机号', trigger: 'blur' },
+        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+      ],
+      region: [
+        { required: true, message: '请选择所在地区', trigger: 'change' }
+      ],
+      addressDetail: [
+        { required: true, message: '请输入详细地址', trigger: 'blur' }
+      ],
+      meterNo: [
+        // 移除必填验证
+      ],
+      userType: [
+        { required: true, message: '请选择用户类型', trigger: 'change' }
+      ]
+    })
+
+    // 获取用户类型列表
+    const fetchUserTypeList = async () => {
+      try {
+        console.log('开始获取用户类型列表')
+        const res = await getUserTypeList()
+        console.log('获取到的用户类型列表:', res)
+        
+        // 处理不同格式的响应
+        if (Array.isArray(res)) {
+          // 如果是简单的字符串数组 (List<String>)
+          if (res.length > 0 && typeof res[0] === 'string') {
+            userTypeOptions.value = [
+              ...res.map((typeName, index) => ({ 
+                value: index, 
+                label: typeName 
+              }))
+            ]
+          } 
+          // 如果是对象数组 (List<UserType>)
+          else if (res.length > 0 && typeof res[0] === 'object') {
+            userTypeOptions.value = [
+              ...res.map((type, index) => ({ 
+                value: index, 
+                label: type.typeName || type.name || `类型${index}` 
+              }))
+            ]
+          }
+        } else if (res && res.data && Array.isArray(res.data)) {
+          userTypeOptions.value = [
+            ...res.data.map((item, index) => {
+              if (typeof item === 'string') {
+                return { value: index, label: item }
+              }
+              return { 
+                value: index, 
+                label: item.typeName || item.name || `类型${index}` 
+              }
+            })
+          ]
+        }
+        
+        console.log('处理后的用户类型选项:', userTypeOptions.value)
     } catch (error) {
-      console.error('获取用户详情失败:', error);
-      ElMessage.error('获取用户详情失败,请稍后再试');
+        console.error('获取用户类型列表失败:', error)
+        // 保留默认选项
+      }
     }
-  }
-});
 
+    // 处理地区选择变化
+    const handleRegionChange = (value) => {
+      console.log('地区选择变化:', value)
+      updateFullAddress()
+    }
 
-const submitForm = async () => {
-  //如果表单验证通过，则提交表单
-  userFormRef.value.validate(async (valid) => {
-    if (valid) {
-      //查看是否是编辑用户
-      if (isEdit.value) {
-        // 编辑用户
-        const res = await editUser(userForm);
-        if(res.code === 200){
-          ElMessage.success('编辑用户成功');
-          router.push({ name: 'UserDashboard' });
-        } else {
-          ElMessage.error('编辑用户失败');
+    // 更新完整地址
+    const updateFullAddress = () => {
+      if (state.userForm.region && state.userForm.region.length > 0) {
+        // 查找选中的地区标签
+        const selectedLabels = []
+        let currentOptions = regionOptions.value
+        
+        state.userForm.region.forEach((code) => {
+          const option = currentOptions.find(opt => opt.value === code)
+          if (option) {
+            selectedLabels.push(option.label)
+            currentOptions = option.children || []
+          }
+        })
+        
+        // 组合完整地址，并去掉空格
+        state.userForm.address = [
+          ...selectedLabels,
+          state.userForm.addressDetail
+        ].filter(Boolean).join('').replace(/\s+/g, '')
+        
+        console.log('更新后的完整地址:', state.userForm.address)
+      }
+    }
+
+    // 解析地址为省市区和详细地址
+    const parseAddress = (fullAddress) => {
+      if (!fullAddress) return
+      
+      console.log('解析地址:', fullAddress)
+      // 尝试匹配省市区
+      const found = []
+      let remainingAddress = fullAddress
+      let currentLevel = regionOptions.value
+      
+      // 尝试从省开始匹配
+      while (currentLevel && currentLevel.length > 0) {
+        let matched = false
+        
+        for (const option of currentLevel) {
+          if (remainingAddress.startsWith(option.label)) {
+            found.push(option.value)
+            remainingAddress = remainingAddress.substring(option.label.length).trim()
+            currentLevel = option.children || []
+            matched = true
+            break
+          }
+        }
+        
+        if (!matched) break
+      }
+      
+      // 根据匹配到的级别进行处理
+      if (found.length > 0) {
+        state.userForm.region = found
+        state.userForm.addressDetail = remainingAddress
+        
+        // 如果只匹配到省或市，将剩余内容作为详细地址
+        if (found.length < 3) {
+          console.log(`只匹配到${found.length}级地址，剩余内容作为详细地址`)
         }
       } else {
-        // 新增用户
-        const res = await createUser(userForm);
-        console.log("新增用户:", res);
-        if(res.code === 200){
-          ElMessage.success('新增用户成功');
-          router.push({ name: 'UserDashboard' });
-        } else {
-          ElMessage.error('新增用户失败');
-        }
+        // 如果无法匹配，将整个地址放入详细地址
+        console.log('无法匹配任何省市区，将整个地址放入详细地址')
+        state.userForm.addressDetail = fullAddress
       }
-    } else {
-      console.log('表单验证失败!');
-      return false;
+      
+      console.log('解析结果:', {
+        region: state.userForm.region,
+        addressDetail: state.userForm.addressDetail
+      })
     }
-  });
-};
 
-const resetForm = () => {
-  userFormRef.value.resetFields();
-};
+    // 获取用户详情
+    const fetchUserDetail = async (userId) => {
+      if (!userId) return
+      
+      loading.value = true
+      try {
+        console.log('开始获取用户ID为', userId, '的详细信息')
+        const res = await getUserDetail(userId)
+        console.log('获取到的用户详情数据:', res)
+        
+        const data = res.data || res
+        
+        if (data) {
+          // 编辑模式，填充表单
+          state.userForm.idCardNo = data.idCardNo || ''
+          state.userForm.username = data.username || ''
+          state.userForm.phone = data.phone || ''
+          state.userForm.meterNo = data.meterNo || data.meterId || ''
+          
+          // 处理用户类型，将字符串值转为数字
+          if (typeof data.userType === 'number') {
+            state.userForm.userType = data.userType
+          } else if (data.userType === '居民' || data.userType === '居民用户') {
+            state.userForm.userType = 0
+          } else if (data.userType === '商业' || data.userType === '商业用户') {
+            state.userForm.userType = 1
+          } else {
+            state.userForm.userType = 0 // 默认居民
+          }
+          
+          // 解析地址
+          if (data.address) {
+            console.log('开始解析地址:', data.address)
+            parseAddress(data.address)
+          }
+          
+          // 确保表单数据已更新
+          console.log('表单数据已更新:', state.userForm)
+          
+          // 更新表单后强制渲染
+          nextTick(() => {
+            if (formRef.value) {
+              formRef.value.validateField([])
+            }
+          })
+        } else {
+          console.warn('未获取到用户数据或数据为空')
+          ElMessage.warning('未获取到用户数据')
+        }
+      } catch (error) {
+        console.error('获取用户详情失败:', error)
+        ElMessage.error('获取用户详情失败: ' + (error.message || '未知错误'))
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 初始化表单
+    const initForm = async () => {
+      // 首先获取用户类型列表
+      await fetchUserTypeList()
+      
+      // 从路由参数获取用户ID (优先级高于props)
+      const routeUserId = route.params.id
+      const targetUserId = routeUserId || props.userId
+      
+      if (targetUserId) {
+        isEditMode.value = true
+        console.log('编辑模式, 用户ID:', targetUserId)
+        await fetchUserDetail(targetUserId)
+      } else {
+        isEditMode.value = false
+        console.log('创建模式')
+        // 创建模式不需要加载数据，使用默认值
+      }
+    }
+
+    // 提交表单
+    const submitForm = async () => {
+      if (!formRef.value) return
+      
+      await formRef.value.validate(async (valid) => {
+        if (valid) {
+          try {
+            // 提交前更新完整地址
+            updateFullAddress()
+            console.log('提交前表单数据:', state.userForm)
+            
+            // 准备提交的数据
+            const submitData = { ...state.userForm }
+            // 移除region字段，后端不需要
+            delete submitData.region
+            delete submitData.addressDetail
+            
+            // 获取用户类型的中文名称
+            const userTypeOption = userTypeOptions.value.find(item => item.value === state.userForm.userType)
+            submitData.userType = userTypeOption ? userTypeOption.label : '居民'
+            
+            console.log('准备提交的数据:', submitData)
+            
+            loading.value = true
+            // 根据是否是编辑模式判断调用创建还是编辑接口
+            const routeUserId = route.params.id
+            const targetUserId = routeUserId || props.userId
+            
+            if (targetUserId) {
+              submitData.id = targetUserId
+              const result = await editUser(submitData)
+              console.log('编辑用户结果:', result)
+              ElMessage.success('编辑用户成功')
+            } else {
+              const result = await createUser(submitData)
+              console.log('创建用户结果:', result)
+              ElMessage.success('创建用户成功')
+            }
+            
+            emit('submit-success')
+          } catch (error) {
+            console.error('提交表单失败:', error)
+            ElMessage.error(`提交失败: ${error.message || '未知错误'}`)
+          } finally {
+            loading.value = false
+          }
+        } else {
+          ElMessage.warning('请完善表单信息')
+          return false
+        }
+      })
+    }
+
+    // 重置表单
+    const resetForm = () => {
+      if (formRef.value) {
+        formRef.value.resetFields()
+      }
+    }
+
+    onMounted(() => {
+      initForm()
+    })
+
+    return {
+      formRef,
+      regionOptions,
+      userTypeOptions,
+      isEditMode,
+      loading,
+      ...toRefs(state),
+      rules,
+      handleRegionChange,
+      submitForm,
+      resetForm
+    }
+  }
+}
 </script>
 
 <style scoped>
+.user-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .user-form {
-  padding: 10px;
-  min-height: 60vh;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 5px;
+  margin-top: 16px;
 }
 
-.glass-card {
-  width: 600px;
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(174, 171, 171, 0.6) !important;
-  box-shadow: 
-    0 6px 24px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.7) !important;
-  border-radius: 20px !important;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 10px 32px rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.8) !important;
-}
-
-.form-header {
-  padding: 20px 24px;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.8));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2d3d;
-  margin-bottom: 5px;
-  letter-spacing: 0.5px;
-  position: relative;
-  padding-left: 14px;
-}
-
-.title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 16px;
-  background: linear-gradient(to bottom, #3498db, #2980b9);
-  border-radius: 2px;
-}
-
-.subtitle {
-  font-size: 13px;
-  color: #475669;
-  margin-left: 14px;
-  opacity: 0.9;
-}
-
-.glass-form {
-  padding: 0px;
-}
-
-.glass-input :deep(.el-input__wrapper),
-.glass-select :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(8px);
-  box-shadow: 
-    0 2px 10px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.8) !important;
-  border-radius: 10px;
-  padding: 6px 12px;
-  height: 40px;
-}
-
-.glass-input :deep(.el-input__prefix),
-.glass-select :deep(.el-input__prefix) {
-  color: #3498db;
-  font-size: 15px;
-  margin-right: 6px;
-}
-
-.glass-button-primary,
-.glass-button {
-  height: 40px;
-  padding: 0 20px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.glass-button-primary {
-  background: linear-gradient(135deg, #5abdff, #799af0) !important;
-  border: none !important;
-  box-shadow: 
-    0 4px 10px rgba(52, 152, 219, 0.4),
-    0 0 0 1px rgba(52, 152, 219, 0.2) !important;
-}
-
-.glass-button {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  color: #475669;
-}
-
-.glass-button:hover,
-.glass-button-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(52, 152, 219, 0.5) !important;
-}
-
-.form-buttons {
-  margin-top: 32px;
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #1f2d3d;
-  font-size: 14px;
-}
-
-.el-form-item {
-  margin-bottom: 24px;
-}
-
-:deep(.el-select-dropdown__item) {
-  display: flex;
-  align-items: center;
-  padding: 6px 12px;
-}
-
-:deep(.el-select-dropdown__item .el-icon) {
-  margin-right: 6px;
-  font-size: 15px;
-  color: #3498db;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(144, 147, 153, 0.3);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(144, 147, 153, 0.5);
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
+.form-button-group {
+  margin-top: 24px;
+  text-align: right;
 }
 </style> 
