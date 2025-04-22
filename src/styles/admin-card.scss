@@ -1,0 +1,104 @@
+/* 管理端通用卡片样式 */
+.admin-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .el-card__header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f2f5;
+    background-color: #fafbfc;
+  }
+
+  .el-card__body {
+    padding: 20px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #303133;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .el-icon {
+      color: #409EFF;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .search-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-button {
+    min-width: 88px;
+    border-radius: 4px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+}
+
+/* 表格样式优化 */
+.admin-table {
+  width: 100%;
+  margin-bottom: 20px;
+  
+  .el-table__header th {
+    background-color: #f5f7fa;
+    color: #606266;
+    font-weight: 600;
+    height: 50px;
+  }
+  
+  .el-table__row {
+    height: 55px;
+  }
+  
+  .el-table__row:hover {
+    background-color: #f0f7ff !important;
+  }
+}
+
+/* 分页样式 */
+.admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f2f5;
+} 
