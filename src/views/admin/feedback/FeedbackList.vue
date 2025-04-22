@@ -59,7 +59,7 @@
 
           <!-- 操作列 -->
           <template #actions="{ row }">
-            <router-link :to="'/feedback/process/'+row.id">
+            <router-link :to="'/admin/feedback/process/'+row.id">
               <el-button type="primary" link size="small">处理</el-button>  
             </router-link>
           </template>
@@ -107,10 +107,12 @@ const filterConfig = [
   {
     type: 'select',
     field: 'feedbackType',
-    label: '反馈类型',
+    label: '类型',
     options: [
-      { label: '全部类型', value: '' },
-      // 动态生成的选项
+      { label: '全部', value: '' },
+      { label: '投诉', value: '投诉' },
+      { label: '建议', value: '建议' },
+      { label: '问题', value: '问题' }
     ]
   },
   {
@@ -119,9 +121,10 @@ const filterConfig = [
     label: '状态',
     options: [
       { label: '全部', value: '' },
-      { label: '待处理', value: 'pending' },
-      { label: '已处理', value: 'processed' },
-      { label: '已关闭', value: 'closed' }
+      { label: '待处理', value: '待处理' },
+      { label: '正在处理', value: '正在处理' },
+      { label: '已处理', value: '已处理' },
+      { label: '已关闭', value: '已关闭' }
     ]
   },
   {
@@ -162,12 +165,14 @@ const tableColumns = [
 // 获取标签类型
 const getStatusType = (status) => {
   switch (status) {
-    case 'pending':
+    case '待处理':
       return 'info';
-    case 'processed':
-      return 'success';
-    case 'closed':
+    case '正在处理':
       return 'warning';
+    case '已处理':
+      return 'success';
+    case '已关闭':
+      return 'danger';
     default:
       return '';
   }
@@ -203,13 +208,24 @@ const fetchFeedbackTypes = async () => {
 // 获取列表数据
 const getList = async () => {
   loading.value = true;
+  console.log('获取反馈列表，参数:', listQuery);
   try {
     const res = await queryFeedBackPage(listQuery);
-    list.value = res.list || [];
-    total.value = res.total || 0;
+    console.log('获取反馈列表响应:', res);
+    if (res && res.list) {
+      list.value = res.list || [];
+      total.value = Number(res.total) || 0;
+      console.log(`成功获取${list.value.length}条反馈数据，总计${total.value}条`);
+    } else {
+      list.value = [];
+      total.value = 0;
+      console.warn('反馈列表响应格式异常:', res);
+    }
   } catch (error) {
     console.error('获取反馈列表失败', error);
     ElMessage.error('获取反馈列表失败');
+    list.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -217,6 +233,8 @@ const getList = async () => {
 
 // 处理筛选搜索
 const handleFilterSearch = (filterValues) => {
+  console.log('收到筛选值:', filterValues);
+  
   // 更新筛选值
   listQuery.feedbackId = filterValues.feedbackId || '';
   listQuery.feedbackType = filterValues.feedbackType || '';
@@ -230,12 +248,14 @@ const handleFilterSearch = (filterValues) => {
     listQuery.endDate = '';
   }
   
+  console.log('更新查询参数:', listQuery);
   listQuery.pageNo = 1;
   getList();
 };
 
 // 清空搜索条件
 const clearSearch = () => {
+  console.log('清空搜索条件');
   Object.assign(listQuery, {
     pageNo: 1,
     feedbackId: '',
@@ -244,10 +264,13 @@ const clearSearch = () => {
     startDate: '',
     endDate: ''
   });
+  console.log('清空后的查询参数:', listQuery);
+  getList();
 };
 
 // 分页处理
 const handlePageChange = (page) => {
+  console.log('页码变更为:', page);
   listQuery.pageNo = page;
   getList();
 };
@@ -270,24 +293,42 @@ const handleBatchClose = () => {
     type: 'warning'
   }).then(async () => {
     try {
+      console.log('批量关闭反馈:', selectedIds.value);
       // 逐个处理关闭操作
       for (const id of selectedIds.value) {
         await processFeedBack({
           feedbackId: id,
-          feedbackStatus: 'closed',
+          feedbackStatus: '已关闭',
           response: '批量关闭'
         });
       }
       ElMessage.success('批量关闭成功');
-      getList();
+      getList(); // 刷新列表
     } catch (error) {
       ElMessage.error('批量关闭失败');
       console.error('批量关闭反馈失败', error);
     }
-  }).catch(() => {});
+  }).catch(() => {
+    console.log('取消批量关闭操作');
+  });
+};
+
+// 获取类型标签
+const getTypeTag = (type) => {
+  switch (type) {
+    case '投诉':
+      return 'danger';
+    case '建议':
+      return 'success';
+    case '问题':
+      return 'warning';
+    default:
+      return 'info';
+  }
 };
 
 onMounted(() => {
+  console.log('反馈列表页面加载');
   fetchFeedbackTypes();
   getList();
 });

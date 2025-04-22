@@ -44,7 +44,7 @@ export function getFeedBackDetail(feedbackId) {
  */
 export function processFeedBack(data) {
   return request({
-    url: `/admin/feedback/process/${data.feedbackId}`,
+    url: `/admin/feedback/process`,
     method: 'post',
     data
   })

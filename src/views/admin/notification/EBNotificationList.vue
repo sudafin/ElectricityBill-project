@@ -60,11 +60,14 @@
           @page-change="handlePageChange"
           :row-style="{ height: '55px' }"
         >
-          <!-- 状态列自定义渲染 -->
-          <template #level="{ row }">
-            <el-tag :type="row.level === '重点' ? 'warning' : row.level === '过期' ? 'danger' : row.level === '普通' ? 'success' : 'info'">
-              {{ row.level }}
-            </el-tag>
+          <!-- 阅读状态列自定义渲染 -->
+          <template #readStatus="{ row }">
+            <div class="read-status">
+              <span v-if="row.readStatus === 0" class="unread-dot"></span>
+              <el-tag :type="row.readStatus === 0 ? 'danger' : 'success'">
+                {{ row.readStatus === 0 ? '未读' : '已读' }}
+              </el-tag>
+            </div>
           </template>
 
           <!-- 操作列 -->
@@ -109,10 +112,14 @@
               <span class="value">{{ currentNotification.expireTime }}</span>
             </div>
             <div class="info-item">
-              <span class="label">通知状态:</span>
+              <span class="label">阅读状态:</span>
               <span class="value">
-                <el-tag :type="currentNotification.level === '重点' ? 'warning' : currentNotification.level === '过期' ? 'danger' : currentNotification.level === '普通' ? 'success' : 'info'">
-                  {{ currentNotification.level }}</el-tag>
+                <div class="read-status">
+                  <span v-if="currentNotification.readStatus === 0" class="unread-dot"></span>
+                  <el-tag :type="currentNotification.readStatus === 0 ? 'danger' : 'success'">
+                    {{ currentNotification.readStatus === 0 ? '未读' : '已读' }}
+                  </el-tag>
+                </div>
               </span>
             </div>
           </div>
@@ -129,7 +136,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNotificationList, deleteNotification, fetchNotificationDetail } from '@/api/admin/notification.js';
+import { queryPage, deleteNotification, queryNotificationDetail } from '@/api/admin/notification.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Bell, Search, Close, Calendar, Plus, Delete } from '@element-plus/icons-vue';
 import { EBFilterBar, EBTable } from '@/components';
@@ -162,8 +169,8 @@ const filterConfig = [
     label: '阅读状态',
     options: [
       { label: '全部', value: '' },
-      { label: '已读', value: '已读' },
-      { label: '未读', value: '未读' }
+      { label: '未读', value: 0 },
+      { label: '已读', value: 1 }
     ]
   },
   {
@@ -184,19 +191,19 @@ const initialFilterValues = {
 const tableColumns = [
   { prop: 'title', label: '标题', minWidth: '150' },
   { prop: 'content', label: '内容', minWidth: '180' },
-  { prop: 'type', label: '类型', minWidth: '120' },
+  { prop: 'type', label: '类型', minWidth: '100' },
   { 
-    prop: 'level', 
-    label: '状态', 
+    prop: 'readStatus', 
+    label: '阅读状态', 
     minWidth: '100',
     type: 'tag',
     tagMap: {
-      '重点': 'warning',
-      '过期': 'danger',
-      '普通': 'success'
+      0: 'danger',
+      1: 'success'
     }
   },
-  { prop: 'createTime', label: '创建时间', minWidth: '180' }
+  { prop: 'createTime', label: '创建时间', minWidth: '150' },
+  { prop: 'expireTime', label: '过期时间', minWidth: '150' }
 ];
 
 const fetchNotificationList = async (page = currentPage.value, shouldResetPage = false) => {
@@ -207,18 +214,38 @@ const fetchNotificationList = async (page = currentPage.value, shouldResetPage =
     currentPage.value = page;
   }
   try{
-    const res = await getNotificationList({
+    // 构建查询参数
+    const queryParams = {
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      title: searchText.value,
-      readStatus: selectedType.value,
-      startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
-      endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
-    })
-    total.value = Number(res.total);
-    notificationList.value = res.list;
+      title: searchText.value || undefined,
+      // 特别处理readStatus，确保0值也能正确传递
+      readStatus: selectedType.value !== '' ? selectedType.value : undefined,
+    };
+    
+    // 添加日期范围条件
+    if (dateRange.value && dateRange.value.length === 2) {
+      queryParams.startDate = dateRange.value[0];
+      queryParams.endDate = dateRange.value[1];
+    }
+    
+    console.log('发送查询参数:', queryParams);
+    const res = await queryPage(queryParams);
+    
+    console.log('获取通知列表响应:', res);
+    if (res && res.list) {
+      notificationList.value = res.list;
+      total.value = Number(res.total || 0);
+    } else {
+      notificationList.value = [];
+      total.value = 0;
+      console.warn('通知列表响应格式异常:', res);
+    }
   } catch (err) {
+    console.error('获取通知列表失败:', err);
     ElMessage.error('获取通知列表失败');
+    notificationList.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -230,10 +257,19 @@ onMounted(()=>{
 
 // 处理筛选搜索
 const handleFilterSearch = (filterValues) => {
+  console.log('收到筛选值:', filterValues);
+  
   // 更新筛选值
   searchText.value = filterValues.searchText || '';
-  selectedType.value = filterValues.selectedType || '';
+  // 特别处理selectedType，确保0值不被忽略
+  selectedType.value = filterValues.selectedType !== undefined ? filterValues.selectedType : '';
   dateRange.value = filterValues.dateRange || [];
+  
+  console.log('设置筛选值后:', {
+    searchText: searchText.value,
+    selectedType: selectedType.value,
+    dateRange: dateRange.value
+  });
   
   // 重新加载数据
   fetchNotificationList(1, true);
@@ -242,8 +278,14 @@ const handleFilterSearch = (filterValues) => {
 // 清空搜索条件
 const clearSearch = () => {
   searchText.value = '';
-  selectedType.value = '';
+  selectedType.value = ''; // 设置为空字符串，表示不筛选
   dateRange.value = [];
+  
+  console.log('清空搜索条件后:', {
+    searchText: searchText.value,
+    selectedType: selectedType.value,
+    dateRange: dateRange.value
+  });
 };
 
 const handlePageChange = (page) => {
@@ -251,9 +293,17 @@ const handlePageChange = (page) => {
 }
 
 const showDetail = async (row) => {
-  const detail = await fetchNotificationDetail(row.id);
-  currentNotification.value = detail;
-  detailVisible.value = true;
+  try {
+    loading.value = true;
+    const detail = await queryNotificationDetail(row.id);
+    currentNotification.value = detail;
+    detailVisible.value = true;
+  } catch (error) {
+    console.error('获取通知详情失败:', error);
+    ElMessage.error('获取通知详情失败');
+  } finally {
+    loading.value = false;
+  }
 };
 
 
@@ -520,5 +570,20 @@ const handleCreate = () => {
 :deep(.el-drawer__body) {
   padding: 0;
   height: 100%;
+}
+
+/* 添加未读红点的样式 */
+.read-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #F56C6C;
+  border-radius: 50%;
+  display: inline-block;
 }
 </style> 
