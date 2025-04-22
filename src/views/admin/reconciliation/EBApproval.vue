@@ -74,14 +74,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { approveReconciliationDetail, approveReconciliation } from '@/api/admin/reconciliation.js';
+import { queryApprovalReconciliationDetail, approveReconciliation } from '@/api/admin/reconciliation.js';
 import { ElMessage } from 'element-plus';
 const route = useRoute();
 const router = useRouter();
 const approvalForm = ref({});
 const approvalHistory = ref([]);
 onMounted(async () => {
-  const res = await approveReconciliationDetail(route.params.reconciliationNo);
+  const res = await queryApprovalReconciliationDetail(route.params.reconciliationNo);
   approvalForm.value = res;
   approvalHistory.value = res.approvalRecordList;
 });
@@ -91,7 +91,7 @@ const handleAttachmentChange = (file, fileList) => {
   ElMessage.warning('暂不支持上传附件');
 };
 
-const handleSubmit = async  () => {
+const handleSubmit = async () => {
   if(approvalForm.value.status === '' || approvalForm.value.comment === '') {
     ElMessage.warning('请选择审批结果或填写审批意见');
     return;
@@ -100,12 +100,19 @@ const handleSubmit = async  () => {
     status: approvalForm.value.status,
     comment: approvalForm.value.comment,
   }
-  const res = await approveReconciliation(route.params.reconciliationNo, params);
-  if(res.code === 200) {
-    ElMessage.success('审批成功');
-    router.push('/reconciliation');
-  } else {
-    ElMessage.error('审批失败');
+  
+  try {
+    const res = await approveReconciliation(route.params.reconciliationNo, params);
+    if(res.code === 200 || res === true || (typeof res === 'object' && !res.code)) {
+      ElMessage.success('审批成功');
+      // 修改为正确的路由名称 ReconciliationList
+      router.push({ name: 'ReconciliationList' });
+    } else {
+      ElMessage.error(res.message || '审批失败');
+    }
+  } catch (error) {
+    console.error('审批提交错误:', error);
+    ElMessage.error('审批提交过程中发生错误');
   }
 };
 </script>

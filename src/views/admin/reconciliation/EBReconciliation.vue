@@ -11,7 +11,7 @@
 
       <!-- 使用新的筛选栏组件 -->
       <EBFilterBar
-        :filters="filterConfig"
+        :filters="filters"
         :initial-values="initialFilterValues"
         button-size="default"
         @search="handleFilterSearch"
@@ -81,7 +81,7 @@
             <el-descriptions-item label="用户类型">{{ currentReconciliation.userType}}</el-descriptions-item>
             <el-descriptions-item label="金额">{{ currentReconciliation.balance }}</el-descriptions-item>
             <el-descriptions-item label="审批状态">
-              <el-tag :type="currentReconciliation.reconciliationStatus === '未审批' ? 'info' : currentReconciliation.reconciliationStatus === '通过' ? 'success' : currentReconciliation.reconciliationStatus === '拒绝' ? 'danger' : 'warning'">
+              <el-tag :type="currentReconciliation.reconciliationStatus === '待审批' ? 'info' : currentReconciliation.reconciliationStatus === '通过' ? 'success' : currentReconciliation.reconciliationStatus === '拒绝' ? 'danger' : currentReconciliation.reconciliationStatus === '退回' ? 'warning' : currentReconciliation.reconciliationStatus === '暂缓' ? 'info' : 'warning'">
                 {{ currentReconciliation.reconciliationStatus }}
               </el-tag>
             </el-descriptions-item>
@@ -124,10 +124,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Document, Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
-import { getReconciliationList, getReconciliationDetail, getReconciliationReport } from '@/api/admin/reconciliation.js';
+import { queryPage, queryReconciliationDetail, exportReconciliation } from '@/api/admin/reconciliation.js';
+import { getUserTypeList } from '@/api/admin/user.js';
 import { ElMessage } from 'element-plus';
 import { EBFilterBar, EBTable } from '@/components';
 
@@ -145,9 +146,12 @@ const currentReconciliation = ref({});
 const loading = ref(false);
 const reconciliationList = ref([]);
 const selectedIds = ref([]);
+const userTypeOptions = ref([
+  { label: '全部类型', value: '' }
+]);
 
-// 筛选条件配置
-const filterConfig = [
+// 基本筛选条件配置
+const baseFilters = [
   {
     type: 'input',
     field: 'searchText',
@@ -156,22 +160,14 @@ const filterConfig = [
   },
   {
     type: 'select',
-    field: 'searchUserType',
-    label: '用户类型',
-    options: [
-      { label: '全部类型', value: '' },
-      { label: '居民类型', value: '居民用户' },
-      { label: '商业类型', value: '商业用户' }
-    ]
-  },
-  {
-    type: 'select',
     field: 'searchStatus',
     label: '审批状态',
     options: [
       { label: '全部', value: '' },
-      { label: '待审批', value: 'pending' },
-      { label: '已完成', value: 'completed' }
+      { label: '待审批', value: '待审批' },
+      { label: '通过', value: '通过' },
+      { label: '拒绝', value: '拒绝' },
+      { label: '暂缓', value: '暂缓' }
     ]
   },
   {
@@ -187,6 +183,26 @@ const filterConfig = [
   }
 ];
 
+// 计算属性：完整的筛选配置，包含动态用户类型选项
+const filters = computed(() => {
+  // 构建用户类型选项筛选配置
+  const userTypeFilter = {
+    type: 'select',
+    field: 'searchUserType',
+    label: '用户类型',
+    options: userTypeOptions.value // 直接使用响应式对象的值
+  };
+  
+  // 将用户类型筛选插入到第二个位置
+  const configList = [...baseFilters];
+  configList.splice(1, 0, userTypeFilter);
+  
+  console.log('计算的筛选配置:', configList);
+  console.log('计算的用户类型选项:', userTypeOptions.value);
+  
+  return configList;
+});
+
 // 初始值
 const initialFilterValues = {
   searchText: '',
@@ -194,6 +210,100 @@ const initialFilterValues = {
   searchStatus: '',
   searchMeterNo: '',
   dateRange: []
+};
+
+// 获取用户类型列表
+const fetchUserTypeList = async () => {
+  try {
+    console.log('开始获取用户类型列表');
+    const res = await getUserTypeList();
+    console.log('获取用户类型列表成功，返回数据:', res);
+    console.log('返回数据类型:', typeof res);
+    
+    // 清空之前的选项，保留"全部类型"
+    userTypeOptions.value = [{ label: '全部类型', value: '' }];
+    
+    // 检查响应数据结构
+    if (res) {
+      // 如果响应是对象，并且有data属性
+      if (typeof res === 'object' && res.data) {
+        console.log('数据在res.data中，类型为:', typeof res.data);
+        console.log('res.data内容:', res.data);
+        
+        // 处理不同的数据格式
+        if (Array.isArray(res.data)) {
+          // 如果res.data是数组
+          res.data.forEach(type => {
+            if (typeof type === 'string') {
+              userTypeOptions.value.push({ label: type, value: type });
+            } else if (type && typeof type === 'object') {
+              // 检查可能的属性名
+              const typeName = type.typeName || type.name || type.label || type.value || type.type;
+              if (typeName) {
+                userTypeOptions.value.push({ label: typeName, value: typeName });
+              } else {
+                console.log('无法从对象中提取类型名称:', type);
+              }
+            }
+          });
+        } else if (typeof res.data === 'object' && !Array.isArray(res.data)) {
+          // 如果res.data是对象而不是数组
+          Object.keys(res.data).forEach(key => {
+            const value = res.data[key];
+            if (typeof value === 'string') {
+              userTypeOptions.value.push({ label: value, value: value });
+            }
+          });
+        }
+      } else if (Array.isArray(res)) {
+        // 如果响应直接是数组
+        res.forEach(type => {
+          if (typeof type === 'string') {
+            userTypeOptions.value.push({ label: type, value: type });
+          } else if (type && typeof type === 'object') {
+            // 检查可能的属性名
+            const typeName = type.typeName || type.name || type.label || type.value || type.type;
+            if (typeName) {
+              userTypeOptions.value.push({ label: typeName, value: typeName });
+            } else {
+              console.log('无法从对象中提取类型名称:', type);
+            }
+          }
+        });
+      } else {
+        console.log('响应格式不是预期的数组或对象格式:', res);
+      }
+    } else {
+      console.log('响应为空或无效');
+    }
+    
+    console.log('更新后的用户类型选项:', userTypeOptions.value);
+    
+    // 如果没有获取到任何选项（除了"全部类型"），添加默认选项
+    if (userTypeOptions.value.length <= 1) {
+      console.log('未获取到有效的用户类型选项，添加默认选项');
+      userTypeOptions.value.push(
+        { label: '居民用户', value: '居民用户' },
+        { label: '商业用户', value: '商业用户' }
+      );
+    }
+    
+    // 打印最终的用户类型选项，确认是否已经添加
+    console.log('最终的用户类型选项:', userTypeOptions.value);
+  } catch (error) {
+    console.error('获取用户类型列表失败:', error);
+    ElMessage.error('获取用户类型列表失败，使用默认选项');
+    
+    // 出错时使用默认选项
+    userTypeOptions.value = [
+      { label: '全部类型', value: '' },
+      { label: '居民用户', value: '居民用户' },
+      { label: '商业用户', value: '商业用户' }
+    ];
+  }
+  
+  // 确保返回处理后的选项数组
+  return userTypeOptions.value;
 };
 
 // 表格列配置
@@ -241,7 +351,7 @@ const fetchReconciliationList = async (page = currentPage.value, shouldResetPage
   //获取数据
   try{
     // 模拟从后端获取数据,添加搜索条件
-    const res = await getReconciliationList(reconciliationPageQuery);
+    const res = await queryPage(reconciliationPageQuery);
     reconciliationList.value = res.list;
     total.value = Number(res.total);
   } catch (err) {
@@ -273,7 +383,16 @@ const clearSearch = () => {
   dateRange.value = [];
 };
 
-onMounted(()=>{
+onMounted(async () => {
+  console.log('组件挂载开始');
+  // 先获取用户类型列表
+  await fetchUserTypeList();
+  
+  // 打印挂载后的用户类型选项
+  console.log('挂载后的用户类型选项:', userTypeOptions.value);
+  console.log('挂载后的筛选配置:', filters.value);
+  
+  // 再加载对账单列表
   fetchReconciliationList(1, true);
 });
 
@@ -282,7 +401,7 @@ const handlePageChange = (page) => {
 };
 
 const fetchReconciliationDetail = async (id) => {
-  const res = await getReconciliationDetail(id);
+  const res = await queryReconciliationDetail(id);
   return res;
 };
 
@@ -298,7 +417,7 @@ const handleSelectionChange = (selection) => {
 };
 
 const exportReconciliationList = async () => {
-  const res = await getReconciliationReport();
+  const res = await exportReconciliation();
   // 创建 Blob 对象并下载
   const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = window.URL.createObjectURL(blob);

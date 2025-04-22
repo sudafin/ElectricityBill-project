@@ -235,8 +235,7 @@ const tableColumns = [
 ];
 
 // 获取用户列表
-const fetchUserList = async (page = currentPage.value, shouldResetPage = false) => {
-  console.log('开始获取用户列表数据...');
+const fetchUserList = async (page = 1, shouldResetPage = false) => {
   loading.value = true;
   
   if (shouldResetPage) {
@@ -245,29 +244,40 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
     currentPage.value = page;
   }
 
-  // 创建条件查询对象
+  // 创建条件查询对象，确保精简参数，移除不必要的字段
   const userPageQuery = {
     pageNo: currentPage.value,
-    pageSize: pageSize.value,
-    userType: searchUserType.value,
-    accountStatus: searchAccountStatus.value,
-    meterId: searchMeterNo.value,
-    startDate: searchDateRange.value && searchDateRange.value.length === 2 ? searchDateRange.value[0] : undefined,
-    endDate: searchDateRange.value && searchDateRange.value.length === 2 ? searchDateRange.value[1] : undefined,
-    name: searchText.value && !isNaN(searchText.value) ? undefined : searchText.value,
-    phone: searchText.value && isNaN(searchText.value) ? undefined : searchText.value
+    pageSize: pageSize.value
   };
-
-  console.log('发送查询参数:', userPageQuery);
+  
+  // 只有在有值时才添加筛选条件
+  if (searchUserType.value) userPageQuery.userType = searchUserType.value;
+  if (searchAccountStatus.value) userPageQuery.accountStatus = searchAccountStatus.value;
+  if (searchMeterNo.value) userPageQuery.meterId = searchMeterNo.value;
+  
+  if (searchDateRange.value && searchDateRange.value.length === 2) {
+    userPageQuery.startDate = searchDateRange.value[0];
+    userPageQuery.endDate = searchDateRange.value[1];
+  }
+  
+  if (searchText.value) {
+    if (!isNaN(searchText.value)) {
+      userPageQuery.phone = searchText.value;
+    } else {
+      userPageQuery.name = searchText.value;
+    }
+  }
   
   try {
     const res = await getUserList(userPageQuery);
-    console.log('获取到的用户列表数据:', res);
     
     if (res && res.list) {
       userList.value = res.list;
       total.value = Number(res.total || 0);
-      console.log(`成功加载 ${userList.value.length} 条用户数据，总计 ${total.value} 条`);
+    } else if (res && Array.isArray(res)) {
+      // 处理可能的直接返回数组的情况
+      userList.value = res;
+      total.value = res.length;
     } else {
       console.warn('用户列表数据格式异常:', res);
       userList.value = [];
@@ -280,11 +290,14 @@ const fetchUserList = async (page = currentPage.value, shouldResetPage = false) 
         userTableRef.value.doLayout && userTableRef.value.doLayout();
       }
     });
+    
+    return res;
   } catch (err) {
     console.error('获取用户列表失败:', err);
     ElMessage.error('获取用户列表失败');
     userList.value = [];
     total.value = 0;
+    return null;
   } finally {
     loading.value = false;
   }
@@ -314,9 +327,7 @@ const currentUser = ref({});
 
 const showDetail = async (userId) => {
   try {
-    console.log('开始获取用户详情，用户ID:', userId);
     const userDetail = await fetchUserDetail(userId);
-    console.log('获取到的用户详情数据:', userDetail);
     
     // 删除id字段
     if (userDetail && userDetail.id) {
@@ -341,7 +352,6 @@ const showDetail = async (userId) => {
     
     currentUser.value = userDetail;
     detailVisible.value = true;
-    console.log('用户详情数据处理完成:', currentUser.value);
   } catch (error) {
     console.error('获取用户详情失败:', error);
     ElMessage.error('获取用户详情失败');
@@ -436,10 +446,8 @@ const handleUserTypeSuccess = () => {
 
 // 获取用户类型列表
 const fetchUserTypeList = async () => {
-  console.log('开始获取用户类型列表...');
   try {
     const res = await getUserTypeList();
-    console.log('获取到的用户类型列表数据:', res);
     
     // 更新筛选器选项
     const userTypeFilterOption = filterConfig.find(f => f.field === 'searchUserType');
@@ -471,8 +479,6 @@ const fetchUserTypeList = async () => {
           { label: '商业用户', value: '商业用户' }
         ];
       }
-      
-      console.log('更新后的用户类型筛选选项:', userTypeFilterOption.options);
     }
     
     return res;
@@ -483,42 +489,17 @@ const fetchUserTypeList = async () => {
 };
 
 // 组件挂载时加载数据
-onMounted(() => {
-  console.log('用户管理组件已加载，开始获取数据...');
-  
-  // 创建一个Promise数组来收集所有加载任务
-  const loadingTasks = [];
-  
-  // 添加用户列表加载任务
-  loadingTasks.push(
-    fetchUserList(1, true)
-      .then(() => {
-        console.log('用户列表数据加载完成');
-      })
-      .catch(error => {
-        console.error('用户列表加载失败:', error);
-      })
-  );
-  
-  // 添加用户类型列表加载任务
-  loadingTasks.push(
-    fetchUserTypeList()
-      .then(() => {
-        console.log('用户类型列表加载完成');
-      })
-      .catch(error => {
-        console.error('用户类型列表加载失败:', error);
-      })
-  );
-  
-  // 等待所有任务完成
-  Promise.all(loadingTasks)
-    .then(() => {
-      console.log('所有数据加载完成');
-    })
-    .catch(error => {
-      console.error('数据加载过程中出现错误:', error);
-    });
+onMounted(async () => {
+  try {
+    // 先加载用户类型列表，用于筛选
+    await fetchUserTypeList();
+    
+    // 加载用户列表数据
+    await fetchUserList(1, true);
+  } catch (error) {
+    console.error('数据加载失败:', error);
+    ElMessage.error('数据加载失败，请刷新页面重试');
+  }
 });
 </script>
 
