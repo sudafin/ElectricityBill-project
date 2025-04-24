@@ -39,9 +39,9 @@
         <el-icon><ChatDotSquare /></el-icon>
         <template #title>反馈管理</template>
       </el-menu-item>
-      <el-menu-item index="/admin/payment">
+      <el-menu-item index="/admin/bill">
         <el-icon><Wallet /></el-icon>
-        <template #title>支付管理</template>
+        <template #title>账单管理</template>
       </el-menu-item>
       <el-menu-item index="/admin/meter">
         <el-icon><Odometer /></el-icon>

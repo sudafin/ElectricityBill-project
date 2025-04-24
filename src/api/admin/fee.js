@@ -91,7 +91,7 @@ export function getFeeStatistics(params) {
   });
 }
 
-export function getPaymentList(params) {
+export function getBillList(params) {
   return request({
     url: '/payment/page',
     method: 'get',
@@ -99,14 +99,14 @@ export function getPaymentList(params) {
   });
 }
 
-export function getPaymentDetail(id) {
+export function getBillDetail(id) {
   return request({
     url: `/payment/detail/${id}`,
     method: 'get',
   });
 }
 
-export function deletePayment(Ids) {
+export function deleteBill(Ids) {
   return request({
     url: `/payment/delete`,
     method: 'delete',
@@ -115,7 +115,7 @@ export function deletePayment(Ids) {
     }
   });
 }
-export function refundPayment(id) {
+export function refundBill(id) {
   return request({
     url: `/payment/refund/${id}`,
     method: 'put',
@@ -123,7 +123,7 @@ export function refundPayment(id) {
 }
 
 //获取报表excel
-export function getPaymentReport() {
+export function getBillReport() {
   return request({
     url: '/payment/export',
     method: 'get',

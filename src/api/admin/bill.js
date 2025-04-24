@@ -7,7 +7,7 @@ import request from '@/utils/request';
  */
 export function getBillList(params) {
   return request({
-    url: '/admin/bill/list',
+    url: '/admin/bill/page',
     method: 'get',
     params
   });
@@ -125,5 +125,35 @@ export function queryUserBill(userId) {
   return request({
     url: `/admin/bill/${userId}`,
     method: 'get'
+  });
+}
+
+/**
+ * 申请退款
+ * @param {Object} data - 退款数据，包含账单ID和退款原因
+ * @returns {Promise} 返回Promise对象，包含退款结果
+ */
+export function refundBill(data) {
+  return request({
+    url: '/admin/bill/refund',
+    method: 'post',
+    data
+  });
+}
+
+/**
+ * 申请支付记录退款
+ * @param {Object} data - 退款数据
+ * @param {String|Number} data.paymentId - 支付ID
+ * @param {String|Number} data.billId - 账单ID
+ * @param {Number} data.amount - 退款金额
+ * @param {String} data.reason - 退款原因
+ * @returns {Promise} 返回Promise对象，包含退款结果
+ */
+export function refundPayment(data) {
+  return request({
+    url: '/admin/bill/payment/refund',
+    method: 'post',
+    data
   });
 } 

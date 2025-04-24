@@ -1,11 +1,11 @@
 <template>
-  <div class="payment-dashboard">
+  <div class="bill-dashboard">
     <div class="content-wrapper">
       <!-- 添加标题区域 -->
       <div class="dashboard-header">
         <div class="title-area">
           <el-icon class="header-icon"><Wallet /></el-icon>
-          <h2 class="header-title">支付管理</h2>
+          <h2 class="header-title">账单管理</h2>
         </div>
       </div>
       
@@ -23,18 +23,9 @@
             type="success" 
             class="action-button" 
             size="default"
-            @click="exportPayments"
+            @click="handleExportBills"
           >
             <el-icon><Download /></el-icon>导出报表
-          </el-button>
-          <el-button 
-            type="danger" 
-            class="action-button" 
-            size="default"
-            @click="handleBatchDelete" 
-            :disabled="!selectedPaymentIds.length"
-          >
-            <el-icon><Delete /></el-icon>批量删除
           </el-button>
         </template>
       </EBFilterBar>
@@ -44,7 +35,7 @@
         <EBTable
           ref="tableRef"
           :columns="tableColumns"
-          :data="paymentList"
+          :data="billList"
           :loading="loading"
           :border="false"
           selection
@@ -68,33 +59,23 @@
 
           <!-- 操作列 -->
           <template #actions="{ row }">
-            <el-button type="primary" link size="small" @click="showDetail(row)">详情</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button type="primary" link size="small" @click="navigateToDetail(row)">详情</el-button>
           </template>
         </EBTable>
       </div>
     </div>
-    
-    <!-- 详情抽屉 -->
-    <el-drawer 
-      v-model="detailVisible" 
-      :title="`支付详情 支付单号: ${currentPayment.paymentId}`" 
-      size="40%" 
-      direction="rtl"
-    >
-      <EBPaymentDetail :payment="currentPayment" @refund="handleRefund"></EBPaymentDetail>
-    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessageBox, ElMessage } from 'element-plus';
-import { Wallet, Download, Delete, Search, Calendar } from '@element-plus/icons-vue';
-import EBPaymentDetail from './EBPaymentDetail.vue';
-import { getPaymentList, deletePayment, getPaymentDetail, refundPayment, getPaymentReport } from '@/api/admin/fee.js';
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { Wallet, Download } from '@element-plus/icons-vue';
+import { getBillList, exportBills } from '@/api/admin/bill.js';
 import { EBFilterBar, EBTable } from '@/components';
 
+const router = useRouter();
 const searchText = ref('');
 const selectedStatus = ref('');
 const selectedMethod = ref('');
@@ -102,10 +83,7 @@ const dateRange = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const loading = ref(false);
-const detailVisible = ref(false);
-const currentPayment = ref({});
-const selectedPaymentIds = ref([]);
-const paymentList = ref([]);
+const billList = ref([]);
 const total = ref(0);
 
 // 筛选条件配置
@@ -113,8 +91,8 @@ const filterConfig = [
   {
     type: 'input',
     field: 'searchText',
-    label: '支付单号',
-    placeholder: '搜索支付单号'
+    label: '账单号',
+    placeholder: '搜索账单号'
   },
   {
     type: 'select',
@@ -123,7 +101,8 @@ const filterConfig = [
     options: [
       { label: '全部', value: '' },
       { label: '已支付', value: '已支付' },
-      { label: '支付失败', value: '失败' }
+      { label: '支付失败', value: '失败' },
+      { label: '未支付', value: '未支付' }
     ]
   },
   {
@@ -154,25 +133,24 @@ const initialFilterValues = {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'paymentId', label: '支付单号', minWidth: '180' },
+  { prop: 'billId', label: '账单号', minWidth: '120' },
   { prop: 'username', label: '用户名', minWidth: '120' },
-  { prop: 'balance', label: '支付金额', minWidth: '120', sortable: true },
-  { prop: 'paymentMethod', label: '支付方式', minWidth: '120' },
-  { 
-    prop: 'status', 
-    label: '支付状态',
-    minWidth: '100',
-    type: 'tag',
-    tagMap: {
-      '已支付': 'success',
-      '失败': 'danger',
-      '退款': 'warning'
+  { prop: 'userType', label: '用户类型', minWidth: '120' },
+  { prop: 'paymentAmount', label: '支付金额', minWidth: '120', sortable: true },
+  { prop: 'usageAmount', label: '用电量', minWidth: '120', sortable: true },
+  { prop: 'paymentId', label: '支付单号', minWidth: '180', 
+    formatter: (row) => {
+      return row.paymentId || '未支付';
     }
   },
-  { prop: 'paymentTime', label: '支付时间', minWidth: '180', sortable: true }
+  { prop: 'paymentTime', label: '支付时间', minWidth: '180',
+    formatter: (row) => {
+      return row.paymentTime ? formatDateTime(row.paymentTime) : '未支付';
+    }
+  },
 ];
 
-const fetchPaymentList = async (page = currentPage.value, shouldResetPage = false) => {
+const fetchBillList = async (page = currentPage.value, shouldResetPage = false) => {
   loading.value = true;
   if (shouldResetPage) {
     currentPage.value = 1;
@@ -180,26 +158,29 @@ const fetchPaymentList = async (page = currentPage.value, shouldResetPage = fals
     currentPage.value = page;
   }
   try {
-    const res = await getPaymentList({
+    const res = await getBillList({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
-      paymentId: searchText.value,
+      billId: searchText.value ? parseInt(searchText.value) : undefined,
       status: selectedStatus.value,
       paymentMethod: selectedMethod.value,
       startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
       endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+      isAsc: true,
+      sortBy: 'createdAt'
     });
-    paymentList.value = res.list;
-    total.value = Number(res.total);
+    billList.value = res.list || [];
+    total.value = Number(res.total || 0);
   } catch (err) {
-    ElMessage.error('获取支付列表失败');
+    ElMessage.error('获取账单列表失败');
+    console.error('获取账单列表失败', err);
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
-  fetchPaymentList(1, true);
+  fetchBillList(1, true);
 });
 
 // 处理筛选搜索
@@ -211,7 +192,7 @@ const handleFilterSearch = (filterValues) => {
   dateRange.value = filterValues.dateRange || [];
   
   // 重新加载数据
-  fetchPaymentList(1, true);
+  fetchBillList(1, true);
 };
 
 // 清空搜索条件
@@ -223,19 +204,19 @@ const clearSearch = () => {
 };
 
 const handlePageChange = (page) => {
-  fetchPaymentList(page);
+  fetchBillList(page);
 };
 
 const handleSortChange = ({ prop, order }) => {
   // 根据点击的排序字段和顺序排序
   if (order.includes('ascending')) {
-    paymentList.value.sort((a, b) => {
+    billList.value.sort((a, b) => {
       const valueA = a[prop];
       const valueB = b[prop];
       return valueA - valueB;
     });
   } else {
-    paymentList.value.sort((a, b) => {
+    billList.value.sort((a, b) => {
       const valueA = a[prop];
       const valueB = b[prop];
       return valueB - valueA;
@@ -243,74 +224,17 @@ const handleSortChange = ({ prop, order }) => {
   }
 };
 
-const showDetail = async (payment) => {
-  const detail = await getPaymentDetail(payment.paymentId);
-  currentPayment.value = detail;
-  detailVisible.value = true;
-};
-
-const handleRefund = async () => {
-  try {
-    const res = await refundPayment(currentPayment.value.paymentId);
-    if (res.code === 200) {
-      fetchPaymentList(1, true);
-      ElMessage.success("退款成功");
-    } else if (res.code === 400) {
-      ElMessage.error(res.msg);
-    } else {
-      ElMessage.error('退款失败');
-    }
-  } catch (err) {
-    ElMessage.error('网络失败');
-  }
-};
-
-const handleDelete = async (row) => {
-  ElMessageBox.confirm('确定删除该支付记录吗?', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(async () => {
-      const res = await deletePayment(row.paymentId);
-      if (res.code === 200) {
-        fetchPaymentList(1, true);
-        ElMessage.success("删除成功");
-      } else {
-        ElMessage.error('删除失败');
-      }
-    })
-    .catch(() => {});
+// 导航到详情页面
+const navigateToDetail = (bill) => {
+  router.push({
+    name: 'BillDetail',
+    params: { id: bill.billId }
+  });
 };
 
 const handleSelectionChange = (selectionRows) => {
-  selectedPaymentIds.value = selectionRows.map(row => row.paymentId);
-};
-
-const handleBatchDelete = async () => {
-  if (selectedPaymentIds.value.length === 0) {
-    ElMessage.warning('请选择要删除的支付记录');
-    return;
-  }
-  
-  ElMessageBox.confirm(`确定删除选中的 ${selectedPaymentIds.value.length} 条支付记录吗?`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(async () => {
-      const ids = selectedPaymentIds.value.join(',');
-      const res = await deletePayment(ids);
-      if (res.code === 200) {
-        fetchPaymentList(1, true);
-        ElMessage.success("删除成功");
-      } else {
-        ElMessage.error('删除失败');
-      }
-    })
-    .catch(() => {
-      ElMessage.error('网络错误');
-    });
+  // 实现选择逻辑，仅记录被选中行
+  console.log('选中的行：', selectionRows);
 };
 
 const getStatusType = (status) => {
@@ -321,31 +245,59 @@ const getStatusType = (status) => {
       return 'danger';
     case '退款':
       return 'warning';
+    case '未支付':
+      return 'info';
     default:
       return 'info';
   }
 };
 
-const exportPayments = async () => {
-  const res = await getPaymentReport();
-  // 创建 Blob 对象并下载
-  const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'payment_details.xlsx';
-  link.click();
-  window.URL.revokeObjectURL(url);
-  if (res.size > 0) {
-    ElMessage.success('支付报表导出成功');
-  } else {
-    ElMessage.error('支付报表导出失败');
+const handleExportBills = async () => {
+  try {
+    const res = await exportBills({
+      status: selectedStatus.value,
+      paymentMethod: selectedMethod.value,
+      startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
+      endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
+    });
+    // 创建 Blob 对象并下载
+    const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bill_details.xlsx';
+    link.click();
+    window.URL.revokeObjectURL(url);
+    ElMessage.success('账单报表导出成功');
+  } catch (err) {
+    ElMessage.error('账单报表导出失败');
+    console.error('账单报表导出失败', err);
   }
+};
+
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '暂无';
+  
+  // 如果是字符串，先尝试转换为Date对象
+  const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
+  
+  if (!(date instanceof Date) || isNaN(date)) return dateTime; // 如果不是有效日期，返回原始值
+  
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 };
 </script>
 
 <style scoped>
-.payment-dashboard {
+.bill-dashboard {
   padding: 0px;
   background-color: #f5f7fa;
 }
