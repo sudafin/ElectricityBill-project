@@ -512,4 +512,32 @@ export function resetUserPassword(userId) {
     url: `/api/admin/users/${userId}/reset-password`,
     method: 'post'
   });
+}
+
+/**
+ * 通过身份证号查询用户信息
+ * @param {string} idCardNo 身份证号
+ * @returns {Promise} 返回Promise对象，包含用户信息
+ */
+export function getUserInfoByIdCard(idCardNo) {
+  return request({
+    url: `/admin/user/getUserInfoByIdCard/${idCardNo}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 绑定/解绑用户与电表
+ * @param {Object} data 绑定数据
+ * @param {string} data.meterId 电表ID
+ * @param {string} data.userId 用户ID
+ * @param {number} data.status 状态（1绑定，2解绑）
+ * @returns {Promise} 返回Promise对象，包含操作结果
+ */
+export function bindMeter(data) {
+  return request({
+    url: '/admin/user/bindMeter',
+    method: 'post',
+    data
+  });
 } 

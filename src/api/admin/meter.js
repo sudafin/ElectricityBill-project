@@ -111,8 +111,32 @@ export function getMeterModel() {
  */
 export function inspectionCreate(data) {
   return request({
-    url: `/admin/meter/inspection/${data.meterId}`,
+    url: `/admin/meter/inspection`,
     method: 'post',
     data
+  });
+}
+
+/**
+ * 获取电表维修历史记录
+ * @param {string} meterId 电表ID
+ * @returns {Promise} 返回Promise对象，包含电表维修历史记录
+ */
+export function getMeterInspectionHistory(meterId) {
+  return request({
+    url: `/admin/meter/inspection/${meterId}`,
+    method: 'get'
+  });
+}
+
+/**
+ * 获取电表数据统计
+ * @param {string} meterId 电表ID
+ * @returns {Promise} 返回Promise对象，包含电表数据统计
+ */
+export function getMeterData(meterId) {
+  return request({
+    url: `/admin/meter/data/${meterId}`,
+    method: 'get'
   });
 } 

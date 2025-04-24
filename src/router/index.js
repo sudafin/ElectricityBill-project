@@ -80,10 +80,8 @@ const routes = [
             redirect: '/admin/meter/list',
             children: [
               { path: 'list', name: 'MeterList', component: () => import('@/views/admin/meter/EBMeterList.vue'), meta: { title: '电表管理' } },
-              { path: 'create', name: 'MeterCreate', component: () => import('@/views/admin/meter/EBMeterForm.vue'), meta: { title: '新增电表' } },
-              { path: 'edit/:id', name: 'MeterEdit', component: () => import('@/views/admin/meter/EBMeterForm.vue'), meta: { title: '编辑电表' } },
-              { path: 'detail/:id', name: 'MeterDetail', component: () => import('@/views/admin/meter/EBMeterDetail.vue'), meta: { title: '电表详情' } },
-              { path: 'data/:id', name: 'MeterData', component: () => import('@/views/admin/meter/EBMeterData.vue'), meta: { title: '电表数据' } }
+              { path: 'form', name: 'MeterForm', component: () => import('@/views/admin/meter/EBMeterForm.vue'), meta: { title: '电表表单' } },
+              { path: 'repair/:id', name: 'MeterRepair', component: () => import('@/views/admin/meter/EBMeterRepair.vue'), meta: { title: '电表维修' } },
             ]
           },
           {

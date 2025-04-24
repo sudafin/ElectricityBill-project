@@ -9,11 +9,11 @@
         <div class="search-user">
           <el-input
             v-model="searchKeyword"
-            placeholder="输入用户名/手机号/账号搜索"
-            @keyup.enter="searchUsers"
+            placeholder="请输入用户身份证号查询"
+            @keyup.enter="searchUserByIdCard"
           >
             <template #append>
-              <el-button @click="searchUsers">
+              <el-button @click="searchUserByIdCard">
                 <el-icon><Search /></el-icon>
               </el-button>
             </template>
@@ -22,56 +22,39 @@
       </el-form-item>
     </el-form>
     
-    <div class="user-list" v-loading="loading">
-      <el-empty v-if="userList.length === 0" description="暂无用户数据"></el-empty>
-      <el-radio-group v-else v-model="bindForm.selectedUserId">
-        <div class="user-list-header">
-          <div class="user-item header">
-            <div class="user-select">选择</div>
-            <div class="user-name">用户名</div>
-            <div class="user-phone">手机号</div>
-            <div class="user-type">用户类型</div>
-            <div class="user-status">状态</div>
-          </div>
-        </div>
-        <div class="user-list-body">
-          <div 
-            v-for="user in userList" 
-            :key="user.id" 
-            class="user-item"
-            :class="{ 'selected': bindForm.selectedUserId === user.id }"
-          >
-            <div class="user-select">
-              <el-radio :label="user.id" />
+    <div class="user-table-container">
+      <div class="user-list" v-loading="loading">
+        <el-empty v-if="!userData" description="暂无用户数据"></el-empty>
+        <div v-else class="user-info-card">
+          <div class="user-list-header">
+            <div class="user-item header">
+              <div class="user-name">用户名</div>
+              <div class="user-phone">手机号</div>
+              <div class="user-idcard">身份证号</div>
+              <div class="user-status">状态</div>
             </div>
-            <div class="user-name">{{ user.username }}</div>
-            <div class="user-phone">{{ user.phone }}</div>
-            <div class="user-type">{{ user.userType }}</div>
-            <div class="user-status">
-              <el-tag :type="user.status === '正常' ? 'success' : 'danger'" size="small">
-                {{ user.status }}
-              </el-tag>
+          </div>
+          <div class="user-list-body">
+            <div 
+              class="user-item selected"
+            >
+              <div class="user-name" :title="userData.username">{{ userData.username }}</div>
+              <div class="user-phone" :title="userData.phone">{{ userData.phone }}</div>
+              <div class="user-idcard" :title="userData.idCardNo">{{ userData.idCardNo || '-' }}</div>
+              <div class="user-status">
+                <el-tag :type="userData.status === '正常' ? 'success' : 'danger'" size="small">
+                  {{ userData.status || '正常' }}
+                </el-tag>
+              </div>
             </div>
           </div>
         </div>
-      </el-radio-group>
-      
-      <!-- 分页 -->
-      <div class="pagination" v-if="userList.length > 0">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="total"
-          :current-page="currentPage"
-          :page-size="pageSize"
-          @current-change="handlePageChange"
-        />
       </div>
     </div>
     
     <div class="dialog-footer">
       <el-button @click="$emit('cancel')">取消</el-button>
-      <el-button type="primary" @click="confirmBind" :disabled="!bindForm.selectedUserId" :loading="binding">
+      <el-button type="primary" @click="confirmBind" :disabled="!userData" :loading="binding">
         确认绑定
       </el-button>
     </div>
@@ -79,9 +62,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
+import { getUserInfoByIdCard, bindMeter } from '@/api/admin/user';
 
 const props = defineProps({
   meter: {
@@ -95,60 +79,70 @@ const emit = defineEmits(['success', 'cancel']);
 const searchKeyword = ref('');
 const loading = ref(false);
 const binding = ref(false);
-const userList = ref([]);
-const total = ref(0);
-const currentPage = ref(1);
-const pageSize = ref(5);
+const userData = ref(null);
 
-const bindForm = reactive({
-  selectedUserId: null
-});
+const bindForm = reactive({});
 
-// 搜索用户
-const searchUsers = async () => {
+// 通过身份证号查询用户
+const searchUserByIdCard = async () => {
+  if (!searchKeyword.value) {
+    ElMessage.warning('请输入身份证号');
+    return;
+  }
+  
   loading.value = true;
   try {
-    // 这里替换为实际的API调用
-    const res = await getUserList({
-      keyword: searchKeyword.value,
-      pageNo: currentPage.value,
-      pageSize: pageSize.value
-    });
-    userList.value = res.list;
-    total.value = res.total;
+    const res = await getUserInfoByIdCard(searchKeyword.value);
+    console.log('通过身份证查询用户结果:', res);
+    
+    if (res && res.id) {
+      // 确保返回的数据符合预期的格式
+      userData.value = {
+        id: res.id,
+        username: res.username || '未知用户',
+        phone: res.phone || '无',
+        idCardNo: searchKeyword.value, // 使用查询的身份证号
+        status: res.status || '正常'
+      };
+      
+      console.log('处理后的用户数据:', userData.value);
+    } else {
+      userData.value = null;
+      ElMessage.warning('未找到匹配的用户');
+    }
   } catch (error) {
-    ElMessage.error('搜索用户失败');
-    console.error('搜索用户失败', error);
+    ElMessage.error('查询用户失败');
+    console.error('查询用户失败', error);
+    userData.value = null;
   } finally {
     loading.value = false;
   }
 };
 
-// 分页处理
-const handlePageChange = (page) => {
-  currentPage.value = page;
-  searchUsers();
-};
-
 // 确认绑定
 const confirmBind = async () => {
-  if (!bindForm.selectedUserId) {
-    ElMessage.warning('请选择要绑定的用户');
+  if (!userData.value || !userData.value.id) {
+    ElMessage.warning('请先查询并确认用户信息');
     return;
   }
   
   binding.value = true;
   try {
-    // 这里替换为实际的API调用
-    await bindMeterToUser({
+    const bindData = {
       meterId: props.meter.id,
-      userId: bindForm.selectedUserId
-    });
+      userId: userData.value.id,
+      status: 1 // 1表示绑定
+    };
     
-    // 获取绑定用户的信息
-    const selectedUser = userList.value.find(user => user.id === bindForm.selectedUserId);
+    console.log('绑定电表数据:', bindData);
+    const res = await bindMeter(bindData);
     
-    emit('success', selectedUser);
+    if (res && res.code === 200) {
+      ElMessage.success('绑定用户成功');
+      emit('success', userData.value);
+    } else {
+      ElMessage.error(res?.msg || '绑定用户失败');
+    }
   } catch (error) {
     ElMessage.error('绑定用户失败');
     console.error('绑定用户失败', error);
@@ -156,44 +150,58 @@ const confirmBind = async () => {
     binding.value = false;
   }
 };
-
-// 初始搜索
-watch(() => props.meter, () => {
-  searchUsers();
-}, { immediate: true });
 </script>
 
 <style scoped>
 .bind-user-container {
   padding: 10px 0;
+  width: 100%;
 }
 
 .search-user {
   display: flex;
-  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.user-table-container {
+  width: 100%;
+  overflow-x: visible;
 }
 
 .user-list {
   margin: 20px 0;
   border: 1px solid #ebeef5;
   border-radius: 4px;
+  width: 100%;
+}
+
+.user-info-card {
+  width: 100%;
+  display: block;
 }
 
 .user-list-header {
   background-color: #f5f7fa;
   border-bottom: 1px solid #ebeef5;
+  width: 100%;
 }
 
 .user-list-body {
-  max-height: 300px;
+  max-height: 200px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 12px 10px;
   border-bottom: 1px solid #ebeef5;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 50px;
 }
 
 .user-item:last-child {
@@ -209,33 +217,44 @@ watch(() => props.meter, () => {
   background-color: #f0f7ff;
 }
 
-.user-select {
-  width: 60px;
-  display: flex;
-  align-items: center;
-}
-
 .user-name {
-  flex: 1;
-  min-width: 100px;
+  width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 5px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .user-phone {
-  width: 120px;
+  width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 5px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-.user-type {
-  width: 100px;
+.user-idcard {
+  width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 5px;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .user-status {
   width: 80px;
   text-align: center;
-}
-
-.pagination {
-  margin-top: 15px;
-  text-align: right;
+  padding: 0 5px;
+  flex-shrink: 0;
 }
 
 .dialog-footer {

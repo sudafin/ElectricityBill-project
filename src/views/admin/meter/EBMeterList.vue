@@ -77,14 +77,6 @@
             </span>
             <span v-else class="no-bind">
               未绑定
-              <el-button 
-                type="primary" 
-                link 
-                size="small" 
-                @click="handleBind(row)"
-              >
-                绑定用户
-              </el-button>
             </span>
           </template>
 
@@ -137,11 +129,11 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus';
 import EBMeterBindUser from './EBMeterBindUser.vue';
 import { EBFilterBar, EBTable } from '@/components';
+import { queryMeterPage, deleteMeter, getMeterDetail } from '@/api/admin/meter';
 
 const router = useRouter();
 const searchText = ref('');
 const searchStatus = ref('');
-const searchBind = ref('');
 const dateRange = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -162,12 +154,13 @@ const filterConfig = [
   },
   {
     type: 'select',
-    field: 'searchBind',
-    label: '绑定状态',
+    field: 'searchStatus',
+    label: '电表状态',
     options: [
       { label: '全部', value: '' },
-      { label: '已绑定', value: 'bound' },
-      { label: '未绑定', value: 'unbound' }
+      { label: '正常', value: '正常' },
+      { label: '故障', value: '故障' },
+      { label: '停用', value: '停用' }
     ]
   },
   {
@@ -184,16 +177,15 @@ const filterConfig = [
 // 初始值
 const initialFilterValues = {
   searchText: '',
-  searchBind: '',
+  searchStatus: '',
   dateRange: [
-    new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
-    new Date().toISOString().split('T')[0]
+
   ]
 };
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'meterNo', label: '电表编号', minWidth: '150' },
+  { prop: 'id', label: '电表编号', minWidth: '150' },
   { prop: 'model', label: '电表型号', minWidth: '120' },
   { prop: 'installPlace', label: '安装位置', minWidth: '120' },
   { prop: 'lastMeterReadingDate', label: '抄表日期', minWidth: '120' },
@@ -208,7 +200,7 @@ const tableColumns = [
       '停用': 'info'
     }
   },
-  { prop: 'username', label: '绑定用户', minWidth: '150' }
+  { prop: 'userName', label: '绑定用户', minWidth: '150' }
 ];
 
 // 获取电表列表
@@ -221,23 +213,36 @@ const fetchMeterList = async (page = currentPage.value, shouldResetPage = false)
   }
   
   try {
+
+    
     // 使用正确的API调用
     const res = await queryMeterPage({
       pageNo: currentPage.value,
       pageSize: pageSize.value,
       meterId: searchText.value,
       model: searchText.value,
+      status: searchStatus.value,
       startDate: dateRange.value?.[0],
       endDate: dateRange.value?.[1],
       isAsc: false,
-      sortBy: 'lastMeterReadingDate'
+      sortBy: ''
     });
     
-    meterList.value = res.list;
-    total.value = res.total;
+    console.log('获取电表列表响应:', res);
+    if (res && res.list) {
+      meterList.value = res.list || [];
+      total.value = Number(res.total) || 0;
+      console.log(`成功获取${meterList.value.length}条电表数据，总计${total.value}条`);
+    } else {
+      meterList.value = [];
+      total.value = 0;
+      console.warn('电表列表响应格式异常:', res);
+    }
   } catch (error) {
     ElMessage.error('获取电表列表失败');
     console.error('获取电表列表失败', error);
+    meterList.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -245,13 +250,21 @@ const fetchMeterList = async (page = currentPage.value, shouldResetPage = false)
 
 // 处理筛选搜索
 const handleFilterSearch = (filterValues) => {
+  console.log('收到筛选值:', filterValues);
+  
   // 更新筛选值
   searchText.value = filterValues.searchText || '';
-  searchBind.value = filterValues.searchBind || '';
+  searchStatus.value = filterValues.searchStatus || '';
   dateRange.value = filterValues.dateRange || [
     new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
     new Date().toISOString().split('T')[0]
   ];
+  
+  console.log('更新查询参数:', {
+    searchText: searchText.value,
+    searchStatus: searchStatus.value,
+    dateRange: dateRange.value
+  });
   
   // 重新加载数据
   fetchMeterList(1, true);
@@ -259,12 +272,16 @@ const handleFilterSearch = (filterValues) => {
 
 // 清空搜索条件
 const clearSearch = () => {
+  console.log('清空搜索条件');
   searchText.value = '';
-  searchBind.value = '';
+  searchStatus.value = '';
   dateRange.value = [
     new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
     new Date().toISOString().split('T')[0]
   ];
+  
+  
+  fetchMeterList(1, true);
 };
 
 // 表格选择变化
@@ -274,22 +291,33 @@ const handleSelectionChange = (selection) => {
 
 // 分页处理
 const handlePageChange = (page) => {
+  console.log('页码变更为:', page);
   fetchMeterList(page);
 };
 
 // 创建电表
 const handleCreate = () => {
-  router.push('/admin/meter/create');
+  router.push({
+    path: '/admin/meter/form',
+    query: { mode: 'create' }
+  }
+  );
 };
 
 // 编辑电表
 const handleEdit = (row) => {
-  router.push(`/admin/meter/edit/${row.id}`);
+  router.push({
+    path: '/admin/meter/form',
+    query: { mode: 'edit', id: row.id }
+  });
 };
 
 // 查看电表详情
 const handleDetail = (row) => {
-  router.push(`/admin/meter/detail/${row.id}`);
+  router.push({
+    path: '/admin/meter/form',
+    query: { mode: 'view', id: row.id }
+  });
 };
 
 // 删除电表
@@ -300,7 +328,6 @@ const handleDelete = (id) => {
     type: 'warning'
   }).then(async () => {
     try {
-      // 这里替换为实际的API调用
       await deleteMeter(id);
       ElMessage.success('删除成功');
       fetchMeterList(currentPage.value);
@@ -308,7 +335,9 @@ const handleDelete = (id) => {
       ElMessage.error('删除失败');
       console.error('删除电表失败', error);
     }
-  }).catch(() => {});
+  }).catch(() => {
+    console.log('取消删除操作');
+  });
 };
 
 // 批量删除
@@ -324,15 +353,19 @@ const handleBatchDelete = () => {
     type: 'warning'
   }).then(async () => {
     try {
-      // 这里替换为实际的API调用
-      await batchDeleteMeters(selectedMeterIds.value);
+      // 逐个删除电表
+      for (const id of selectedMeterIds.value) {
+        await deleteMeter(id);
+      }
       ElMessage.success('批量删除成功');
       fetchMeterList(1, true);
     } catch (error) {
       ElMessage.error('批量删除失败');
       console.error('批量删除电表失败', error);
     }
-  }).catch(() => {});
+  }).catch(() => {
+    console.log('取消批量删除操作');
+  });
 };
 
 // 绑定用户
@@ -354,6 +387,7 @@ const handleRepair = (row) => {
 };
 
 onMounted(() => {
+  console.log('电表列表页面加载');
   fetchMeterList(1, true);
 });
 </script>
