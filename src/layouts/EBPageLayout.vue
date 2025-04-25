@@ -1,3 +1,4 @@
+
 <template>
   <div class="eb-page-container">
     <div class="eb-content-wrapper">
@@ -13,7 +14,7 @@
 </template>
 
 <script setup>
-// 这个组件主要提供页面的基本布局结构
+// 这个组件主要提供用户端页面的基本布局结构
 </script>
 
 <style scoped>
