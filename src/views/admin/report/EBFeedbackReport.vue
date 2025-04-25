@@ -1,320 +1,270 @@
 <template>
-  <div class="feedback-report">
-    <div class="report-header">
-      <div class="title-section">
-        <h3>反馈信息统计</h3>
-      </div>
-      <div class="chart-actions">
-        <el-radio-group v-model="chartType" size="small" @change="changeChartType">
-          <el-radio-button label="pie">饼图</el-radio-button>
-          <el-radio-button label="bar">柱状图</el-radio-button>
-          <el-radio-button label="radar">雷达图</el-radio-button>
-        </el-radio-group>
-      </div>
-    </div>
-    <div class="chart-container">
-      <EBChart :option="currentChartOption" />
-    </div>
+  <div class="report-section feedback-report">
+    <el-skeleton :loading="loading" animated :rows="8">
+      <template #default>
+        <div v-if="!reportData || !reportData.timeSeries || !reportData.timeSeries.dates || reportData.timeSeries.dates.length === 0" class="no-data-placeholder">
+          <el-empty description="暂无反馈统计数据" />
+        </div>
+        <div v-else class="report-content">
+          <!-- Summary Cards -->
+          <el-row :gutter="20" class="summary-cards">
+            <el-col :xs="24" :sm="12" :md="8" :lg="6">
+              <el-card shadow="hover" class="summary-card total-feedback-card">
+                <div class="card-title">反馈总数</div>
+                <div class="card-value">{{ formatNumber(reportData.summary?.total_feedback || 0) }}</div>
+                 <div class="card-trend" :class="getTrendClass(reportData.summary?.feedback_growth_rate)">
+                   <el-icon v-if="reportData.summary?.feedback_growth_rate !== undefined"><component :is="getTrendIcon(reportData.summary?.feedback_growth_rate)" /></el-icon>
+                   {{ formatPercentage(reportData.summary?.feedback_growth_rate) }}
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8" :lg="6">
+              <el-card shadow="hover" class="summary-card pending-card">
+                <div class="card-title">待处理反馈</div>
+                <div class="card-value">{{ formatNumber(reportData.summary?.pending_count || 0) }}</div>
+              </el-card>
+            </el-col>
+             <el-col :xs="24" :sm="12" :md="8" :lg="6">
+              <el-card shadow="hover" class="summary-card processed-card">
+                 <div class="card-title">已处理反馈</div>
+                 <div class="card-value">{{ formatNumber(reportData.summary?.processed_count || 0) }}</div>
+              </el-card>
+            </el-col>
+             <el-col :xs="24" :sm="12" :md="8" :lg="6">
+              <el-card shadow="hover" class="summary-card avg-time-card">
+                 <div class="card-title">平均处理时长</div>
+                 <div class="card-value">{{ formatDuration(reportData.summary?.average_process_time_hours || 0) }}</div>
+              </el-card>
+            </el-col>
+          </el-row>
+
+          <!-- Chart Section (Pie for type distribution, Bar/Line for trend) -->
+           <el-row :gutter="20">
+               <el-col :xs="24" :md="12">
+                 <el-card shadow="never" class="chart-card">
+                    <template #header>
+                       <div class="chart-header">
+                          <span>反馈类型分布</span>
+                           <!-- Add controls if needed -->
+                       </div>
+                    </template>
+                    <div class="chart-container" style="height: 350px;">
+                       <EBChart :option="typeDistributionChartOption" :loading="loading" />
+                    </div>
+                 </el-card>
+              </el-col>
+               <el-col :xs="24" :md="12">
+                 <el-card shadow="never" class="chart-card">
+                    <template #header>
+                       <div class="chart-header">
+                          <span>反馈趋势 ({{ granularityText }})</span>
+                           <el-radio-group v-model="trendChartType" size="small">
+                              <el-radio-button label="bar">柱状图</el-radio-button>
+                              <el-radio-button label="line">折线图</el-radio-button>
+                          </el-radio-group>
+                       </div>
+                    </template>
+                    <div class="chart-container" style="height: 350px;">
+                       <EBChart :option="feedbackTrendChartOption" :loading="loading" />
+                    </div>
+                 </el-card>
+              </el-col>
+           </el-row>
+
+          <!-- Data Table -->
+           <el-card shadow="never" class="table-card" v-if="reportData.tableData && reportData.tableData.length > 0">
+             <template #header>最新反馈列表</template>
+              <el-table :data="reportData.tableData" stripe style="width: 100%" max-height="400">
+                <el-table-column prop="id" label="ID" width="80" />
+                <el-table-column prop="user_id" label="用户ID" width="100" />
+                <el-table-column prop="feedback_type" label="反馈类型" width="120">
+                  <template #default="scope">
+                    <el-tag :type="getFeedbackTypeTag(scope.row.feedback_type)">{{ formatFeedbackType(scope.row.feedback_type) }}</el-tag>
+                  </template>
+                </el-table-column>
+                 <el-table-column prop="content" label="反馈内容" show-overflow-tooltip />
+                <el-table-column prop="feedback_status" label="状态" width="100">
+                   <template #default="scope">
+                    <el-tag :type="getFeedbackStatusTag(scope.row.feedback_status)">{{ formatFeedbackStatus(scope.row.feedback_status) }}</el-tag>
+                  </template>
+                </el-table-column>
+                 <el-table-column prop="submit_time" label="提交时间" width="160" sortable />
+                 <el-table-column prop="processor_id" label="处理人ID" width="100" />
+                 <el-table-column prop="process_time" label="处理时间" width="160" sortable />
+              </el-table>
+           </el-card>
+        </div>
+      </template>
+    </el-skeleton>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, computed } from 'vue';
 import EBChart from '@/components/EBChart.vue';
-import { getFeedbackReport } from '@/api/admin/report';
-import { ElMessage } from 'element-plus';
+import { ArrowUp, ArrowDown, ChatDotRound, Clock } from '@element-plus/icons-vue';
+import { formatNumber, formatPercentage, formatDuration, formatFeedbackType, formatFeedbackStatus } from '@/utils/formatter'; // Corrected path
 
-// 定义接收的属性
 const props = defineProps({
-  feedbackData: {
-    type: Array,
-    default: () => []
+  data: {
+    type: Object, // Expected structure: { summary: {...}, timeSeries: [...], tableData: [...] }
+    default: null
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  granularity: {
+      type: String,
+      default: 'daily'
   }
 });
 
-// 图表类型
-const chartType = ref('pie');
-// 时间粒度
-const timePeriod = ref('daily');
+const trendChartType = ref('bar'); // bar, line
 
-// 饼图配置
-const pieChartOption = computed(() => ({
-  title: {
-    text: '反馈类型分布',
-    left: 'center'
-  },
-  tooltip: {
-    trigger: 'item',
-    formatter: '{a} <br/>{b}: {c} ({d}%)'
-  },
-  legend: {
-    orient: 'horizontal',
-    bottom: 10,
-    data: ['投诉', '建议', '问题', '表扬', '其他']
-  },
-  series: [
-    {
-      name: '反馈类型',
-      type: 'pie',
-      radius: ['40%', '70%'],
-      avoidLabelOverlap: false,
-      itemStyle: {
-        borderRadius: 10,
-        borderColor: '#fff',
-        borderWidth: 2
-      },
-      label: {
-        show: false,
-        position: 'center'
-      },
-      emphasis: {
-        label: {
-          show: true,
-          fontSize: '18',
-          fontWeight: 'bold'
-        }
-      },
-      labelLine: {
-        show: false
-      },
-      data: [
-        { value: props.feedbackData.filter(item => item.type === 'complaint').length, name: '投诉' },
-        { value: props.feedbackData.filter(item => item.type === 'suggestion').length, name: '建议' },
-        { value: props.feedbackData.filter(item => item.type === 'question').length, name: '问题' },
-        { value: props.feedbackData.filter(item => item.type === 'praise').length, name: '表扬' },
-        { value: props.feedbackData.filter(item => item.type === 'other').length, name: '其他' }
-      ]
+// --- Computed Properties ---
+const reportData = computed(() => props.data);
+
+const granularityText = computed(() => {
+    switch (props.granularity) {
+        case 'monthly': return '月度';
+        case 'yearly': return '年度';
+        default: return '每日';
     }
-  ]
-}));
-
-// 柱状图配置
-const barChartOption = computed(() => ({
-  title: {
-    text: '反馈状态统计',
-    left: 'center'
-  },
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: {
-      type: 'shadow'
-    }
-  },
-  legend: {
-    data: ['待处理', '处理中', '已处理', '已关闭'],
-    bottom: 10
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '15%',
-    containLabel: true
-  },
-  xAxis: {
-    type: 'category',
-    data: ['投诉', '建议', '问题', '表扬', '其他']
-  },
-  yAxis: {
-    type: 'value'
-  },
-  series: [
-    {
-      name: '待处理',
-      type: 'bar',
-      stack: '状态',
-      emphasis: {
-        focus: 'series'
-      },
-      data: getStackedData('pending')
-    },
-    {
-      name: '处理中',
-      type: 'bar',
-      stack: '状态',
-      emphasis: {
-        focus: 'series'
-      },
-      data: getStackedData('processing')
-    },
-    {
-      name: '已处理',
-      type: 'bar',
-      stack: '状态',
-      emphasis: {
-        focus: 'series'
-      },
-      data: getStackedData('processed')
-    },
-    {
-      name: '已关闭',
-      type: 'bar',
-      stack: '状态',
-      emphasis: {
-        focus: 'series'
-      },
-      data: getStackedData('closed')
-    }
-  ]
-}));
-
-// 雷达图配置
-const radarChartOption = computed(() => ({
-  title: {
-    text: '反馈处理效率',
-    left: 'center'
-  },
-  tooltip: {
-    trigger: 'item'
-  },
-  legend: {
-    data: ['实际处理时间', '目标处理时间'],
-    bottom: 10
-  },
-  radar: {
-    indicator: [
-      { name: '投诉', max: 100 },
-      { name: '建议', max: 100 },
-      { name: '问题', max: 100 },
-      { name: '表扬', max: 100 },
-      { name: '其他', max: 100 }
-    ]
-  },
-  series: [
-    {
-      name: '反馈处理效率',
-      type: 'radar',
-      data: [
-        {
-          value: [85, 70, 90, 95, 80],
-          name: '实际处理时间'
-        },
-        {
-          value: [90, 80, 95, 90, 85],
-          name: '目标处理时间'
-        }
-      ]
-    }
-  ]
-}));
-
-// 计算堆叠柱状图的数据
-function getStackedData(status) {
-  return [
-    props.feedbackData.filter(item => item.type === 'complaint' && item.status === status).length,
-    props.feedbackData.filter(item => item.type === 'suggestion' && item.status === status).length,
-    props.feedbackData.filter(item => item.type === 'question' && item.status === status).length,
-    props.feedbackData.filter(item => item.type === 'praise' && item.status === status).length,
-    props.feedbackData.filter(item => item.type === 'other' && item.status === status).length
-  ];
-}
-
-// 当前显示的图表选项
-const currentChartOption = computed(() => {
-  switch (chartType.value) {
-    case 'pie':
-      return pieChartOption.value;
-    case 'bar':
-      return barChartOption.value;
-    case 'radar':
-      return radarChartOption.value;
-    default:
-      return pieChartOption.value;
-  }
 });
 
-// 切换图表类型
-const changeChartType = (type) => {
-  chartType.value = type;
-};
+// Pie chart for feedback type distribution
+const typeDistributionChartOption = computed(() => {
+    if (!reportData.value?.summary?.type_distribution) {
+        return {};
+    }
+    const distribution = reportData.value.summary.type_distribution;
+    // Expecting format: { complaint: 10, suggestion: 20, question: 5 }
+    const chartData = Object.entries(distribution).map(([type, count]) => ({
+        name: formatFeedbackType(type), // Format 'complaint' to '投诉'
+        value: count
+    }));
 
-// 处理时间粒度变化
-const handleTimePeriodChange = (period) => {
-  timePeriod.value = period;
-  // 加载数据
-  loadFeedbackData();
-};
-
-// 加载反馈数据
-const loadFeedbackData = async () => {
-  try {
-    const loading = ref(true);
-    
-    // 获取反馈报表数据
-    const params = {
-      granularity: timePeriod.value,
-      startDate: '', // 可根据实际需求设置日期范围
-      endDate: ''
+    return {
+        tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+        legend: { orient: 'vertical', left: 'left', data: chartData.map(item => item.name) },
+        series: [{
+            name: '反馈类型',
+            type: 'pie',
+            radius: '70%',
+            center: ['50%', '60%'],
+            data: chartData,
+            emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
+            label: { formatter: '{b}: {c}' }
+        }]
     };
-    
-    const response = await getFeedbackReport(params);
-    
-    // 处理返回的数据
-    if (response && response.data) {
-      // 在实际项目中，这里应该用接口返回的数据更新组件的数据
-      // props.feedbackData = response.data;
-    }
-    
-    loading.value = false;
-  } catch (error) {
-    console.error('加载反馈数据失败:', error);
-    ElMessage.error('加载反馈数据失败');
-    loading.value = false;
-  }
-};
-
-// 组件挂载后自动填充模拟数据（实际项目中应替换为真实数据）
-onMounted(() => {
-  // 初始化处理
-  loadFeedbackData();
 });
 
-watch(() => props.feedbackData, () => {
-  // 当数据变化时的处理
-}, { deep: true });
+// Bar/Line chart for feedback trend
+const feedbackTrendChartOption = computed(() => {
+    if (!reportData.value?.timeSeries) {
+        return {};
+    }
+    const timeSeries = reportData.value.timeSeries;
+    const dates = Array.isArray(timeSeries.dates) ? timeSeries.dates : [];
+    const totalFeedback = Array.isArray(timeSeries.total_feedback) ? timeSeries.total_feedback : [];
+    const pendingFeedback = Array.isArray(timeSeries.pending_count) ? timeSeries.pending_count : [];
+    const processedFeedback = Array.isArray(timeSeries.processed_count) ? timeSeries.processed_count : [];
+
+    return {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        legend: { data: ['总反馈数', '待处理', '已处理'], bottom: 10 },
+        xAxis: { type: 'category', boundaryGap: trendChartType.value === 'bar', data: dates },
+        yAxis: { type: 'value', name: '数量' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 20, bottom: 40 }
+        ],
+        series: [
+            {
+                name: '总反馈数',
+                type: trendChartType.value,
+                data: totalFeedback,
+                smooth: trendChartType.value === 'line',
+                itemStyle: { color: '#409EFF' },
+                areaStyle: trendChartType.value === 'line' ? { opacity: 0.3 } : undefined
+            },
+            {
+                name: '待处理',
+                type: trendChartType.value,
+                data: pendingFeedback,
+                smooth: trendChartType.value === 'line',
+                itemStyle: { color: '#E6A23C' },
+                 areaStyle: trendChartType.value === 'line' ? { opacity: 0.2 } : undefined
+            },
+             {
+                name: '已处理',
+                type: trendChartType.value,
+                data: processedFeedback,
+                smooth: trendChartType.value === 'line',
+                itemStyle: { color: '#67C23A' },
+                 areaStyle: trendChartType.value === 'line' ? { opacity: 0.1 } : undefined
+            }
+        ]
+    };
+});
+
+// --- Tag Type Helpers ---
+const getFeedbackTypeTag = (type) => {
+    switch (type?.toLowerCase()) {
+        case 'complaint': return 'danger';
+        case 'suggestion': return 'warning';
+        case 'question': return 'info';
+        default: return 'primary';
+    }
+};
+
+const getFeedbackStatusTag = (status) => {
+    switch (status?.toLowerCase()) {
+        case 'pending': return 'warning';
+        case 'processed': return 'success';
+        case 'closed': return 'info';
+        default: return 'primary';
+    }
+};
+
+// --- Trend helpers ---
+const getTrendIcon = (rate) => {
+  if (rate === null || rate === undefined) return null;
+  return rate >= 0 ? ArrowUp : ArrowDown;
+};
+
+const getTrendClass = (rate) => {
+  if (rate === null || rate === undefined) return 'neutral';
+  return rate >= 0 ? 'positive' : 'negative';
+};
+
 </script>
 
 <style scoped>
-.feedback-report {
-  width: 100%;
-  margin-bottom: 20px;
-}
+/* Using shared styles */
+.report-section { padding: 0px; }
+.report-content { display: flex; flex-direction: column; gap: 20px; }
+.summary-cards { margin-bottom: 0px; }
+.summary-card { text-align: left; border: 1px solid #e4e7ed; transition: box-shadow 0.3s; }
+.summary-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.card-title { color: #606266; font-size: 14px; margin-bottom: 8px; }
+.card-value { color: #303133; font-size: 22px; font-weight: bold; margin-bottom: 5px; line-height: 1.2; }
+.card-trend { font-size: 12px; display: flex; align-items: center; gap: 3px; }
+.card-trend.positive { color: #67C23A; }
+.card-trend.negative { color: #F56C6C; }
+.card-trend.neutral { color: #909399; }
+.card-subtext { font-size: 12px; color: #909399; margin-top: -2px; }
+.chart-card { border: 1px solid #e4e7ed; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 500; }
+.chart-container { height: 350px; }
+.table-card { margin-top: 0; border: 1px solid #e4e7ed; }
+.no-data-placeholder { display: flex; justify-content: center; align-items: center; min-height: 400px; color: #909399; }
 
-.report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 10px 0;
-  border-bottom: 1px solid #ebeef5;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.title-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.report-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  white-space: nowrap;
-}
-
-.time-period-select {
-  width: 100px;
-}
-
-.chart-actions {
-  display: flex;
-  align-items: center;
-}
-
-.chart-container {
-  width: 100%;
-  height: 350px;
-}
+/* Specific card background colors */
+.total-feedback-card { background-color: #ecf5ff; border-left: 4px solid #409EFF; }
+.pending-card { background-color: #fdf6ec; border-left: 4px solid #E6A23C; }
+.processed-card { background-color: #f0f9eb; border-left: 4px solid #67C23A; }
+.avg-time-card { background-color: #f4f4f5; border-left: 4px solid #909399; }
 </style> 

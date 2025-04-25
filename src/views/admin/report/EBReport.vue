@@ -1,92 +1,61 @@
 <template>
   <div class="report-dashboard">
-    <el-card class="admin-card">
+    <el-card class="admin-card report-card">
       <template #header>
-        <div class="header">
-          <div class="title-area">
-            <h3 class="header-title">
-              <el-icon><DataAnalysis /></el-icon>
-              数据报表
-            </h3>
+        <div class="report-header-content">
+          <div class="header-left">
+            <el-icon :size="20" style="margin-right: 8px;"><DataAnalysis /></el-icon>
+            <span class="header-title">数据统计报表</span>
+          </div>
+          <div class="header-right">
             <el-date-picker
               v-model="dateRange"
-              type="daterange"
+              :type="pickerType"
               unlink-panels
               range-separator="至"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
               value-format="YYYY-MM-DD HH:mm:ss"
-              @change="fetchReportData"
+              @change="handleFilterChange"
               class="filter-date-range"
+              :disabled-date="disabledDate"
             >
               <template #prefix>
                 <el-icon><Calendar /></el-icon>
               </template>
             </el-date-picker>
-          </div>
-          <div class="toolbar-area">
-            <el-button type="primary" class="toolbar-button" @click="downloadData">
-              <el-icon size="18"><Download /></el-icon>
-              <span>下载数据</span>
+            <el-radio-group v-model="selectedGranularity" @change="handleFilterChange" class="granularity-selector">
+              <el-radio-button label="daily">日</el-radio-button>
+              <el-radio-button label="monthly">月</el-radio-button>
+              <el-radio-button label="yearly">年</el-radio-button>
+            </el-radio-group>
+             <el-button type="primary" @click="downloadData" :loading="exportLoading" class="action-button">
+              <el-icon><Download /></el-icon>
+              导出数据
             </el-button>
-            <el-button type="success" class="toolbar-button" @click="exportImage">
-              <el-icon size="18"><Picture /></el-icon>
-              <span>导出图表</span>
-            </el-button>
-            <el-button type="warning" class="toolbar-button" @click="refreshChart">
-              <el-icon size="18"><Refresh /></el-icon>
-              <span>刷新</span>
+            <el-button @click="refreshData" :loading="loading" class="action-button">
+               <el-icon><Refresh /></el-icon>
+              刷新
             </el-button>
           </div>
         </div>
       </template>
 
-      <!-- 选项卡导航 -->
-      <el-tabs v-model="activeTabName" type="card" class="demo-tabs">
+      <el-tabs v-model="activeTabName" @tab-change="handleTabChange" class="report-tabs">
         <el-tab-pane label="电量统计" name="electricity">
-          <EBPeriodReport 
-            contentType="electricity"
-            :dailyElectricityUsageOption="dailyElectricityUsageOption"
-            :loading="loading"
-            ref="electricityReportRef"
-          />
+          <EBElectricityReport :data="electricityData" :loading="loadingStates.electricity" :granularity="selectedGranularity" />
         </el-tab-pane>
-        
         <el-tab-pane label="电费统计" name="fee">
-          <EBPeriodReport 
-            contentType="fee"
-            :dailyFeeAmountOption="dailyFeeAmountOption"
-            :loading="loading"
-            ref="feeReportRef"
-          />
+          <EBFeeReport :data="feeData" :loading="loadingStates.fee" :granularity="selectedGranularity" />
         </el-tab-pane>
-        
-        <el-tab-pane label="区域统计" name="region">
-          <EBRegionReport 
-            :loading="loading" 
-            ref="regionReportRef" 
-          />
+        <el-tab-pane label="反馈统计" name="feedback">
+          <EBFeedbackReport :data="feedbackData" :loading="loadingStates.feedback" :granularity="selectedGranularity" />
         </el-tab-pane>
-        
-        <el-tab-pane label="反馈信息统计" name="feedback">
-          <EBFeedbackReport 
-            :feedbackData="feedbackData" 
-            ref="feedbackReportRef"
-          />
+        <el-tab-pane label="对账统计" name="reconciliation">
+          <EBReconciliationReport :data="reconciliationData" :loading="loadingStates.reconciliation" :granularity="selectedGranularity" />
         </el-tab-pane>
-        
-        <el-tab-pane label="对账审批统计" name="reconciliation">
-          <EBReconciliationReport 
-            :reconciliationData="reconciliationData" 
-            ref="reconciliationReportRef"
-          />
-        </el-tab-pane>
-        
-        <el-tab-pane label="用户类型分析" name="userType">
-          <EBUserTypeReport 
-            :userData="userData" 
-            ref="userTypeReportRef"
-          />
+        <el-tab-pane label="用户类型统计" name="userType">
+          <EBUserTypeReport :data="userTypeData" :loading="loadingStates.userType" :granularity="selectedGranularity" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -94,370 +63,295 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import EBPeriodReport from './EBPeriodReport.vue';
+import { ref, reactive, watch, onMounted, computed, nextTick } from 'vue';
+import EBElectricityReport from './EBElectricityReport.vue';
+import EBFeeReport from './EBFeeReport.vue';
 import EBFeedbackReport from './EBFeedbackReport.vue';
 import EBReconciliationReport from './EBReconciliationReport.vue';
 import EBUserTypeReport from './EBUserTypeReport.vue';
-import EBRegionReport from './EBRegionReport.vue';
-import { Calendar, Search, Download, DataAnalysis, Picture, Refresh } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { getReportData, getReportExcel } from '@/api/admin/report.js';
+import { Calendar, Download, DataAnalysis, Refresh } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { exportReport } from '@/api/admin/report.js';
+import {
+  getElectricityReport,
+  getFeeReport,
+  getFeedbackReport,
+  getReconciliationReport,
+  getUserTypeReport
+} from '@/api/admin/statistics.js';
+import dayjs from 'dayjs';
 
-const loading = ref(false);
+// --- State ---
 const dateRange = ref([]);
-const reportData = ref([]);
-const activeTabName = ref('electricity'); // 默认显示电量统计
+const selectedGranularity = ref('daily'); // daily, monthly, yearly
+const activeTabName = ref('electricity'); // Corresponds to tab pane names
+const exportLoading = ref(false);
 
-// 各个报表组件的引用
-const electricityReportRef = ref(null);
-const feeReportRef = ref(null);
-const regionReportRef = ref(null);
-const feedbackReportRef = ref(null);
-const reconciliationReportRef = ref(null);
-const userTypeReportRef = ref(null);
-
-// 记录上一次的日期范围（为了避免重复加载数据）
-const prevDateRange = ref(dateRange.value);
-
-// 模拟数据
-const feedbackData = ref([]);
-const reconciliationData = ref([]);
-const userData = ref([]);
-
-// 获取当前活动的图表组件引用
-const getActiveChartRef = () => {
-  const refMap = {
-    'electricity': electricityReportRef,
-    'fee': feeReportRef,
-    'region': regionReportRef,
-    'feedback': feedbackReportRef,
-    'reconciliation': reconciliationReportRef,
-    'userType': userTypeReportRef
-  };
-  
-  return refMap[activeTabName.value]?.value?.chartRef;
-};
-
-// 刷新图表
-const refreshChart = () => {
-  const chartRef = getActiveChartRef();
-  if (chartRef?.value?.refreshChart) {
-    chartRef.value.refreshChart();
-    ElMessage.success('图表已刷新');
-  } else {
-    ElMessage.warning('无法刷新当前图表');
-  }
-};
-
-// 下载数据
-const downloadData = () => {
-  const chartRef = getActiveChartRef();
-  if (chartRef?.value?.downloadData) {
-    chartRef.value.downloadData();
-  } else {
-    ElMessage.warning('无法下载当前数据');
-  }
-};
-
-// 导出图片
-const exportImage = () => {
-  const chartRef = getActiveChartRef();
-  if (chartRef?.value?.exportImage) {
-    chartRef.value.exportImage();
-  } else {
-    ElMessage.warning('无法导出当前图表');
-  }
-};
-
-// 生成模拟数据
-const generateMockData = () => {
-  // 模拟反馈数据
-  feedbackData.value = Array.from({ length: 50 }, (_, i) => ({
-    id: i + 1,
-    type: ['complaint', 'suggestion', 'question', 'praise', 'other'][Math.floor(Math.random() * 5)],
-    status: ['pending', 'processing', 'processed', 'closed'][Math.floor(Math.random() * 4)],
-    date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  }));
-  
-  // 模拟对账数据
-  reconciliationData.value = Array.from({ length: 50 }, (_, i) => ({
-    id: i + 1,
-    status: ['待审批', '通过', '拒绝', '退回', '暂缓'][Math.floor(Math.random() * 5)],
-    date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  }));
-  
-  // 模拟用户数据
-  userData.value = Array.from({ length: 50 }, (_, i) => ({
-    id: i + 1,
-    type: ['居民用户', '商业用户', '工业用户', '农业用户', '其他用户'][Math.floor(Math.random() * 5)],
-    electricityUsage: Math.floor(Math.random() * 5000),
-    feeAmount: Math.floor(Math.random() * 2000)
-  }));
-};
-
-const dailyElectricityUsageOption = ref({
-  grid: {
-    left: '10%',
-    right: '10%',
-    bottom: '10%',
-    containLabel: true
-  },
-  title: {
-    text: '用电量统计',
-    left: 'center',
-    top: 0
-  },
-  xAxis: {
-    type: 'category',
-    data: []
-  },
-  yAxis: {
-    type: 'value',
-    name: '用电量(kWh)'
-  },
-  series: [
-    {
-      data: [],
-      type: 'bar',
-      name: '用电量',
-      itemStyle: {
-        color: '#409EFF'
-      }
-    }
-  ]
+// Loading states for each tab
+const loadingStates = reactive({
+  electricity: false,
+  fee: false,
+  feedback: false,
+  reconciliation: false,
+  userType: false
 });
 
-const dailyFeeAmountOption = ref({
-  grid: {
-    left: '10%',
-    right: '10%',
-    bottom: '10%',
-    containLabel: true
-  },
-  title: {
-    text: '电费统计',
-    left: 'center',
-    top: 0
-  },
-  xAxis: {
-    type: 'category',
-    data: []
-  },
-  yAxis: {
-    type: 'value',
-    name: '金额(元)'
-  },
-  series: [
-    {
-      data: [],
-      type: 'line',
-      name: '费用金额',
-      smooth: true,
-      itemStyle: {
-        color: '#67C23A'
-      },
-      areaStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            {
-              offset: 0,
-              color: 'rgba(103, 194, 58, 0.3)'
-            },
-            {
-              offset: 1,
-              color: 'rgba(103, 194, 58, 0.1)'
-            }
-          ]
-        }
-      }
+// Data storage for each report type
+const electricityData = ref(null);
+const feeData = ref(null);
+const feedbackData = ref(null);
+const reconciliationData = ref(null);
+const userTypeData = ref(null);
+
+// Global loading state (optional, can use individual states)
+const loading = computed(() => Object.values(loadingStates).some(state => state));
+
+// --- Computed ---
+const pickerType = computed(() => {
+    switch (selectedGranularity.value) {
+        case 'monthly': return 'monthrange';
+        case 'yearly': return 'yearrange';
+        default: return 'daterange';
     }
-  ]
 });
 
-//获取报表数据
-const fetchReportData = async () => {
-  // 如果日期范围为空，则返回
-  if (!dateRange.value) {
+// --- Methods ---
+
+// Map tab name to API function and data ref
+const reportMap = {
+  electricity: { api: getElectricityReport, dataRef: electricityData, loadingKey: 'electricity' },
+  fee: { api: getFeeReport, dataRef: feeData, loadingKey: 'fee' },
+  feedback: { api: getFeedbackReport, dataRef: feedbackData, loadingKey: 'feedback' },
+  reconciliation: { api: getReconciliationReport, dataRef: reconciliationData, loadingKey: 'reconciliation' },
+  userType: { api: getUserTypeReport, dataRef: userTypeData, loadingKey: 'userType' },
+};
+
+// Fetch data for the currently active tab
+const fetchDataForCurrentTab = async () => {
+  const currentReport = reportMap[activeTabName.value];
+  if (!currentReport || !dateRange.value || dateRange.value.length !== 2) {
+    console.warn('Skipping fetch: Invalid state or date range.');
     return;
   }
-  
-  // 如果日期范围与上一次相同，则返回
-  if (dateRange.value === prevDateRange.value) {
-    return;
-  }
-  
-  // 加载中
-  loading.value = true;
+
+  const { api, dataRef, loadingKey } = currentReport;
+  loadingStates[loadingKey] = true;
+
   try {
-    // 获取日期范围
-    const [startDate, endDate] = dateRange.value;
-    // 从后端生成报表数据
-    const res = await getReportData('daily', startDate, endDate);
-    reportData.value = res;
-    
-    // 更新图表配置
-    updateChartOptions();
-    
-    // 更新上一次的参数
-    prevDateRange.value = dateRange.value;
+    // Adjust date format based on granularity if needed by backend
+    const params = {
+      startDate: dateRange.value[0], // Assume backend handles 'YYYY-MM-DD HH:mm:ss' or adjust here
+      endDate: dateRange.value[1],
+      granularity: selectedGranularity.value,
+    };
+
+    const res = await api(params);
+    console.log(`${activeTabName.value} api response:`, res); // 调试输出后端返回
+    if (!res || (Object.keys(res).length === 0) ||
+        (res.timeSeries && Array.isArray(res.timeSeries.dates) && res.timeSeries.dates.length === 0)) {
+      ElMessage.info('暂无数据');
+      dataRef.value = null;
+    } else {
+      dataRef.value = res;
+    }
   } catch (error) {
-    console.error('获取报表数据失败:', error);
+    console.error(`Error fetching ${activeTabName.value}数据:`, error);
+    ElMessage.error(`获取${activeTabName.value}数据时发生错误`);
+    dataRef.value = null; // Clear data on error
   } finally {
-    loading.value = false;
+    loadingStates[loadingKey] = false;
   }
 };
 
-// 更新图表配置
-const updateChartOptions = () => {
-  // 确保有数据
-  if (!reportData.value || !reportData.value.length) return;
-  
-  // 提取日期和值
-  const dates = reportData.value.map(item => item.date);
-  const usageValues = reportData.value.map(item => item.electricity_usage);
-  const feeValues = reportData.value.map(item => item.fee_amount);
-  
-  // 更新电量图表
-  dailyElectricityUsageOption.value.xAxis.data = dates;
-  dailyElectricityUsageOption.value.series[0].data = usageValues;
-  
-  // 更新电费图表
-  dailyFeeAmountOption.value.xAxis.data = dates;
-  dailyFeeAmountOption.value.series[0].data = feeValues;
+// Refresh data for the current tab
+const refreshData = () => {
+  ElMessage.info('正在刷新数据...');
+  fetchDataForCurrentTab();
 };
 
+// Download report data
+const downloadData = async () => {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    ElMessage.warning('请先选择日期范围');
+    return;
+  }
+  exportLoading.value = true;
+  try {
+    const params = {
+      reportType: activeTabName.value,
+      startDate: dateRange.value[0],
+      endDate: dateRange.value[1],
+      granularity: selectedGranularity.value,
+      format: 'excel' // Or make this selectable
+    };
+    const res = await exportReport(params);
+
+    // Handle blob response for download
+     const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+     const url = window.URL.createObjectURL(blob);
+     const link = document.createElement('a');
+     link.href = url;
+     const timestamp = dayjs().format('YYYYMMDDHHmmss');
+     link.download = `${activeTabName.value}_report_${selectedGranularity.value}_${timestamp}.xlsx`;
+     document.body.appendChild(link);
+     link.click();
+     document.body.removeChild(link);
+     window.URL.revokeObjectURL(url);
+
+    ElMessage.success('报表导出成功');
+  } catch (error) {
+    console.error('Error exporting report:', error);
+    ElMessage.error('导出报表失败');
+  } finally {
+    exportLoading.value = false;
+  }
+};
+
+// Handle filter changes (date or granularity)
+const handleFilterChange = () => {
+  // When granularity changes, adjust date range picker type if necessary
+  // For simplicity, we fetch data immediately. Add debouncing if needed.
+  fetchDataForCurrentTab();
+};
+
+// Handle tab changes
+const handleTabChange = (tabName) => {
+  // Fetch data only if the tab's data hasn't been loaded yet or needs refresh
+  const report = reportMap[tabName];
+  if (report && !report.dataRef.value) {
+       nextTick(fetchDataForCurrentTab); // Ensure DOM is updated before fetching
+  }
+};
+
+// Disable dates beyond allowed range based on granularity (optional enhancement)
+const disabledDate = (time) => {
+  // Add logic here if needed, e.g., prevent selecting future dates
+  return false;
+};
+
+// --- Lifecycle Hooks ---
 onMounted(() => {
-  // 设置默认日期范围为最近7天
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 6);
-  // 将日期范围设置为默认值 YYYY-MM-DD HH:mm:ss
+  // Set default date range (e.g., last 7 days)
+  const end = dayjs().endOf('day'); // End of today
+  const start = dayjs().subtract(6, 'day').startOf('day'); // Start of 7 days ago
   dateRange.value = [
-    start.toISOString().split('T')[0] + ' 00:00:00',
-    end.toISOString().split('T')[0] + ' 23:59:59'
+      start.format('YYYY-MM-DD HH:mm:ss'),
+      end.format('YYYY-MM-DD HH:mm:ss')
   ];
-  
-  // 获取报表数据
-  fetchReportData();
-  
-  // 生成模拟数据供图表使用
-  generateMockData();
+
+  // Initial data fetch for the default tab
+  fetchDataForCurrentTab();
 });
+
+// --- Watchers ---
+// Watchers automatically trigger fetchDataForCurrentTab via handleFilterChange or handleTabChange
+
 </script>
 
 <style scoped>
-@import '@/styles/admin-card.scss';
+@import '@/styles/admin-card.scss'; /* Optional: If you have global card styles */
 
 .report-dashboard {
-  padding: 0px;
-  background-color: #f5f7fa;
+  padding: 20px;
+  background-color: #f7f8fa; /* Light background */
 }
 
-.header {
+.report-card {
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.report-header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 15px; /* Gap between left and right sections */
 }
 
-.title-area {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
 }
 
 .header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 18px;
   font-weight: 600;
   color: #303133;
-  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Gap between filter elements */
+  flex-wrap: wrap;
 }
 
 .filter-date-range {
-  width: 300px;
+  width: 260px; /* Adjust width as needed */
 }
 
-.toolbar-area {
-  display: flex;
-  gap: 10px;
+.granularity-selector {
+  margin-left: 5px;
 }
 
-.toolbar-button {
+.action-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  transition: all 0.3s;
+  gap: 5px;
 }
 
-.toolbar-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.report-tabs {
+  margin-top: 15px;
 }
 
-/* 选项卡样式 */
-.demo-tabs {
-  margin-top: 20px;
-  width: 100%;
-}
-
-:deep(.el-tabs__content) {
-  width: 100%;
-  overflow: visible;
-}
-
-:deep(.el-tab-pane) {
-  width: 100%;
-  padding: 10px 0;
-}
-
+/* Deep selectors for tab styling if needed */
 :deep(.el-tabs__header) {
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 :deep(.el-tabs__item) {
-  font-size: 14px;
-  color: #606266;
-  height: 36px;
-  line-height: 36px;
+  font-size: 15px;
+  height: 45px;
+  line-height: 45px;
 }
 
 :deep(.el-tabs__item.is-active) {
-  color: #409EFF;
-  font-weight: bold;
+  font-weight: 600;
 }
 
-/* 响应式布局 */
-@media screen and (max-width: 768px) {
-  .header {
+:deep(.el-tabs__nav-wrap::after) {
+  background-color: #e4e7ed; /* Bottom border for tabs */
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .report-header-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
-  
-  .title-area {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
+  .header-right {
+     margin-top: 10px;
+     justify-content: flex-start; /* Align filters to the start */
   }
-  
   .filter-date-range {
-    width: 100%;
+     width: 100%; /* Full width on smaller screens */
   }
-  
-  .toolbar-area {
-    width: 100%;
-    justify-content: flex-end;
-  }
+}
+
+@media (max-width: 768px) {
+    .header-right {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .granularity-selector {
+       margin-left: 0;
+       margin-top: 10px;
+       align-self: flex-start;
+    }
+    .action-button {
+       margin-top: 10px;
+       width: 100%; /* Full width buttons */
+    }
 }
 </style> 

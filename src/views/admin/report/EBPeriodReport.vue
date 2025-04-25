@@ -1,5 +1,5 @@
 <template>
-  <div class="period-report">
+  <div class="report-wrapper">
     <div class="report-header">
       <div class="title-section">
         <h3>{{ getReportTitle() }}</h3>
@@ -22,15 +22,24 @@
         </div>
       </div>
     </div>
+    <el-divider />
     <div class="chart-container">
-      <EBChart 
-        :option="currentChartOption" 
-        :loading="loading"
-        :showToolbar="false"
-        ref="chartRef"
-      />
+      <template v-if="loading">
+        <el-skeleton :rows="6" animated />
+      </template>
+      <template v-else-if="!hasData">
+        <div class="empty-data">暂无数据</div>
+      </template>
+      <template v-else>
+        <EBChart 
+          :option="currentChartOption" 
+          :loading="loading"
+          :showToolbar="false"
+          ref="chartRef"
+        />
+      </template>
     </div>
-    <div class="data-summary" v-if="showSummary">
+    <div class="data-summary" v-if="showSummary && hasData">
       <div class="summary-card total">
         <div class="card-title">总{{ contentType === 'electricity' ? '用电量' : '电费' }}</div>
         <div class="card-value">{{ totalValue.toLocaleString() }} {{ contentType === 'electricity' ? 'kWh' : '元' }}</div>
@@ -56,11 +65,9 @@
 import { ref, defineProps, computed, watch, onMounted } from 'vue';
 import EBChart from '@/components/EBChart.vue';
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
-import { getElectricityReport, getFeeReport, getReportMetrics } from '@/api/admin/report';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps({
-  // 支持所有原有组件的属性
   dailyElectricityUsageOption: {
     type: Object,
     default: () => ({})
@@ -85,72 +92,77 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
-  // 报表内容类型
   contentType: {
     type: String,
-    default: 'electricity' // 'electricity' 或 'fee'
+    default: 'electricity'
   },
-  // 是否显示加载状态
   loading: {
     type: Boolean,
     default: false
+  },
+  periodData: {
+    type: Object,
+    default: () => ({
+      dates: [],
+      electricity: [],
+      fee: [],
+      peakUsage: [],
+      flatUsage: [],
+      valleyUsage: []
+    })
+  },
+  growthMetrics: {
+    type: Object,
+    default: () => ({
+      growthRate: 0
+    })
+  },
+  selectedGranularity: {
+    type: String,
+    default: 'daily'
   }
 });
 
-// 图表类型
 const chartType = ref('bar');
-// 时间粒度
-const timePeriod = ref('daily');
-// 显示平均线
 const showAverage = ref(false);
-// 显示数据摘要
 const showSummary = ref(true);
-// 图表引用
 const chartRef = ref(null);
+const reportData = ref({
+  dates: [],
+  electricity: [],
+  fee: [],
+  peakUsage: [],
+  flatUsage: [],
+  valleyUsage: []
+});
 
-// 模拟数据 - 实际项目中应从API获取
-const mockData = {
-  daily: {
-    dates: ['2023-05-01', '2023-05-02', '2023-05-03', '2023-05-04', '2023-05-05', '2023-05-06', '2023-05-07'],
-    electricity: [320, 332, 301, 334, 390, 330, 320],
-    fee: [1200, 1320, 1010, 1340, 1590, 1330, 1320]
-  },
-  weekly: {
-    dates: ['第1周', '第2周', '第3周', '第4周'],
-    electricity: [1420, 1532, 1601, 1734],
-    fee: [5200, 6320, 6010, 6540]
-  },
-  monthly: {
-    dates: ['1月', '2月', '3月', '4月', '5月', '6月'],
-    electricity: [4320, 4532, 5501, 5334, 5990, 5130],
-    fee: [15200, 16320, 19010, 18340, 19590, 17330]
-  },
-  yearly: {
-    dates: ['2018', '2019', '2020', '2021', '2022', '2023'],
-    electricity: [45320, 48532, 42501, 49334, 52990, 58130],
-    fee: [180200, 192320, 170010, 203340, 229590, 231330]
-  }
-};
-
-// 获取报表标题
 const getReportTitle = () => {
   return props.contentType === 'electricity' ? '电量统计' : '电费统计';
 };
 
-// 获取当前数据
+const getFormattedDates = (dates, granularity) => {
+  if (!dates || dates.length === 0) return [];
+  const formatMap = {
+    daily: (dateStr) => dateStr,
+    monthly: (dateStr) => dateStr,
+    yearly: (dateStr) => `${dateStr}年`
+  };
+  const formatter = formatMap[granularity] || formatMap.daily;
+  return dates.map(formatter);
+};
+
 const getCurrentData = () => {
-  const data = mockData[timePeriod.value];
-  const values = props.contentType === 'electricity' ? data.electricity : data.fee;
+  const values = props.contentType === 'electricity' ? reportData.value.electricity : reportData.value.fee;
+  const formattedDates = getFormattedDates(reportData.value.dates || [], props.selectedGranularity);
   return {
-    dates: data.dates,
-    values: values
+    dates: formattedDates,
+    values: values || []
   };
 };
 
-// 计算数据摘要
 const totalValue = computed(() => {
   const { values } = getCurrentData();
-  return values.reduce((sum, val) => sum + val, 0);
+  return values.length ? values.reduce((sum, val) => sum + val, 0) : 0;
 });
 
 const averageValue = computed(() => {
@@ -160,32 +172,36 @@ const averageValue = computed(() => {
 
 const highestValue = computed(() => {
   const { values } = getCurrentData();
-  return Math.max(...values);
+  return values.length ? Math.max(...values) : 0;
 });
 
 const highestDate = computed(() => {
   const { dates, values } = getCurrentData();
+  if (!values.length) return '';
   const maxIndex = values.indexOf(Math.max(...values));
-  return dates[maxIndex];
+  return dates[maxIndex] || '';
 });
 
-// 计算同比增长率（模拟数据）
 const growthRate = computed(() => {
-  // 实际应从API获取的数据
-  return Math.round((Math.random() * 40) - 20);
+  return props.growthMetrics.growthRate || 0;
 });
 
-// 当前图表选项
+const getPeriodTypeData = () => {
+  return {
+    peak: reportData.value.peakUsage || [],
+    flat: reportData.value.flatUsage || [],
+    valley: reportData.value.valleyUsage || []
+  };
+};
+
 const currentChartOption = computed(() => {
-  // 获取当前数据
   const { dates, values } = getCurrentData();
   
-  // 基本配置
   const baseOption = {
     title: {
       text: getReportTitle(),
       left: 'center',
-      top: 10 // 增加标题顶部间距
+      top: 10
     },
     tooltip: {
       trigger: 'axis',
@@ -197,13 +213,18 @@ const currentChartOption = computed(() => {
       }
     },
     toolbox: {
-      show: false
+      feature: {
+        saveAsImage: {},
+        dataZoom: { yAxisIndex: 'none' },
+        restore: {},
+      },
+      right: 20
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '5%', // 增加底部间距
-      top: '15%',   // 增加顶部间距
+      bottom: '10%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {
@@ -215,6 +236,19 @@ const currentChartOption = computed(() => {
       type: 'value',
       name: props.contentType === 'electricity' ? '用电量(kWh)' : '金额(元)'
     },
+    dataZoom: [
+      {
+        type: 'inside',
+        start: 0,
+        end: 100
+      },
+      {
+        type: 'slider',
+        start: 0,
+        end: 100,
+        bottom: '2%'
+      }
+    ],
     series: [
       {
         name: props.contentType === 'electricity' ? '用电量' : '电费',
@@ -251,7 +285,8 @@ const currentChartOption = computed(() => {
               name: '平均值',
               label: {
                 position: 'end',
-                formatter: '{b}: {c}'
+                formatter: '{b}: {c}',
+                valueAnimation: true
               }
             }
           ]
@@ -260,110 +295,129 @@ const currentChartOption = computed(() => {
     ]
   };
   
-  // 如果是堆叠图，添加额外系列
-  if (chartType.value === 'stack') {
-    const secondarySeriesName = props.contentType === 'electricity' ? '计划用电量' : '预算费用';
-    // 模拟第二个系列数据，略高于原数据
-    const secondaryValues = values.map(val => Math.round(val * (1 + Math.random() * 0.3)));
+  if (chartType.value === 'stack' && props.contentType === 'electricity') {
+    const { peak, flat, valley } = getPeriodTypeData();
     
+    if (peak.length && flat.length && valley.length) {
+      baseOption.legend = {
+        data: ['峰时用电', '平时用电', '谷时用电'],
+        bottom: 0
+      };
+      
+      baseOption.series = [
+        {
+          name: '峰时用电',
+          type: 'bar',
+          stack: '总量',
+          data: peak,
+          itemStyle: { color: '#F56C6C' }
+        },
+        {
+          name: '平时用电',
+          type: 'bar',
+          stack: '总量',
+          data: flat,
+          itemStyle: { color: '#E6A23C' }
+        },
+        {
+          name: '谷时用电',
+          type: 'bar',
+          stack: '总量',
+          data: valley,
+          itemStyle: { color: '#67C23A' }
+        }
+      ];
+    }
+  } else if (chartType.value === 'stack' && props.contentType === 'fee') {
     baseOption.legend = {
-      data: [props.contentType === 'electricity' ? '实际用电量' : '实际费用', secondarySeriesName],
+      data: ['实际电费', '预测电费'],
       bottom: 0
     };
     
-    baseOption.series[0].name = props.contentType === 'electricity' ? '实际用电量' : '实际费用';
+    const forecastValues = values.map(val => Math.round(val * 1.1));
     
-    baseOption.series.push({
-      name: secondarySeriesName,
-      type: 'bar',
-      stack: '总量',
-      data: secondaryValues,
-      itemStyle: {
-        color: props.contentType === 'electricity' ? '#a0cfff' : '#b3e19d'
+    baseOption.series = [
+      {
+        name: '实际电费',
+        type: 'bar',
+        stack: '总量',
+        data: values,
+        itemStyle: { color: '#67C23A' }
+      },
+      {
+        name: '预测电费',
+        type: 'bar',
+        stack: '对比',
+        data: forecastValues,
+        itemStyle: { color: '#909399' }
       }
-    });
+    ];
   }
   
   return baseOption;
 });
 
-// 切换图表类型
 const changeChartType = (type) => {
   chartType.value = type;
 };
 
-// 处理时间粒度变化
-const handleTimePeriodChange = (period) => {
-  timePeriod.value = period;
-  // 加载对应时间粒度的数据
-  loadReportData();
-};
-
-// 更新图表选项
 const updateChartOption = () => {
   // 图表实例已通过computed自动更新
 };
 
-// 加载报表数据
-const loadReportData = async () => {
-  try {
-    loading.value = true;
-    
-    // 根据内容类型和时间粒度获取数据
-    const apiMethod = props.contentType === 'electricity' ? getElectricityReport : getFeeReport;
-    const params = {
-      granularity: timePeriod.value,
-      startDate: '', // 这里可以根据实际需求设置日期范围
-      endDate: ''
-    };
-    
-    // 获取报表数据
-    const reportData = await apiMethod(params);
-    
-    // 获取报表指标数据
-    const metricsParams = {
-      type: props.contentType,
-      granularity: timePeriod.value,
-      startDate: '',
-      endDate: ''
-    };
-    const metricsData = await getReportMetrics(metricsParams);
-    
-    // 在实际项目中，这里应该用接口返回的数据替换mockData
-    // mockData[timePeriod.value] = reportData.data;
-    
-    // 这里可以处理metricsData，更新总量、平均值等数据
-    // 例如：totalValue.value = metricsData.data.total;
-    
-    loading.value = false;
-  } catch (error) {
-    console.error('加载报表数据失败:', error);
-    ElMessage.error('加载报表数据失败');
-    loading.value = false;
+const refreshChart = () => {
+  if (chartRef.value) {
+    chartRef.value.refreshChart();
   }
 };
 
-// 监听内容类型变化
-watch(() => props.contentType, () => {
-  // 根据内容类型设置默认图表类型
-  if (props.contentType === 'electricity') {
-    chartType.value = 'bar';  // 电量默认使用柱状图
-  } else {
-    chartType.value = 'line'; // 电费默认使用折线图
+const exportImage = () => {
+  if (chartRef.value) {
+    chartRef.value.exportImage();
   }
-  
-  // 重新加载数据
-  loadReportData();
+};
+
+const hasData = computed(() => (props.periodData.dates && props.periodData.dates.length > 0));
+
+watch(() => props.contentType, () => {
+  if (props.contentType === 'electricity') {
+    chartType.value = 'bar';
+  } else {
+    chartType.value = 'line';
+  }
 }, { immediate: true });
 
-onMounted(() => {
-  // 初始化时加载数据
-  loadReportData();
+watch(() => props.periodData, (newData) => {
+  if (newData) {
+    reportData.value = {
+      dates: newData.dates || [],
+      electricity: newData.electricity || [],
+      fee: newData.fee || [],
+      peakUsage: newData.peakUsage || [],
+      flatUsage: newData.flatUsage || [],
+      valleyUsage: newData.valleyUsage || []
+    };
+  } else {
+    reportData.value = {
+      dates: [],
+      electricity: [],
+      fee: [],
+      peakUsage: [],
+      flatUsage: [],
+      valleyUsage: []
+    };
+  }
+}, { deep: true, immediate: true });
+
+defineExpose({
+  refreshChart,
+  exportImage,
+  chartRef
 });
 </script>
 
 <style scoped>
-.period-report {
+.report-wrapper {
   width: 100%;
   margin-bottom: 20px;
 }

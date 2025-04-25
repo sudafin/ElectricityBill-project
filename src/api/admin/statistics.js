@@ -1,180 +1,56 @@
 import request from '@/utils/request';
 
 /**
- * 获取仪表盘概览数据
- * @returns {Promise}
+ * 电量统计
  */
-export function getDashboardOverview() {
+export function getElectricityReport(params) {
   return request({
-    url: '/admin/statistics/dashboard/overview',
-    method: 'get'
-  });
-}
-
-/**
- * 获取收入统计
- * @param {Object} params - 查询参数
- * @returns {Promise}
- */
-export function getRevenueStatistics(params) {
-  return request({
-    url: '/admin/statistics/revenue',
+    url: '/admin/statistics/electricity',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取电量使用统计
- * @param {Object} params - 查询参数
- * @returns {Promise}
+ * 电费统计
  */
-export function getElectricityUsageStatistics(params) {
+export function getFeeReport(params) {
   return request({
-    url: '/admin/statistics/electricity/usage',
+    url: '/admin/statistics/fee',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取用户增长统计
- * @param {Object} params - 查询参数
- * @returns {Promise}
+ * 反馈统计
  */
-export function getUserGrowthStatistics(params) {
+export function getFeedbackReport(params) {
   return request({
-    url: '/admin/statistics/user/growth',
+    url: '/admin/statistics/feedback',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取支付方式分布
- * @returns {Promise}
+ * 对账统计
  */
-export function getPaymentMethodDistribution() {
+export function getReconciliationReport(params) {
   return request({
-    url: '/admin/statistics/payment/method',
-    method: 'get'
-  });
-}
-
-/**
- * 获取账单支付率统计
- * @param {Object} params - 查询参数
- * @returns {Promise}
- */
-export function getBillPaymentRateStatistics(params) {
-  return request({
-    url: '/admin/statistics/bill/payment-rate',
+    url: '/admin/statistics/reconciliation',
     method: 'get',
     params
   });
 }
 
 /**
- * 获取每日访问数据
- * @param {Object} params - 查询参数
- * @returns {Promise}
+ * 用户类型统计
  */
-export function getDailyVisitStatistics(params) {
+export function getUserTypeReport(params) {
   return request({
-    url: '/admin/statistics/visit/daily',
+    url: '/admin/statistics/user-type',
     method: 'get',
     params
   });
 }
-
-/**
- * 获取用户地域分布
- * @returns {Promise} 返回Promise对象，包含用户地域分布数据
- */
-export function getUserRegionDistribution() {
-  return request({
-    url: '/api/admin/statistics/user-region',
-    method: 'get'
-  });
-}
-
-/**
- * 获取峰谷用电分布
- * @param {Object} params 查询参数
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @returns {Promise} 返回Promise对象，包含峰谷用电分布数据
- */
-export function getPeakValleyDistribution(params) {
-  return request({
-    url: '/api/admin/statistics/peak-valley',
-    method: 'get',
-    params
-  });
-}
-
-/**
- * 导出统计报表
- * @param {Object} params 查询参数
- * @param {string} params.type 报表类型（revenue/usage/payment/user）
- * @param {string} params.startDate 开始日期
- * @param {string} params.endDate 结束日期
- * @param {string} params.format 导出格式（excel/pdf，默认excel）
- * @returns {Promise} 返回Promise对象，包含导出文件
- */
-export function exportReport(params) {
-  return request({
-    url: '/api/admin/statistics/export',
-    method: 'get',
-    params,
-    responseType: 'blob'
-  });
-}
-
-/**
- * 获取电量统计数据（按时间粒度）
- * @param {Object} params 查询参数
- * @param {string} params.granularity 时间粒度（daily/weekly/monthly/yearly）
- * @param {string} params.startDate 开始日期
- * @param {string} params.endDate 结束日期
- * @returns {Promise} 返回Promise对象，包含电量统计数据
- */
-export function getElectricityStatistics(params) {
-  return request({
-    url: '/api/admin/statistics/electricity',
-    method: 'get',
-    params
-  });
-}
-
-/**
- * 获取电费统计数据（按时间粒度）
- * @param {Object} params 查询参数
- * @param {string} params.granularity 时间粒度（daily/weekly/monthly/yearly）
- * @param {string} params.startDate 开始日期
- * @param {string} params.endDate 结束日期
- * @returns {Promise} 返回Promise对象，包含电费统计数据
- */
-export function getFeeStatistics(params) {
-  return request({
-    url: '/api/admin/statistics/fee',
-    method: 'get',
-    params
-  });
-}
-
-/**
- * 获取区域统计数据
- * @param {Object} params 查询参数
- * @param {string} params.dataType 数据类型（electricity/fee/users）
- * @param {string} params.startDate 开始日期（可选）
- * @param {string} params.endDate 结束日期（可选）
- * @returns {Promise} 返回Promise对象，包含区域统计数据
- */
-export function getRegionStatistics(params) {
-  return request({
-    url: '/api/admin/statistics/region',
-    method: 'get',
-    params
-  });
-} 

@@ -102,3 +102,101 @@ export function formatElectricityType(type) {
   
   return typeMap[type] || type;
 }
+
+/**
+ * 格式化时长（例如，将小时数转换为易读格式）
+ * @param {number} hours - 小时数
+ * @returns {string} 格式化后的时长字符串
+ */
+export function formatDuration(hours) {
+  if (hours === null || hours === undefined || isNaN(hours)) {
+    return '--';
+  }
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60);
+    return `${minutes} 分钟`;
+  }
+  if (hours < 24) {
+    return `${hours.toFixed(1)} 小时`;
+  }
+  const days = Math.floor(hours / 24);
+  const remainingHours = (hours % 24).toFixed(1);
+  return `${days} 天 ${remainingHours} 小时`;
+}
+
+/**
+ * 格式化反馈类型
+ * @param {string} type - 反馈类型代码 (e.g., 'complaint', 'suggestion', 'question')
+ * @returns {string} 格式化后的反馈类型名称
+ */
+export function formatFeedbackType(type) {
+  const typeMap = {
+    complaint: '投诉',
+    suggestion: '建议',
+    question: '问题',
+    // Add other types if needed
+  };
+  return typeMap[type?.toLowerCase()] || type || '未知类型';
+}
+
+/**
+ * 格式化反馈状态
+ * @param {string} status - 反馈状态代码 (e.g., 'pending', 'processed', 'closed')
+ * @returns {string} 格式化后的反馈状态名称
+ */
+export function formatFeedbackStatus(status) {
+  const statusMap = {
+    pending: '待处理',
+    processed: '已处理',
+    closed: '已关闭',
+    // Add other statuses if needed
+  };
+  return statusMap[status?.toLowerCase()] || status || '未知状态';
+}
+
+/**
+ * 格式化对账审批状态
+ * @param {string} status - 对账状态代码 (e.g., 'pending', 'completed')
+ * @returns {string} 格式化后的对账状态名称
+ */
+export function formatReconciliationStatus(status) {
+  const statusMap = {
+    pending: '待处理',
+    completed: '已完成',
+    // Add other statuses if needed
+  };
+  return statusMap[status?.toLowerCase()] || status || '未知状态';
+}
+
+/**
+ * 格式化支付状态
+ * @param {string} status - 支付状态代码 (e.g., 'pending', 'success', 'failed', 'unpaid', 'paid')
+ * @returns {string} 格式化后的支付状态名称
+ */
+export function formatPaymentStatus(status) {
+  const statusMap = {
+    pending: '待支付',
+    success: '成功',
+    failed: '失败',
+    unpaid: '未支付', // From eb_reconciliation
+    paid: '已支付',   // From eb_reconciliation
+    // Add other statuses like 'refunded' if needed
+  };
+  return statusMap[status?.toLowerCase()] || status || '未知状态';
+}
+
+/**
+ * 格式化用户类型
+ * @param {string} type - 用户类型代码 (e.g., '居民用户', '商业用户')
+ * @returns {string} 格式化后的用户类型名称
+ */
+export function formatUserType(type) {
+    // Assuming the type string directly comes from the DB like '居民用户'
+    // If it were codes like 'residential', a map would be needed:
+    // const typeMap = {
+    //     'residential': '居民用户',
+    //     'commercial': '商业用户'
+    // };
+    // return typeMap[type] || type || '未知类型';
+    return type || '未知类型';
+}
