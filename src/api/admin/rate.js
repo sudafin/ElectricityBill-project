@@ -157,7 +157,7 @@ export function batchDeleteRates(ids) {
   return request({
     url: '/api/rates/batch-delete',
     method: 'post',
-    data: { ids }
+    data: {ids: ids }
   });
 }
 

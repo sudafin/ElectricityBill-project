@@ -61,9 +61,9 @@
           :row-style="{ height: '55px' }"
         >
           <!-- 用户类型列自定义渲染 -->
-          <template #user_type="{ row }">
-            <el-tag :type="row.user_type === '居民用户' ? 'success' : 'primary'">
-              {{ row.user_type }}
+          <template #userType="{ row }">
+            <el-tag :type="getUserTypeTagType(row.userType)">
+              {{ row.userType }}
             </el-tag>
           </template>
 
@@ -76,42 +76,34 @@
 
           <!-- 操作列 -->
           <template #actions="{ row }">
-            <el-button type="primary" link size="small" @click="handleDetail(row)">
+            <el-button type="primary" link size="small" @click="navigateToDetail(row)">
               详情
             </el-button>
-            <el-button type="primary" link size="small" @click="handleEdit(row)">
+            <el-button type="primary" link size="small" @click="navigateToEdit(row)">
               修改
             </el-button>
           </template>
         </EBTable>
       </div>
     </div>
-
-    <!-- 表单对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogType === 'add' ? '新增费率' : dialogType === 'edit' ? '修改费率' : '费率详情'"
-      width="700px"
-      destroy-on-close
-    >
-      <EBRateForm 
-        :form-data="currentRate" 
-        :type="dialogType"
-        @submit="handleFormSubmit"
-        @cancel="dialogVisible = false"
-      />
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { 
   Money, Search, Calendar, View, Edit, Plus, Delete 
 } from '@element-plus/icons-vue';
 import { EBFilterBar, EBTable } from '@/components';
-import EBRateForm from './EBRateForm.vue';
+import { 
+  queryRatePage, 
+  deleteRate 
+} from '@/api/admin/rate';
+import { getUserTypeList } from '@/api/admin/user';
+
+const router = useRouter();
 
 // 表格数据
 const loading = ref(false);
@@ -120,26 +112,31 @@ const selectedRateIds = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const dialogVisible = ref(false);
-const dialogType = ref(''); // add, edit, detail
-const currentRate = ref({});
 
 // 搜索条件
+const searchRateId = ref('');
 const searchUserType = ref('');
 const searchStatus = ref('');
 const dateRange = ref([]);
 
+// 用户类型列表
+const userTypeOptions = ref([
+  { label: '全部', value: '' }
+]);
+
 // 筛选条件配置
-const filterConfig = [
+const filterConfig = ref([
+  {
+    type: 'input',
+    field: 'searchRateId',
+    label: '费率ID',
+    placeholder: '请输入费率ID'
+  },
   {
     type: 'select',
     field: 'searchUserType',
     label: '用户类型',
-    options: [
-      { label: '全部', value: '' },
-      { label: '居民用户', value: '居民用户' },
-      { label: '商业用户', value: '商业用户' }
-    ]
+    options: userTypeOptions
   },
   {
     type: 'select',
@@ -156,10 +153,11 @@ const filterConfig = [
     field: 'dateRange',
     label: '生效日期'
   }
-];
+]);
 
 // 初始值
 const initialFilterValues = {
+  searchRateId: '',
   searchUserType: '',
   searchStatus: '',
   dateRange: []
@@ -167,15 +165,45 @@ const initialFilterValues = {
 
 // 表格列配置
 const tableColumns = [
-  { prop: 'id', label: '费率ID', minWidth: '80' },
-  { prop: 'user_type', label: '用户类型', minWidth: '100' },
-  { prop: 'peak_price', label: '峰时电价(元/度)', minWidth: '140' }, 
-  { prop: 'flat_price', label: '平时电价(元/度)', minWidth: '140' },
-  { prop: 'valley_price', label: '谷时电价(元/度)', minWidth: '140' },
+  { prop: 'userType', label: '用户类型', minWidth: '100' },
+  { prop: 'peakPrice', label: '峰时电价(元/度)', minWidth: '140' }, 
+  { prop: 'flatPrice', label: '平时电价(元/度)', minWidth: '140' },
+  { prop: 'valleyPrice', label: '谷时电价(元/度)', minWidth: '140' },
   { prop: 'status', label: '状态', minWidth: '80' },
-  { prop: 'effective_date', label: '生效日期', minWidth: '120' },
-  { prop: 'expire_date', label: '失效日期', minWidth: '120' }
+  { prop: 'effectiveDate', label: '生效日期', minWidth: '120' },
+  { prop: 'expireDate', label: '失效日期', minWidth: '120' }
 ];
+
+// 获取用户类型列表
+const fetchUserTypes = async () => {
+  try {
+    const res = await getUserTypeList();
+    console.log('获取到的用户类型:', res);
+    
+    if (res && Array.isArray(res)) {
+      // 直接处理字符串数组
+      const types = res
+        .filter(type => type && type.trim() !== '')
+        .map(type => ({ label: type, value: type }));
+      
+      userTypeOptions.value = [{ label: '全部', value: '' }, ...types];
+      
+      // 动态更新filterConfig中的options
+      const userTypeFilterIndex = filterConfig.value.findIndex(item => item.field === 'searchUserType');
+      if (userTypeFilterIndex !== -1) {
+        filterConfig.value[userTypeFilterIndex].options = userTypeOptions.value;
+      }
+    }
+  } catch (error) {
+    console.error('获取用户类型列表失败:', error);
+    // 出错时使用默认用户类型
+    userTypeOptions.value = [
+      { label: '全部', value: '' },
+      { label: '居民用户', value: '居民用户' },
+      { label: '商业用户', value: '商业用户' }
+    ];
+  }
+};
 
 // 获取费率列表
 const fetchRateList = async (page = currentPage.value, shouldResetPage = false) => {
@@ -188,67 +216,23 @@ const fetchRateList = async (page = currentPage.value, shouldResetPage = false) 
   }
   
   try {
-    // 这里替换为实际的API调用
-    // const res = await getRateList({
-    //   pageNo: currentPage.value,
-    //   pageSize: pageSize.value,
-    //   userType: searchUserType.value,
-    //   status: searchStatus.value,
-    //   startDate: dateRange.value?.[0],
-    //   endDate: dateRange.value?.[1]
-    // });
+    const res = await queryRatePage({
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      rateId: searchRateId.value,
+      userType: searchUserType.value,
+      status: searchStatus.value,
+      startDate: dateRange.value?.[0],
+      endDate: dateRange.value?.[1]
+    });
     
-    // 模拟数据
-    const mockData = [
-      {
-        id: 1,
-        user_type: '居民用户',
-        peak_price: 0.9876,
-        flat_price: 0.5678,
-        valley_price: 0.2345,
-        summer_peak_price: 1.2345,
-        peak_start: '08:00:00',
-        peak_end: '22:00:00',
-        valley_start: '22:00:00',
-        valley_end: '08:00:00',
-        summer_period: '06-01至08-31',
-        status: 1,
-        effective_date: '2023-01-01',
-        expire_date: '2023-12-31',
-        created_by: 'admin',
-        updated_by: 'admin',
-        created_at: '2023-01-01 12:00:00',
-        updated_at: '2023-01-01 12:00:00',
-        discount: 0.9500
-      },
-      {
-        id: 2,
-        user_type: '商业用户',
-        peak_price: 1.2345,
-        flat_price: 0.8765,
-        valley_price: 0.4567,
-        summer_peak_price: 1.5678,
-        peak_start: '08:00:00',
-        peak_end: '22:00:00',
-        valley_start: '22:00:00',
-        valley_end: '08:00:00',
-        summer_period: '06-01至08-31',
-        status: 1,
-        effective_date: '2023-01-01',
-        expire_date: '2023-12-31',
-        created_by: 'admin',
-        updated_by: 'admin',
-        created_at: '2023-01-01 12:00:00',
-        updated_at: '2023-01-01 12:00:00',
-        discount: 0.8500
-      }
-    ];
-    
-    rateList.value = mockData;
-    total.value = mockData.length;
+    // 直接从响应中获取list和total，不进行字段映射转换
+    rateList.value = res.list || [];
+    total.value = Number(res.total || 0);
   } catch (error) {
     ElMessage.error('获取费率列表失败');
     console.error('获取费率列表失败', error);
+    rateList.value = [];
   } finally {
     loading.value = false;
   }
@@ -257,6 +241,7 @@ const fetchRateList = async (page = currentPage.value, shouldResetPage = false) 
 // 处理筛选搜索
 const handleFilterSearch = (filterValues) => {
   // 更新筛选值
+  searchRateId.value = filterValues.searchRateId || '';
   searchUserType.value = filterValues.searchUserType || '';
   searchStatus.value = filterValues.searchStatus || '';
   dateRange.value = filterValues.dateRange || [];
@@ -267,6 +252,7 @@ const handleFilterSearch = (filterValues) => {
 
 // 清空搜索条件
 const clearSearch = () => {
+  searchRateId.value = '';
   searchUserType.value = '';
   searchStatus.value = '';
   dateRange.value = [];
@@ -282,62 +268,25 @@ const handlePageChange = (page) => {
   fetchRateList(page);
 };
 
-// 新增费率
+// 新增费率 - 跳转到新增页面
 const handleAddRate = () => {
-  currentRate.value = {
-    user_type: '',
-    peak_price: '',
-    flat_price: '',
-    valley_price: '',
-    summer_peak_price: '',
-    peak_start: '',
-    peak_end: '',
-    valley_start: '',
-    valley_end: '',
-    summer_period: '',
-    status: 1,
-    effective_date: '',
-    expire_date: '',
-    discount: ''
-  };
-  dialogType.value = 'add';
-  dialogVisible.value = true;
+  router.push({ name: 'RateCreate' });
 };
 
-// 查看费率详情
-const handleDetail = (row) => {
-  currentRate.value = { ...row };
-  dialogType.value = 'detail';
-  dialogVisible.value = true;
+// 查看费率详情 - 跳转到详情页面
+const navigateToDetail = (row) => {
+  router.push({ 
+    name: 'RateDetail',
+    params: { id: row.id }
+  });
 };
 
-// 编辑费率
-const handleEdit = (row) => {
-  currentRate.value = { ...row };
-  dialogType.value = 'edit';
-  dialogVisible.value = true;
-};
-
-// 处理表单提交
-const handleFormSubmit = async (formData) => {
-  try {
-    // 根据dialogType处理不同的提交逻辑
-    if (dialogType.value === 'add') {
-      // 这里替换为实际的API调用
-      // await addRate(formData);
-      ElMessage.success('新增费率成功');
-    } else if (dialogType.value === 'edit') {
-      // 这里替换为实际的API调用
-      // await updateRate(formData);
-      ElMessage.success('修改费率成功');
-    }
-    
-    dialogVisible.value = false;
-    fetchRateList(currentPage.value);
-  } catch (error) {
-    ElMessage.error('操作失败');
-    console.error('操作失败', error);
-  }
+// 编辑费率 - 跳转到编辑页面
+const navigateToEdit = (row) => {
+  router.push({ 
+    name: 'RateEdit',
+    params: { id: row.id }
+  });
 };
 
 // 批量删除费率
@@ -353,8 +302,8 @@ const handleBatchDelete = () => {
     type: 'warning'
   }).then(async () => {
     try {
-      // 这里替换为实际的API调用
-      // await batchDeleteRates(selectedRateIds.value);
+      selectedRateIds.value = selectedRateIds.value.join(',');
+      await deleteRate(selectedRateIds.value);
       ElMessage.success('批量删除成功');
       fetchRateList(1, true);
     } catch (error) {
@@ -364,8 +313,25 @@ const handleBatchDelete = () => {
   }).catch(() => {});
 };
 
-onMounted(() => {
-  fetchRateList(1, true);
+// 添加一个函数来确定用户类型的标签颜色
+const getUserTypeTagType = (userType) => {
+  switch(userType) {
+    case '居民用户':
+      return 'success';
+    case '商业用户':
+      return 'primary';
+    case '工业用户':
+      return 'warning';
+    case '农业用户':
+      return 'info';
+    default:
+      return 'default';
+  }
+};
+
+onMounted(async () => {
+  await fetchUserTypes(); // 先获取用户类型
+  fetchRateList(1, true); // 然后获取费率列表
 });
 </script>
 

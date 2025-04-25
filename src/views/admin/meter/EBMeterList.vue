@@ -27,15 +27,6 @@
           >
             <el-icon><Plus /></el-icon>新增电表
           </el-button>
-          <el-button 
-            type="danger" 
-            class="action-button" 
-            size="default"
-            @click="handleBatchDelete" 
-            :disabled="!selectedMeterIds.length"
-          >
-            <el-icon><Delete /></el-icon>批量删除
-          </el-button>
         </template>
       </EBFilterBar>
 

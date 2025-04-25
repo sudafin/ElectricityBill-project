@@ -1,17 +1,24 @@
 <template>
-  <div class="rate-form">
+  <div class="rate-form-container">
+    <h2>{{ pageTitle }}</h2>
+    
     <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
       label-width="140px"
       :disabled="type === 'detail'"
+      v-loading="loading"
     >
       <!-- 用户类型 -->
-      <el-form-item label="用户类型" prop="user_type">
-        <el-select v-model="form.user_type" placeholder="请选择用户类型" style="width: 100%">
-          <el-option label="居民用户" value="居民用户" />
-          <el-option label="商业用户" value="商业用户" />
+      <el-form-item label="用户类型" prop="userType">
+        <el-select v-model="form.userType" placeholder="请选择用户类型" style="width: 100%" :disabled="type === 'detail'">
+          <el-option
+            v-for="item in userTypeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
       </el-form-item>
       
@@ -21,34 +28,26 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="峰时电价" prop="peak_price">
-              <el-input v-model="form.peak_price" placeholder="请输入峰时电价">
-                <template #append>元/度</template>
-              </el-input>
+            <el-form-item label="峰时电价" prop="peakPrice">
+              <el-input v-model="form.peakPrice" placeholder="请输入峰时电价" :disabled="type === 'detail'" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="平时电价" prop="flat_price">
-              <el-input v-model="form.flat_price" placeholder="请输入平时电价">
-                <template #append>元/度</template>
-              </el-input>
+            <el-form-item label="平时电价" prop="flatPrice">
+              <el-input v-model="form.flatPrice" placeholder="请输入平时电价" :disabled="type === 'detail'" />
             </el-form-item>
           </el-col>
         </el-row>
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="谷时电价" prop="valley_price">
-              <el-input v-model="form.valley_price" placeholder="请输入谷时电价">
-                <template #append>元/度</template>
-              </el-input>
+            <el-form-item label="谷时电价" prop="valleyPrice">
+              <el-input v-model="form.valleyPrice" placeholder="请输入谷时电价" :disabled="type === 'detail'" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="夏季尖峰电价" prop="summer_peak_price">
-              <el-input v-model="form.summer_peak_price" placeholder="请输入夏季尖峰电价">
-                <template #append>元/度</template>
-              </el-input>
+            <el-form-item label="夏季尖峰电价" prop="summerPeakPrice">
+              <el-input v-model="form.summerPeakPrice" placeholder="请输入夏季尖峰电价" :disabled="type === 'detail'" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -56,9 +55,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="折扣率" prop="discount">
-              <el-input v-model="form.discount" placeholder="请输入折扣率">
-                <template #append>%</template>
-              </el-input>
+              <el-input v-model="form.discount" placeholder="请输入折扣率" :disabled="type === 'detail'" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -70,24 +67,21 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="峰时段开始时间" prop="peak_start">
-              <el-time-picker 
-                v-model="form.peak_start" 
-                placeholder="选择峰时段开始时间" 
+            <el-form-item label="峰时段" prop="peakStart">
+              <el-time-picker
+                v-model="form.peakStart"
                 format="HH:mm:ss"
                 value-format="HH:mm:ss"
-                style="width: 100%"
+                placeholder="开始时间"
+                :disabled="type === 'detail'"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="峰时段结束时间" prop="peak_end">
-              <el-time-picker 
-                v-model="form.peak_end" 
-                placeholder="选择峰时段结束时间" 
+              <span style="margin: 0 10px;">至</span>
+              <el-time-picker
+                v-model="form.peakEnd"
                 format="HH:mm:ss"
                 value-format="HH:mm:ss"
-                style="width: 100%"
+                placeholder="结束时间"
+                :disabled="type === 'detail'"
               />
             </el-form-item>
           </el-col>
@@ -95,35 +89,46 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="谷时段开始时间" prop="valley_start">
-              <el-time-picker 
-                v-model="form.valley_start" 
-                placeholder="选择谷时段开始时间" 
+            <el-form-item label="谷时段" prop="valleyStart">
+              <el-time-picker
+                v-model="form.valleyStart"
                 format="HH:mm:ss"
                 value-format="HH:mm:ss"
-                style="width: 100%"
+                placeholder="开始时间"
+                :disabled="type === 'detail'"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="谷时段结束时间" prop="valley_end">
-              <el-time-picker 
-                v-model="form.valley_end" 
-                placeholder="选择谷时段结束时间" 
+              <span style="margin: 0 10px;">至</span>
+              <el-time-picker
+                v-model="form.valleyEnd"
                 format="HH:mm:ss"
                 value-format="HH:mm:ss"
-                style="width: 100%"
+                placeholder="结束时间"
+                :disabled="type === 'detail'"
               />
             </el-form-item>
           </el-col>
         </el-row>
         
-        <el-form-item label="夏季时段" prop="summer_period">
-          <el-input v-model="form.summer_period" placeholder="例如: 06-01至08-31">
-            <template #prefix>
-              <el-icon><Calendar /></el-icon>
-            </template>
-          </el-input>
+        <el-form-item label="夏季时段">
+          <el-date-picker
+            v-model="summerStartDate"
+            type="date"
+            format="M.D"
+            value-format="M.D"
+            placeholder="开始日期"
+            style="width: 180px"
+            :disabled="type === 'detail'"
+          />
+          <span class="date-separator">至</span>
+          <el-date-picker
+            v-model="summerEndDate"
+            type="date"
+            format="M.D"
+            value-format="M.D"
+            placeholder="结束日期"
+            style="width: 180px"
+            :disabled="type === 'detail'"
+          />
         </el-form-item>
       </div>
       
@@ -133,142 +138,188 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="生效日期" prop="effective_date">
-              <el-date-picker 
-                v-model="form.effective_date" 
-                type="date" 
-                placeholder="选择生效日期"
+            <el-form-item label="生效日期" prop="effectiveDate">
+              <el-date-picker
+                v-model="form.effectiveDate"
+                type="date"
+                placeholder="选择日期"
+                format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
-                style="width: 100%"
+                :disabled="type === 'detail'"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="失效日期" prop="expire_date">
-              <el-date-picker 
-                v-model="form.expire_date" 
-                type="date" 
-                placeholder="选择失效日期"
+            <el-form-item label="失效日期" prop="expireDate">
+              <el-date-picker
+                v-model="form.expireDate"
+                type="date"
+                placeholder="选择日期"
+                format="YYYY-MM-DD"
                 value-format="YYYY-MM-DD"
-                style="width: 100%"
+                :disabled="type === 'detail'"
               />
             </el-form-item>
           </el-col>
         </el-row>
         
         <el-form-item label="状态" prop="status">
-          <el-switch
-            v-model="form.status"
-            :active-value="1"
-            :inactive-value="0"
-            active-text="启用"
-            inactive-text="禁用"
-          />
+          <el-radio-group v-model="form.status" :disabled="type === 'detail'">
+            <el-radio :label="1">启用</el-radio>
+            <el-radio :label="0">禁用</el-radio>
+          </el-radio-group>
         </el-form-item>
       </div>
       
-      <!-- 创建/更新信息 -->
-      <div v-if="type === 'detail' || type === 'edit'" class="form-section">
-        <div class="section-title">其他信息</div>
-        
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="创建人">{{ form.created_by }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ form.created_at }}</el-descriptions-item>
-          <el-descriptions-item label="更新人">{{ form.updated_by }}</el-descriptions-item>
-          <el-descriptions-item label="更新时间">{{ form.updated_at }}</el-descriptions-item>
-        </el-descriptions>
-      </div>
-      
-      <!-- 表单按钮 -->
-      <div class="form-actions">
-        <el-button v-if="type !== 'detail'" type="primary" @click="submitForm">
-          {{ type === 'add' ? '添加' : '保存修改' }}
-        </el-button>
-        <el-button @click="cancelForm">{{ type === 'detail' ? '关闭' : '取消' }}</el-button>
-      </div>
+      <el-form-item v-if="type !== 'detail'">
+        <el-button type="primary" @click="submitForm">提交</el-button>
+        <el-button @click="goBack">取消</el-button>
+      </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, defineProps, defineEmits } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Calendar } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { getUserTypeList } from '@/api/admin/user';
+import { getRateDetail, createRate, editRate } from '@/api/admin/rate';
 
-const props = defineProps({
-  formData: {
-    type: Object,
-    default: () => ({})
-  },
-  type: {
-    type: String,
-    default: 'add' // add, edit, detail
-  }
+const route = useRoute();
+const router = useRouter();
+const loading = ref(false);
+
+// 根据路由确定当前操作类型
+const type = computed(() => {
+  if (route.name === 'RateCreate') return 'add';
+  if (route.name === 'RateEdit') return 'edit';
+  return 'detail';
 });
 
-const emit = defineEmits(['submit', 'cancel']);
+// 页面标题
+const pageTitle = computed(() => {
+  if (type.value === 'add') return '新增费率';
+  if (type.value === 'edit') return '编辑费率';
+  return '费率详情';
+});
 
 const formRef = ref(null);
 const form = reactive({
-  id: '',
-  user_type: '',
-  peak_price: '',
-  flat_price: '',
-  valley_price: '',
-  summer_peak_price: '',
-  peak_start: '',
-  peak_end: '',
-  valley_start: '',
-  valley_end: '',
-  summer_period: '',
+  id: route.params.id || '', // 直接从路由参数获取ID
+  userType: '',
+  peakPrice: '',
+  flatPrice: '',
+  valleyPrice: '',
+  summerPeakPrice: '',
+  peakStart: '',
+  peakEnd: '',
+  valleyStart: '',
+  valleyEnd: '',
+  summerPeriod: '',
   status: 1,
-  effective_date: '',
-  expire_date: '',
-  discount: '',
-  created_by: '',
-  updated_by: '',
-  created_at: '',
-  updated_at: ''
+  effectiveDate: '',
+  expireDate: '',
+  discount: ''
 });
+
+// 夏季时段的开始和结束日期
+const summerStartDate = ref('');
+const summerEndDate = ref('');
+
+// 监听夏季时段日期变化，更新form.summerPeriod
+watch([summerStartDate, summerEndDate], ([start, end]) => {
+  if (start && end) {
+    form.summerPeriod = `${start}至${end}`;
+  } else {
+    form.summerPeriod = '';
+  }
+});
+
+// 用户类型选项
+const userTypeOptions = ref([]);
 
 // 表单验证规则
 const rules = {
-  user_type: [
+  userType: [
     { required: true, message: '请选择用户类型', trigger: 'change' }
   ],
-  peak_price: [
+  peakPrice: [
     { required: true, message: '请输入峰时电价', trigger: 'blur' },
     { pattern: /^\d+(\.\d{1,4})?$/, message: '请输入有效的数字(最多4位小数)', trigger: 'blur' }
   ],
-  flat_price: [
+  flatPrice: [
     { required: true, message: '请输入平时电价', trigger: 'blur' },
     { pattern: /^\d+(\.\d{1,4})?$/, message: '请输入有效的数字(最多4位小数)', trigger: 'blur' }
   ],
-  valley_price: [
+  valleyPrice: [
     { required: true, message: '请输入谷时电价', trigger: 'blur' },
     { pattern: /^\d+(\.\d{1,4})?$/, message: '请输入有效的数字(最多4位小数)', trigger: 'blur' }
   ],
-  peak_start: [
+  peakStart: [
     { required: true, message: '请选择峰时段开始时间', trigger: 'change' }
   ],
-  peak_end: [
+  peakEnd: [
     { required: true, message: '请选择峰时段结束时间', trigger: 'change' }
   ],
-  effective_date: [
+  effectiveDate: [
     { required: true, message: '请选择生效日期', trigger: 'change' }
   ]
 };
 
-// 初始化表单数据
-onMounted(() => {
-  if (props.formData && Object.keys(props.formData).length > 0) {
-    Object.keys(form).forEach(key => {
-      if (props.formData[key] !== undefined) {
-        form[key] = props.formData[key];
-      }
-    });
+// 获取用户类型列表
+const fetchUserTypes = async () => {
+  try {
+    const res = await getUserTypeList();
+    
+    if (res && Array.isArray(res)) {
+      userTypeOptions.value = res
+        .filter(type => type && type.trim() !== '')
+        .map(type => ({ label: type, value: type }));
+    }
+  } catch (error) {
+    console.error('获取用户类型列表失败:', error);
+    userTypeOptions.value = [
+      { label: '居民用户', value: '居民用户' },
+      { label: '商业用户', value: '商业用户' }
+    ];
   }
-});
+};
+
+// 获取费率详情
+const fetchRateDetail = async (id) => {
+  loading.value = true;
+  try {
+    const response = await getRateDetail(id);
+    console.log('获取费率详情:', response);
+    
+    // 保留ID并将其他字段复制到表单对象
+    const currentId = form.id; // 保存当前ID（来自URL）
+    
+    // 使用展开运算符创建新对象，不直接修改form引用
+    const newData = { ...response };
+    delete newData.id; // 删除API返回的ID（如果有）
+    
+    // 合并数据，保留原始ID
+    Object.assign(form, newData);
+    form.id = currentId; // 确保ID保持不变
+    
+    // 处理夏季时段，拆分为两个日期
+    if (form.summerPeriod && form.summerPeriod.includes('至')) {
+      const [start, end] = form.summerPeriod.split('至');
+      summerStartDate.value = start.trim();
+      summerEndDate.value = end.trim();
+    }
+    
+    console.log('表单数据已设置:', form);
+  } catch (error) {
+    ElMessage.error('获取费率详情失败');
+    console.error('获取费率详情失败', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // 提交表单
 const submitForm = async () => {
@@ -277,59 +328,71 @@ const submitForm = async () => {
   try {
     await formRef.value.validate();
     
+    // 复制表单数据，准备提交
     const formData = { ...form };
-    emit('submit', formData);
+    
+    // 确保夏季时段格式正确
+    if (summerStartDate.value && summerEndDate.value) {
+      formData.summerPeriod = `${summerStartDate.value}至${summerEndDate.value}`;
+    }
+    
+    // 将数字字段转换为数字类型
+    ['peakPrice', 'flatPrice', 'valleyPrice', 'summerPeakPrice', 'discount'].forEach(numField => {
+      if (formData[numField] !== '' && formData[numField] !== undefined) {
+        formData[numField] = parseFloat(formData[numField]);
+      }
+    });
+    
+    // 确保状态是数字
+    formData.status = parseInt(formData.status);
+    
+    if (type.value === 'add') {
+      await createRate(formData);
+      ElMessage.success('新增费率成功');
+    } else if (type.value === 'edit') {
+      const id = formData.id;
+      delete formData.id; // 删除id字段，因为它在URL中已包含
+      await editRate(id, formData);
+      ElMessage.success('修改费率成功');
+    }
+    
+    // 操作成功后返回列表页
+    goBack();
   } catch (error) {
     ElMessage.error('表单验证失败，请检查输入');
     console.error('表单验证失败:', error);
   }
 };
 
-// 取消操作
-const cancelForm = () => {
-  emit('cancel');
+// 返回上一页
+const goBack = () => {
+  router.push({ name: 'RateSetting' });
 };
+
+// 组件挂载
+onMounted(async () => {
+  // 先获取用户类型列表
+  await fetchUserTypes();
+  
+  // 如果是编辑或详情模式，获取费率详情
+  if (type.value === 'edit' || type.value === 'detail') {
+    const id = route.params.id;
+    if (id) {
+      await fetchRateDetail(id);
+    } else {
+      ElMessage.error('未找到费率ID');
+      goBack();
+    }
+  }
+});
 </script>
 
 <style scoped>
-.rate-form {
-  padding: 0 20px;
+.rate-form-container {
+  padding: 20px;
 }
 
-.form-section {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: #f8f9fb;
-  border-radius: 8px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 15px;
-  padding-left: 10px;
-  border-left: 3px solid #409EFF;
-}
-
-.form-actions {
-  margin-top: 30px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-}
-
-:deep(.el-input-group__append) {
-  padding: 0 12px;
-  color: #606266;
-  background-color: #f5f7fa;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 500;
-}
-
-:deep(.el-descriptions__label) {
-  width: 120px;
+.date-separator {
+  margin: 0 10px;
 }
 </style> 

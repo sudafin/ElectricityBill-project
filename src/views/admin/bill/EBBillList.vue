@@ -105,17 +105,7 @@ const filterConfig = [
       { label: '未支付', value: '未支付' }
     ]
   },
-  {
-    type: 'select',
-    field: 'selectedMethod',
-    label: '支付方式',
-    options: [
-      { label: '全部', value: '' },
-      { label: '支付宝', value: '支付宝' },
-      { label: '微信', value: '微信' },
-      { label: '银行卡', value: '银行卡' }
-    ]
-  },
+  
   {
     type: 'daterange',
     field: 'dateRange',
@@ -136,6 +126,7 @@ const tableColumns = [
   { prop: 'billId', label: '账单号', minWidth: '120' },
   { prop: 'username', label: '用户名', minWidth: '120' },
   { prop: 'userType', label: '用户类型', minWidth: '120' },
+  { prop: 'status', label: '支付状态', minWidth: '120' },
   { prop: 'paymentAmount', label: '支付金额', minWidth: '120', sortable: true },
   { prop: 'usageAmount', label: '用电量', minWidth: '120', sortable: true },
   { prop: 'paymentId', label: '支付单号', minWidth: '180', 
@@ -148,6 +139,7 @@ const tableColumns = [
       return row.paymentTime ? formatDateTime(row.paymentTime) : '未支付';
     }
   },
+
 ];
 
 const fetchBillList = async (page = currentPage.value, shouldResetPage = false) => {
@@ -163,11 +155,10 @@ const fetchBillList = async (page = currentPage.value, shouldResetPage = false) 
       pageSize: pageSize.value,
       billId: searchText.value ? parseInt(searchText.value) : undefined,
       status: selectedStatus.value,
-      paymentMethod: selectedMethod.value,
       startDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : undefined,
       endDate: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : undefined,
       isAsc: true,
-      sortBy: 'createdAt'
+      sortBy: ''
     });
     billList.value = res.list || [];
     total.value = Number(res.total || 0);

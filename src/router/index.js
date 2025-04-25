@@ -90,6 +90,9 @@ const routes = [
             children: [
               { path: 'role', name: 'RoleSetting', component: () => import('@/views/admin/setting/role/EBRoleSetting.vue'), meta: { title: '角色权限管理' } },
               { path: 'rate', name: 'RateSetting', component: () => import('@/views/admin/setting/rate/EBRateManagement.vue'), meta: { title: '费率管理' } },
+              { path: 'rate/create', name: 'RateCreate', component: () => import('@/views/admin/setting/rate/EBRateForm.vue'), meta: { title: '新增费率' } },
+              { path: 'rate/edit/:id', name: 'RateEdit', component: () => import('@/views/admin/setting/rate/EBRateForm.vue'), meta: { title: '编辑费率' } },
+              { path: 'rate/detail/:id', name: 'RateDetail', component: () => import('@/views/admin/setting/rate/EBRateForm.vue'), meta: { title: '费率详情' } },
               { path: 'log', name: 'LogSetting', component: () => import('@/views/admin/setting/log/EBLogSetting.vue'), meta: { title: '日志管理' } }
             ]
           },
