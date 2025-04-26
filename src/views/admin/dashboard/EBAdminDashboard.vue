@@ -6,10 +6,10 @@
         <el-card class="total-card" shadow="never" v-loading="loading">
           <div class="total-card-inner">
             <div class="total-info">
-              <h2 class="total-title">当前用户总数</h2>
-              <p class="total-subtitle">TOTAL NUMBER OF CURRENT USERS</p>
+              <h2 class="total-title">当月新增用户总数</h2>
+              <p class="total-subtitle">MONTHLY NEW USERS</p>
             </div>
-            <div class="total-number">{{ totalUsers }}</div>
+            <div class="total-number">{{ dashboardData.currentMonthlyAddingUserTotal || 0 }}</div>
           </div>
         </el-card>
       </el-col>
@@ -33,13 +33,13 @@
       <el-col :span="6">
         <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
-            <h3>审批统计</h3>
-            <p>Approval statistics</p>
+            <h3>对账统计</h3>
+            <p>Reconciliation Statistics</p>
           </div>
           <div class="stat-card-body">
-            <div class="stat-number">{{ totalUsers }}</div>
+            <div class="stat-number">{{ dashboardData.totalReconciliation || 0 }}</div>
             <div class="stat-icon residential-icon">
-              <el-icon><User /></el-icon>
+              <el-icon><Document /></el-icon>
             </div>
           </div>
         </div>
@@ -51,7 +51,7 @@
             <p>Electricity fee statistics</p>
           </div>
           <div class="stat-card-body">
-            <div class="stat-number">￥{{ totalIncome }}</div>
+            <div class="stat-number">￥{{ dashboardData.currentMonthlyAmountTotal || 0 }}</div>
             <div class="stat-icon social-icon">
               <el-icon><Wallet /></el-icon>
             </div>
@@ -65,7 +65,7 @@
             <p>Power consumption statistics</p>
           </div>
           <div class="stat-card-body">
-            <div class="stat-number">{{ totalFees }}</div>
+            <div class="stat-number">{{ dashboardData.currentMonthlyElectricityUsageTotal || 0 }}</div>
             <div class="stat-icon talent-icon">
               <el-icon><Stopwatch /></el-icon>
             </div>
@@ -75,11 +75,11 @@
       <el-col :span="6">
         <div class="stat-card" v-loading="loading">
           <div class="stat-card-header">
-            <h3>支付账单</h3>
-            <p>Payment bills</p>
+            <h3>欠费账单</h3>
+            <p>Unpaid bills</p>
           </div>
           <div class="stat-card-body">
-            <div class="stat-number">{{ abnormalBills }}</div>
+            <div class="stat-number">{{ dashboardData.currentMonthlyDebtBillTotal || 0 }}</div>
             <div class="stat-icon labor-icon">
               <el-icon><Document /></el-icon>
             </div>
@@ -91,24 +91,21 @@
     <!-- 图表区域 -->
     <el-row :gutter="20" class="chart-area">
       <el-col :span="16">
-        <el-card class="chart-card" shadow="never" v-loading="userTypesLoading">
+        <el-card class="chart-card" shadow="never" v-loading="loading">
           <template #header>
             <div class="chart-header">
-              <h3>访问数量统计分析</h3>
+              <h3>用户类型分布</h3>
+              <div class="chart-tools">
+                <el-radio-group v-model="selectedChartType" size="small" @change="updateChart">
+                  <el-radio-button label="pie">饼图</el-radio-button>
+                  <el-radio-button label="bar">柱状图</el-radio-button>
+                </el-radio-group>
+              </div>
             </div>
           </template>
           
-          <!-- 水平条形图 -->
-          <div class="horizontal-chart">
-            <div v-for="(item, index) in accessData" :key="index" class="chart-bar-row">
-              <div class="chart-bar-label">{{ item.name }}</div>
-              <div class="chart-bar-wrapper">
-                <div class="chart-bar" :style="{ width: getBarWidth(item.value) }">
-                  <span class="chart-bar-value">{{ item.value }}次</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- 用户类型分布图表 -->
+          <div ref="userTypeChart" class="main-chart"></div>
         </el-card>
       </el-col>
       
@@ -118,11 +115,11 @@
             <el-card class="chart-card stat-elements" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>反馈数据</h3>
-                  <p>Feedback data</p>
+                  <h3>已处理反馈</h3>
+                  <p>Processed Feedback</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ processedOrders }}</div>
+              <div class="stat-big-number">{{ dashboardData.processedFeedbackCount || 0 }}</div>
             </el-card>
           </el-col>
         </el-row>
@@ -132,29 +129,28 @@
             <el-card class="chart-card materials-card" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>待处理反馈数</h3>
+                  <h3>待处理反馈</h3>
                   <p>Pending feedback</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ pendingOrders }}</div>
+              <div class="stat-big-number">{{ dashboardData.unprocessedFeedbackCount || 0 }}</div>
             </el-card>
           </el-col>
           <el-col :span="12">
             <el-card class="chart-card steps-card" shadow="never" v-loading="loading">
               <template #header>
                 <div class="chart-header">
-                  <h3>系统操作日志</h3>
+                  <h3>系统日志</h3>
                   <p>System logs</p>
                 </div>
               </template>
-              <div class="stat-big-number">{{ systemLogs }}</div>
+              <div class="stat-big-number">{{ dashboardData.systemLogCount || 0 }}</div>
             </el-card>
           </el-col>
         </el-row>
       </el-col>
     </el-row>
     
-
   </div>
 </template>
 
@@ -167,130 +163,78 @@ import {
   Wallet, Stopwatch, PieChart, Histogram, TrendCharts
 } from '@element-plus/icons-vue';
 import { getAdminDashboardInfo } from '@/api/admin/dashboard';
-import { getUserGrowthStatistics } from '@/api/admin/statistics';
-import { getPaymentMethodDistribution } from '@/api/admin/statistics';
 
 // 加载状态
 const loading = ref(false);
-const userTypesLoading = ref(false); 
-const chartLoading = ref(false);
-
-// 基本统计数据
-const totalUsers = ref(0);
-const totalFees = ref(0);
-const totalIncome = ref(0);
-const abnormalBills = ref(0);
-const processedOrders = ref(0);
-const pendingOrders = ref(0);
-const systemLogs = ref(0);
-const userTypeData = ref([]);
-const accessData = ref([]);
-
-// 图表配置
-const mainChart = ref(null);
+const userTypeChart = ref(null);
 const chartInstance = ref(null);
-const selectedChartType = ref('line');
-const selectedDataType = ref('userType');
+const selectedChartType = ref('pie');
 
-// 图表数据
-const chartData = ref({
-  userType: {
-    labels: [],
-    values: []
-  },
-  powerUsage: {
-    labels: [],
-    values: []
-  },
-  payment: {
-    labels: [],
-    values: []
-  }
+// 仪表盘数据
+const dashboardData = ref({
+  currentMonthlyAddingUserTotal: 0,
+  currentMonthlyElectricityUsageTotal: 0,
+  currentMonthlyAmountTotal: 0,
+  currentMonthlyDebtBillTotal: 0,
+  userTypeMap: {},
+  processedFeedbackCount: 0,
+  unprocessedFeedbackCount: 0,
+  systemLogCount: 0,
+  totalReconciliation: 0
 });
-
-// 计算条形图宽度
-const getBarWidth = (value) => {
-  const maxValue = Math.max(...accessData.value.map(item => item.value));
-  return (value / maxValue * 100) + '%';
-};
-
-// 图表类型切换处理
-const handleChartTypeChange = () => {
-  updateChart();
-};
-
-// 数据类型切换处理
-const handleDataTypeChange = () => {
-  if (selectedDataType.value === 'powerUsage' && chartData.value.powerUsage.values.length === 0) {
-    fetchElectricityData();
-  } else if (selectedDataType.value === 'payment' && chartData.value.payment.values.length === 0) {
-    fetchPaymentData();
-  } else {
-    updateChart();
-  }
-};
-
-// 初始化图表
-const initChart = () => {
-  if (!mainChart.value) return;
-  
-  chartInstance.value = echarts.init(mainChart.value);
-  
-  // 设置图表响应式
-  window.addEventListener('resize', () => {
-    chartInstance.value?.resize();
-  });
-  
-  updateChart();
-};
 
 // 更新图表
 const updateChart = () => {
-  if (!chartInstance.value) return;
+  if (!chartInstance.value || !dashboardData.value.userTypeMap) return;
   
-  const data = chartData.value[selectedDataType.value];
+  const userTypeMap = dashboardData.value.userTypeMap;
+  const labels = Object.keys(userTypeMap);
+  const values = Object.values(userTypeMap);
+  
   let option = {};
   
   switch (selectedChartType.value) {
-    case 'line':
+    case 'pie':
       option = {
         tooltip: {
-          trigger: 'axis'
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
-        xAxis: {
-          type: 'category',
-          data: data.labels,
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          }
-        },
-        yAxis: {
-          type: 'value',
-          axisLine: {
-            lineStyle: {
-              color: '#ddd'
-            }
-          }
+        legend: {
+          orient: 'vertical',
+          right: 10,
+          top: 'center',
+          data: labels
         },
         series: [{
-          data: data.values,
-          type: 'line',
-          smooth: true,
-          lineStyle: {
-            width: 3,
-            color: '#1890ff'
-          },
+          name: '用户类型',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          avoidLabelOverlap: false,
           itemStyle: {
-            color: '#1890ff'
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
           },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(24, 144, 255, 0.6)' },
-              { offset: 1, color: 'rgba(24, 144, 255, 0.1)' }
-            ])
-          }
+          label: {
+            show: true,
+            formatter: '{b}: {c} ({d}%)'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: '16',
+              fontWeight: 'bold'
+            }
+          },
+          labelLine: {
+            show: true
+          },
+          data: labels.map((label, index) => ({
+            value: values[index],
+            name: label
+          }))
         }]
       };
       break;
@@ -305,7 +249,11 @@ const updateChart = () => {
         },
         xAxis: {
           type: 'category',
-          data: data.labels,
+          data: labels,
+          axisLabel: {
+            interval: 0,
+            rotate: labels.length > 5 ? 30 : 0
+          },
           axisLine: {
             lineStyle: {
               color: '#ddd'
@@ -321,7 +269,8 @@ const updateChart = () => {
           }
         },
         series: [{
-          data: data.values,
+          name: '用户数量',
+          data: values,
           type: 'bar',
           barWidth: '50%',
           itemStyle: {
@@ -330,51 +279,12 @@ const updateChart = () => {
               { offset: 0.5, color: '#188df0' },
               { offset: 1, color: '#188df0' }
             ])
-          }
-        }]
-      };
-      break;
-      
-    case 'pie':
-      option = {
-        tooltip: {
-          trigger: 'item',
-          formatter: '{a} <br/>{b}: {c} ({d}%)'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 10,
-          data: data.labels
-        },
-        series: [{
-          name: selectedDataType.value === 'userType' ? '用户类型' : 
-                selectedDataType.value === 'powerUsage' ? '用电量' : '缴费情况',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 10,
-            borderColor: '#fff',
-            borderWidth: 2
           },
           label: {
-            show: false,
-            position: 'center'
-          },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: '16',
-              fontWeight: 'bold'
-            }
-          },
-          labelLine: {
-            show: false
-          },
-          data: data.labels.map((label, index) => ({
-            value: data.values[index],
-            name: label
-          }))
+            show: true,
+            position: 'top',
+            formatter: '{c}'
+          }
         }]
       };
       break;
@@ -388,39 +298,13 @@ const fetchDashboardInfo = async () => {
   loading.value = true;
   try {
     const res = await getAdminDashboardInfo();
-    totalUsers.value = res.totalUser || 0;
-    totalFees.value = res.totalElectricityUsage || 0;
-    totalIncome.value = res.totalAmount || 0;
-    abnormalBills.value = res.totalPaymentBill || 0;
-    processedOrders.value = res.processedFeedbackCount || 0;
-    pendingOrders.value = res.unprocessedFeedbackCount || 0;
-    systemLogs.value = res.systemLogCount || 0;
+    // 使用后端返回的 DashboardVO 数据
+    dashboardData.value = res;
     
-    // 更新用户类型数据
-    if (res.userTypeMap) {
-      // 处理用户类型数据
-      const userTypeMap = res.userTypeMap;
-      userTypeData.value = Object.entries(userTypeMap).map(([name, value]) => ({
-        name,
-        value
-      }));
-      
-      // 更新图表数据
-      chartData.value.userType.labels = Object.keys(userTypeMap);
-      chartData.value.userType.values = Object.values(userTypeMap);
-      
-      updateChart();
-    }
-    
-    // 初始化访问数量数据
-    initAccessData();
-    
-    // 如果有电量使用数据
-    if (res.electricityWeekUsageList) {
-      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-      chartData.value.powerUsage.labels = days;
-      chartData.value.powerUsage.values = res.electricityWeekUsageList;
-    }
+    // 初始化或更新图表
+    nextTick(() => {
+      initChart();
+    });
     
   } catch (error) {
     console.error('获取仪表盘信息失败:', error);
@@ -430,63 +314,23 @@ const fetchDashboardInfo = async () => {
   }
 };
 
-// 获取用电量数据
-const fetchElectricityData = async () => {
-  chartLoading.value = true;
-  try {
-    const res = await getUserGrowthStatistics({ period: 'month' });
-    if (res.data && res.data.length) {
-      chartData.value.powerUsage.labels = res.data.map(item => item.period);
-      chartData.value.powerUsage.values = res.data.map(item => item.usage);
-      updateChart();
-    }
-  } catch (error) {
-    console.error('获取用电量数据失败:', error);
-    ElMessage.error('获取用电量数据失败，请稍后重试');
-  } finally {
-    chartLoading.value = false;
+// 初始化图表
+const initChart = () => {
+  if (!userTypeChart.value) return;
+  
+  if (!chartInstance.value) {
+    chartInstance.value = echarts.init(userTypeChart.value);
+    // 设置图表响应式
+    window.addEventListener('resize', () => {
+      chartInstance.value?.resize();
+    });
   }
+  
+  updateChart();
 };
 
-// 获取缴费情况数据
-const fetchPaymentData = async () => {
-  chartLoading.value = true;
-  try {
-    const res = await getPaymentMethodDistribution();
-    if (res.data) {
-      chartData.value.payment.labels = Object.keys(res.data);
-      chartData.value.payment.values = Object.values(res.data);
-      updateChart();
-    }
-  } catch (error) {
-    console.error('获取缴费情况数据失败:', error);
-    ElMessage.error('获取缴费情况数据失败，请稍后重试');
-  } finally {
-    chartLoading.value = false;
-  }
-};
-
-// 初始化访问数量数据
-const initAccessData = () => {
-  userTypesLoading.value = true;
-  try {
-    // 模拟访问数量数据
-    accessData.value = [
-      { name: '今日访问', value: Math.floor(Math.random() * 500 + 300) },
-      { name: '昨日访问', value: Math.floor(Math.random() * 450 + 250) },
-      { name: '本周访问', value: Math.floor(Math.random() * 2000 + 1500) },
-      { name: '本月访问', value: Math.floor(Math.random() * 8000 + 5000) },
-      { name: '总访问量', value: Math.floor(Math.random() * 50000 + 30000) }
-    ];
-  } catch (error) {
-    console.error('初始化访问数量数据失败:', error);
-  } finally {
-    userTypesLoading.value = false;
-  }
-};
-
-// 监听图表配置变化
-watch([selectedChartType, selectedDataType], () => {
+// 监听图表类型变化
+watch(selectedChartType, () => {
   nextTick(() => {
     updateChart();
   });
@@ -494,9 +338,6 @@ watch([selectedChartType, selectedDataType], () => {
 
 onMounted(() => {
   fetchDashboardInfo();
-  nextTick(() => {
-    initChart();
-  });
 });
 </script>
 
@@ -604,6 +445,8 @@ onMounted(() => {
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  position: relative;
 }
 
 .stat-card-header h3 {
@@ -624,23 +467,28 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-top: 15px;
+  padding-right: 10px;
 }
 
 .stat-number {
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 600;
   color: #303133;
+  margin-right: 70px;
 }
 
 .stat-icon {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 28px;
+  font-size: 24px;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
 }
 
 .residential-icon {
@@ -660,6 +508,10 @@ onMounted(() => {
 }
 
 /* 图表区域 */
+.chart-area {
+  margin-top: 20px;
+}
+
 .chart-card {
   border-radius: 8px;
   height: 100%;
@@ -668,7 +520,8 @@ onMounted(() => {
 
 .chart-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .chart-header h3 {
@@ -683,64 +536,15 @@ onMounted(() => {
   color: #909399;
 }
 
-.chart-header-with-tools {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chart-header-with-tools h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
 .chart-tools {
   display: flex;
   gap: 10px;
 }
 
-/* 水平条形图 */
-.horizontal-chart {
-  padding: 15px;
-}
-
-.chart-bar-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.chart-bar-label {
-  width: 100px;
-  text-align: right;
-  padding-right: 15px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.chart-bar-wrapper {
-  flex: 1;
-  background-color: #f0f2f5;
-  height: 30px;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.chart-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #409eff, #53a8ff);
-  display: flex;
-  align-items: center;
-  padding-left: 10px;
-  transition: width 0.8s ease;
-  min-width: 40px;
-}
-
-.chart-bar-value {
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
+/* 主图表 */
+.main-chart {
+  width: 100%;
+  height: 400px;
 }
 
 /* 统计卡片 */
@@ -770,38 +574,19 @@ onMounted(() => {
   color: #f6c23e;
 }
 
-/* 主图表 */
-.main-chart {
-  width: 100%;
-  height: 400px;
-}
-
 :deep(.el-card__header) {
   padding: 10px 15px;
   border-bottom: 1px solid #f0f2f5;
 }
 
 :deep(.el-card__body) {
-  padding: 0;
+  padding: 15px;
 }
 
 /* 响应式调整 */
 @media (max-width: 1200px) {
   .stat-card {
     height: auto;
-  }
-  
-  .chart-bar-label {
-    width: 80px;
-    font-size: 12px;
-  }
-  
-  .chart-bar {
-    padding-left: 5px;
-  }
-  
-  .chart-bar-value {
-    font-size: 12px;
   }
   
   .chart-tools {
