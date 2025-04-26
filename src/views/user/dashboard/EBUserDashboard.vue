@@ -1,313 +1,498 @@
 <template>
-  <EBPageLayout>
-    <template #header>
-      <div class="eb-dashboard-header">
-        <div class="tab-buttons">
-          <div 
-            class="tab-item"
-            :class="{ 'active-tab': activeTab === 'notifications' }" 
-            @click="activeTab = 'notifications'"
-          >
-            <el-icon><Bell /></el-icon>
-            <span>最新通知</span>
+  <div class="user-dashboard-page">
+    <!-- 欢迎区域 -->
+    <div class="welcome-section">
+      <div class="welcome-text">
+        <h2>您好，{{ userInfo.username }}</h2>
+        <p>{{ getTimeGreeting() }}</p>
+      </div>
+    </div>
+
+    <!-- 电表信息卡片 -->
+    <div class="main-card">
+      <div class="card-header">
+        <div class="card-title">
+          <el-icon><Odometer /></el-icon>
+          <span>我的电表</span>
+        </div>
+        <div class="card-right">
+          <span class="meter-id">电表编号：{{ meterInfo.id }}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="meter-reading-box">
+          <div class="reading-info">
+            <div class="reading-title">当前读数</div>
+            <div class="reading-value">{{ meterInfo.ending_reading }}<span class="unit">度</span></div>
           </div>
-          <div 
-            class="tab-item"
-            :class="{ 'active-tab': activeTab === 'electricity' }" 
-            @click="activeTab = 'electricity'"
-          >
-            <el-icon><Lightning /></el-icon>
-            <span>电费记录</span>
+          <el-button type="primary" @click="viewUsageHistory">查看用电记录</el-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 账单信息卡片 -->
+    <div class="main-card bill-card" :class="{'warning': currentBill.status === '未支付', 'danger': currentBill.status === '逾期'}">
+      <div class="card-header">
+        <div class="card-title">
+          <el-icon><Document /></el-icon>
+          <span>电费账单</span>
+        </div>
+        <div class="card-right" v-if="currentBill.id">
+          <el-tag size="small" :type="getBillStatusType(currentBill.status)">{{ currentBill.status }}</el-tag>
+        </div>
+      </div>
+      <div class="card-body" v-if="currentBill.id">
+        <div class="bill-info">
+          <div class="bill-amount">
+            <div class="amount-label">本期电费</div>
+            <div class="amount-value">{{ formatMoney(currentBill.total_amount) }}<span class="unit">元</span></div>
+            <div class="due-date" v-if="currentBill.status === '未支付'">
+              <span>缴费截止日期：{{ formatDate(currentBill.due_date) }}</span>
+            </div>
           </div>
-          <div 
-            class="tab-item"
-            :class="{ 'active-tab': activeTab === 'payment' }" 
-            @click="activeTab = 'payment'"
-          >
-            <el-icon><Wallet /></el-icon>
-            <span>缴费记录</span>
+          <div class="bill-actions" v-if="currentBill.status === '未支付'">
+            <el-button type="primary" @click="payBill">立即缴费</el-button>
           </div>
         </div>
       </div>
-    </template>
-
-    <div class="dashboard-container">
-      <!-- 动态组件切换 -->
-      <component :is="currentComponent"></component>
+      <div class="card-body empty-bill" v-else>
+        <el-empty description="暂无未结清账单" :image-size="80">
+          <el-button type="primary" @click="viewBillHistory">查看历史账单</el-button>
+        </el-empty>
+      </div>
     </div>
-  </EBPageLayout>
+
+    <!-- 通知区域 -->
+    <div class="main-card">
+      <div class="card-header">
+        <div class="card-title">
+          <el-icon><Bell /></el-icon>
+          <span>最新通知</span>
+        </div>
+        <div class="card-right">
+          <el-button link type="primary" @click="viewMoreNotifications">查看更多</el-button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div v-if="notifications.length === 0" class="empty-notifications">
+          <el-empty description="暂无通知" :image-size="80"></el-empty>
+        </div>
+        <div v-else class="notification-simple-list">
+          <div v-for="(notice, index) in notifications.slice(0, 3)" :key="index" 
+               class="notification-item" 
+               :class="{'unread': !notice.read}"
+               @click="viewNotificationDetail(notice)">
+            <div class="notice-title">
+              <span class="notice-dot" v-if="!notice.read"></span>
+              {{ notice.title }}
+            </div>
+            <div class="notice-time">{{ formatDateFromNow(notice.created_at) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { EBPageLayout, EBCard } from '@/components';
-import { formatMoney, formatNumber } from '@/utils/formatter';
-import { getCurrentBill } from '@/api/user/bill';
-import { getAccountBalance, getAccountInfo } from '@/api/user/account';
-import { getUnreadCount } from '@/api/user/notification';
-import { getElectricityTrend, getEnergySavingTips } from '@/api/user/analysis';
-import EBUserDashboardNotifications from './components/EBUserDashboardNotifications.vue';
-import EBUserDashboardElectricity from './components/EBUserDashboardElectricity.vue';
-import EBUserDashboardPayment from './components/EBUserDashboardPayment.vue';
+import {
+  Odometer,
+  Document,
+  Bell
+} from '@element-plus/icons-vue';
 
 const router = useRouter();
 
-// 页面状态
-const loading = ref(false);
-
-// 用户信息
+// 模拟用户信息
 const userInfo = ref({
-  name: '',
-  address: '',
-  meterNumber: ''
+  id: 10001,
+  username: '张三',
+  phone: '13812345678',
+  address: '北京市海淀区XXX小区X号楼X单元',
+  user_type: '居民用户',
+  account_status: '正常',
+  meter_id: 'M2023001'
 });
 
-// 账户余额
-const accountBalance = ref(0);
+// 模拟电表信息
+const meterInfo = ref({
+  id: 'M2023001',
+  model: 'DDS-102',
+  install_place: '厨房',
+  status: '正常',
+  install_date: '2023-01-15',
+  start_reading: 3250.5,
+  ending_reading: 3402.7,
+  last_meter_reading_date: '2023-03-15'
+});
 
-// 当前账单
+// 模拟当前账单
 const currentBill = ref({
-  billId: '',
-  billMonth: '',
-  dueDate: '',
-  amount: 0,
-  status: 'unpaid', // unpaid, overdue, paid
-  usageAmount: 0,
-  paidAmount: 0,
-  remainAmount: 0
+  id: 'B2023031501',
+  user_id: 10001,
+  usage_amount: 152.2,
+  total_amount: 98.93,
+  status: '未支付',
+  due_date: '2023-03-25',
+  created_at: '2023-03-15',
+  meter_id: 'M2023001',
+  start_reading: 3250.5,
+  ending_reading: 3402.7
 });
 
-// 近期用电趋势
-const electricityTrend = ref([]);
-
-// 未读通知数量
-const unreadNotifications = ref(0);
-
-// 节能小贴士
-const energySavingTips = ref([]);
-
-// 当前活动标签
-const activeTab = ref('notifications'); // 默认显示最新通知
-
-// 根据当前活动标签返回对应组件
-const currentComponent = computed(() => {
-  switch(activeTab.value) {
-    case 'electricity':
-      return EBUserDashboardElectricity;
-    case 'payment':
-      return EBUserDashboardPayment;
-    case 'notifications':
-    default:
-      return EBUserDashboardNotifications;
+// 模拟通知数据
+const notifications = ref([
+  {
+    id: 1,
+    title: '电费缴纳成功通知',
+    content: '您已成功缴纳电费100元，感谢您的使用。',
+    type: 'payment',
+    created_at: '2023-03-15 09:25:00',
+    read: true
+  },
+  {
+    id: 2,
+    title: '系统维护通知',
+    content: '系统将于2023-03-20 22:00至次日02:00进行升级维护。',
+    type: 'system',
+    created_at: '2023-03-18 10:00:00',
+    read: false
+  },
+  {
+    id: 3,
+    title: '电费余额不足提醒',
+    content: '您的账户电费余额低于50元，为避免影响正常用电，请及时充值。',
+    type: 'alert',
+    created_at: '2023-03-20 15:30:00',
+    read: false
   }
-});
+]);
 
-// 计算属性：账单状态文本
-const billStatusText = computed(() => {
-  const status = currentBill.value.status;
-  if (status === 'paid') return '已支付';
-  if (status === 'overdue') return '已逾期';
-  return '待支付';
-});
+// 获取时间问候语
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 6) {
+    return '夜深了，注意休息';
+  } else if (hour < 9) {
+    return '早上好，祝您一天愉快';
+  } else if (hour < 12) {
+    return '上午好，祝您工作顺利';
+  } else if (hour < 14) {
+    return '中午好，别忘记休息一下';
+  } else if (hour < 18) {
+    return '下午好，工作不要太累';
+  } else if (hour < 22) {
+    return '晚上好，今天过得如何';
+  } else {
+    return '夜深了，注意休息';
+  }
+};
 
-// 计算属性：账单状态样式
-const billStatusType = computed(() => {
-  const status = currentBill.value.status;
-  if (status === 'paid') return 'success';
-  if (status === 'overdue') return 'danger';
-  return 'warning';
-});
+// 工具方法
+const formatMoney = (value) => {
+  if (!value && value !== 0) return '--';
+  return value.toFixed(2);
+};
 
-// 初始化页面数据
-const initPageData = async () => {
-  loading.value = true;
+const formatDate = (dateStr) => {
+  if (!dateStr) return '--';
+  const date = new Date(dateStr);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const formatDateFromNow = (dateTimeStr) => {
+  if (!dateTimeStr) return '--';
   
-  try {
-    // 获取用户信息
-    const accountInfoResponse = await getAccountInfo();
-    if (accountInfoResponse.code === 200) {
-      userInfo.value = accountInfoResponse.data || {};
-    }
-    
-    // 获取账户余额
-    const balanceResponse = await getAccountBalance();
-    if (balanceResponse.code === 200) {
-      accountBalance.value = balanceResponse.data.balance || 0;
-    }
-    
-    // 获取当前账单
-    await fetchCurrentBill();
-    
-    // 获取用电趋势
-    await fetchElectricityTrend();
-    
-    // 获取未读通知数量
-    await fetchUnreadNotifications();
-    
-    // 获取节能小贴士
-    await fetchEnergySavingTips();
-  } catch (error) {
-    console.error('初始化仪表盘数据失败:', error);
-    ElMessage.error('加载仪表盘数据失败，请稍后重试');
-  } finally {
-    loading.value = false;
+  const now = new Date();
+  const date = new Date(dateTimeStr);
+  const diffMs = now - date;
+  const diffSec = Math.round(diffMs / 1000);
+  const diffMin = Math.round(diffSec / 60);
+  const diffHour = Math.round(diffMin / 60);
+  const diffDay = Math.round(diffHour / 24);
+  
+  if (diffSec < 60) {
+    return '刚刚';
+  } else if (diffMin < 60) {
+    return `${diffMin}分钟前`;
+  } else if (diffHour < 24) {
+    return `${diffHour}小时前`;
+  } else if (diffDay < 30) {
+    return `${diffDay}天前`;
+  } else {
+    return formatDate(date);
   }
 };
 
-// 获取当前账单
-const fetchCurrentBill = async () => {
-  try {
-    const response = await getCurrentBill();
-    if (response.code === 200) {
-      currentBill.value = response.data || {};
-    }
-  } catch (error) {
-    console.error('获取当前账单失败:', error);
+const getBillStatusType = (status) => {
+  switch (status) {
+    case '已支付':
+      return 'success';
+    case '逾期':
+      return 'danger';
+    case '未支付':
+      return 'warning';
+    default:
+      return 'info';
   }
 };
 
-// 获取用电趋势
-const fetchElectricityTrend = async () => {
-  try {
-    // 获取最近30天的用电趋势
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    const formattedToday = today.toISOString().split('T')[0];
-    const formattedThirtyDaysAgo = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    const response = await getElectricityTrend({
-      startDate: formattedThirtyDaysAgo,
-      endDate: formattedToday,
-      type: 'daily'
-    });
-    
-    if (response.code === 200) {
-      electricityTrend.value = response.data || [];
-    }
-  } catch (error) {
-    console.error('获取用电趋势失败:', error);
-  }
-};
-
-// 获取未读通知
-const fetchUnreadNotifications = async () => {
-  try {
-    const response = await getUnreadCount();
-    if (response.code === 200) {
-      unreadNotifications.value = response.data.count || 0;
-    }
-  } catch (error) {
-    console.error('获取未读通知数量失败:', error);
-  }
-};
-
-// 获取节能小贴士
-const fetchEnergySavingTips = async () => {
-  try {
-    const response = await getEnergySavingTips({ limit: 3 });
-    if (response.code === 200) {
-      energySavingTips.value = response.data || [];
-    }
-  } catch (error) {
-    console.error('获取节能小贴士失败:', error);
-  }
-};
-
-// 路由跳转
-const goToPage = (path) => {
-  router.push(path);
-};
-
-// 支付账单
+// 页面功能方法
 const payBill = () => {
   router.push({
-    path: '/user/payment',
-    query: { billId: currentBill.value.billId }
+    path: `/user/paymentDashboard/payment/${currentBill.value.id}`
   });
 };
 
-// 查看更多用电分析
-const viewMoreAnalysis = () => {
+const viewUsageHistory = () => {
   router.push('/user/analysis');
 };
 
-// 查看更多通知
+const viewBillHistory = () => {
+  router.push('/user/payment');
+};
+
 const viewMoreNotifications = () => {
   router.push('/user/notifications');
 };
 
-// 初始化
+const viewNotificationDetail = (notice) => {
+  ElMessage.info(`查看通知: ${notice.title}`);
+  // 实际项目中跳转到通知详情页
+  // router.push({
+  //   path: '/user/notifications/detail',
+  //   query: { id: notice.id }
+  // });
+};
+
+// 生命周期钩子
 onMounted(() => {
-  initPageData();
+  // 实际项目中这里会请求API获取真实数据
+  console.log('用户仪表盘初始化');
 });
 </script>
 
 <style scoped>
-.eb-dashboard-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px 0 15px 0;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  margin-bottom: 15px;
-}
-
-.tab-buttons {
-  display: flex;
-  padding: 0;
+.user-dashboard-page {
   width: 100%;
-  justify-content: center;
-  border: none;
+  max-width: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #fff;
 }
 
-.tab-item {
+/* 欢迎区域 */
+.welcome-section {
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.welcome-text h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.welcome-text p {
+  margin: 0;
+  color: #909399;
+  font-size: 14px;
+}
+
+/* 卡片通用样式 */
+.main-card {
+  background-color: #fff;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.card-header {
   display: flex;
   align-items: center;
-  padding: 0 30px;
-  height: 40px;
-  color: #606266;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.card-title .el-icon {
+  font-size: 18px;
+  color: #409EFF;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* 电表读数 */
+.meter-reading-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reading-title {
   font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-right: 20px;
-  position: relative;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.reading-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.unit {
+  font-size: 14px;
+  color: #909399;
+  margin-left: 4px;
   font-weight: normal;
 }
 
-.tab-item:last-child {
-  margin-right: 0;
+.meter-id {
+  font-size: 13px;
+  color: #909399;
 }
 
-.tab-item:hover {
-  color: #409EFF;
+/* 账单卡片 */
+.bill-card {
+  position: relative;
 }
 
-.tab-item .el-icon {
-  margin-right: 6px;
-  font-size: 16px;
+.bill-card.warning {
+  border-left: 4px solid #E6A23C;
 }
 
-.active-tab {
-  color: #409EFF;
-  font-weight: 500;
+.bill-card.danger {
+  border-left: 4px solid #F56C6C;
 }
 
-.active-tab .el-icon {
-  color: #409EFF;
+.bill-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.dashboard-container {
-  margin-top: 15px;
-  padding: 0;
-  background-color: #ffffff;
+.amount-label {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.amount-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.due-date {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #F56C6C;
+}
+
+.bill-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.empty-bill {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 0;
+}
+
+/* 通知区域 */
+.notification-simple-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
   border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  padding: 20px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: #f0f2f5;
+}
+
+.notification-item.unread {
+  background-color: #ecf5ff;
+}
+
+.notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.notice-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #409EFF;
+}
+
+.notice-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.empty-notifications {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 767px) {
+  .meter-reading-box, .bill-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .bill-actions {
+    width: 100%;
+  }
+
+  .bill-actions .el-button {
+    width: 100%;
+  }
 }
 </style> 

@@ -1,116 +1,147 @@
 <template>
-  <EBPageLayout>
-    <template #header>
-      <div class="eb-notification-header">
-        <div class="header-spacer"></div>
-        <div class="action-buttons">
-          <el-button type="primary" @click="markAllAsRead" :disabled="unreadCount === 0">
-            全部已读
-          </el-button>
-          <el-button @click="refreshNotifications" :loading="loading">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </div>
-      </div>
-    </template>
-
-    <div class="notifications-container" v-loading="loading">
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <el-tab-pane label="全部通知" name="all">
-          <div class="notification-list">
-            <el-empty v-if="filteredNotifications.length === 0" description="暂无通知"></el-empty>
-            <div v-else>
-              <div 
-                v-for="notification in filteredNotifications" 
-                :key="notification.id" 
-                class="notification-item"
-                :class="{ 'unread': !notification.isRead }"
-                @click="viewNotification(notification)"
-              >
-                <div class="notification-dot" v-if="!notification.isRead"></div>
-                <div class="notification-icon" :class="getNotificationType(notification.title)">
-                  <el-icon v-if="getNotificationType(notification.title) === 'warning'"><Warning /></el-icon>
-                  <el-icon v-else-if="getNotificationType(notification.title) === 'success'"><SuccessFilled /></el-icon>
-                  <el-icon v-else><Bell /></el-icon>
-                </div>
-                <div class="notification-content">
-                  <div class="notification-title">{{ notification.title }}</div>
-                  <div class="notification-text">{{ notification.content }}</div>
-                  <div class="notification-time">{{ notification.createTime }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane :label="`未读(${unreadCount})`" name="unread">
-          <div class="notification-list">
-            <el-empty v-if="unreadNotifications.length === 0" description="暂无未读通知"></el-empty>
-            <div v-else>
-              <div 
-                v-for="notification in unreadNotifications" 
-                :key="notification.id" 
-                class="notification-item unread"
-                @click="viewNotification(notification)"
-              >
-                <div class="notification-dot"></div>
-                <div class="notification-icon" :class="getNotificationType(notification.title)">
-                  <el-icon v-if="getNotificationType(notification.title) === 'warning'"><Warning /></el-icon>
-                  <el-icon v-else-if="getNotificationType(notification.title) === 'success'"><SuccessFilled /></el-icon>
-                  <el-icon v-else><Bell /></el-icon>
-                </div>
-                <div class="notification-content">
-                  <div class="notification-title">{{ notification.title }}</div>
-                  <div class="notification-text">{{ notification.content }}</div>
-                  <div class="notification-time">{{ notification.createTime }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-      
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="total"
-          :current-page="currentPage"
-          :page-size="pageSize"
-          @current-change="handleCurrentChange"
-        />
+  <div class="notification-page">
+    <!-- 头部区域 -->
+    <div class="notification-header">
+      <div class="header-title">
+        <h2>通知中心</h2>
       </div>
     </div>
 
-    <!-- 通知详情对话框 -->
+    <!-- 分类标签栏 -->
+    <div class="notification-tabs">
+      <div 
+        class="tab-item" 
+        :class="{ 'active': activeTab === 'all' }" 
+        @click="switchTab('all')"
+      >
+        全部通知
+      </div>
+      <div 
+        class="tab-item" 
+        :class="{ 'active': activeTab === 'unread' }" 
+        @click="switchTab('unread')"
+      >
+        未读
+      </div>
+    </div>
+
+    <!-- 下拉刷新区域 -->
+    <div 
+      class="pull-refresh"
+      :class="{ 'refreshing': isRefreshing }"
+      @touchstart="touchStart"
+      @touchmove="touchMove"
+      @touchend="touchEnd"
+    >
+      <div class="pull-indicator" v-show="isPulling">
+        <el-icon class="pull-icon" :class="{ 'rotating': isRefreshing }"><Refresh /></el-icon>
+        <span>{{ isRefreshing ? '刷新中...' : '下拉刷新' }}</span>
+      </div>
+
+      <!-- 通知列表区域 -->
+      <div 
+        class="notification-list" 
+        v-loading="loading && !isRefreshing && !loadingMore"
+        @scroll="handleScroll"
+        ref="listContainer"
+      >
+        <template v-if="filteredNotifications.length === 0">
+          <div class="empty-state">
+            <el-empty :description="activeTab === 'all' ? '暂无通知' : '暂无未读通知'" />
+          </div>
+        </template>
+        
+        <template v-else>
+          <div 
+            v-for="notification in filteredNotifications" 
+            :key="notification.id" 
+            class="notification-item"
+            :class="{ 'unread': !notification.isRead }"
+            @click="viewNotification(notification)"
+          >
+            <div class="notification-status">
+              <div class="status-dot" v-if="!notification.isRead"></div>
+            </div>
+            <div class="notification-icon" :class="getNotificationType(notification.title)">
+              <el-icon v-if="getNotificationType(notification.title) === 'warning'"><WarningFilled /></el-icon>
+              <el-icon v-else-if="getNotificationType(notification.title) === 'success'"><SuccessFilled /></el-icon>
+              <el-icon v-else><Bell /></el-icon>
+            </div>
+            <div class="notification-content">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-text">{{ notification.content }}</div>
+              <div class="notification-time">{{ formatTime(notification.createTime) }}</div>
+            </div>
+          </div>
+          
+          <!-- 加载更多指示器 -->
+          <div class="load-more" v-if="hasMoreData">
+            <p v-if="loadingMore">加载中...</p>
+            <p v-else @click="loadMore">点击加载更多</p>
+          </div>
+          
+          <!-- 全部加载完毕 -->
+          <div class="no-more" v-if="!hasMoreData && filteredNotifications.length > 0">
+            — 已经到底了 —
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- 通知详情弹窗 -->
     <el-dialog
       v-model="detailVisible"
       :title="currentNotification.title || '通知详情'"
-      width="30%"
+      width="90%"
+      top="20vh"
+      destroy-on-close
+      class="notification-dialog"
     >
       <div class="notification-detail">
-        <p class="notification-detail-time">{{ currentNotification.createTime }}</p>
-        <div class="notification-detail-content">
+        <div class="detail-header">
+          <div class="detail-time">{{ formatTime(currentNotification.createTime) }}</div>
+          <div class="detail-type" :class="getNotificationType(currentNotification.title)">
+            {{ getNotificationTypeText(currentNotification.title) }}
+          </div>
+        </div>
+        <div class="detail-content">
           {{ currentNotification.content }}
         </div>
       </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="detailVisible = false" size="small">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
-  </EBPageLayout>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Refresh, Bell, Warning, SuccessFilled } from '@element-plus/icons-vue';
-import { EBPageLayout } from '@/components';
+import { Refresh, Bell, Check, WarningFilled, SuccessFilled } from '@element-plus/icons-vue';
 
+// 页面状态
 const loading = ref(false);
 const activeTab = ref('all');
+const detailVisible = ref(false);
+const currentNotification = ref({});
+const isRefreshing = ref(false);
+const isPulling = ref(false);
+const loadingMore = ref(false);
+const hasMoreData = ref(true);
+
+// 下拉刷新相关
+const startY = ref(0);
+const pullDistance = ref(0);
+const pullThreshold = 60;
+const listContainer = ref(null);
+
+// 分页相关
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const detailVisible = ref(false);
-const currentNotification = ref({});
 
 // 本地假数据
 const notifications = ref([
@@ -170,21 +201,81 @@ const filteredNotifications = computed(() => {
   }
 });
 
-// 刷新通知列表
-const refreshNotifications = () => {
+// 处理刷新
+const handleRefresh = () => {
+  if (isRefreshing.value) return;
+  
   loading.value = true;
+  
+  // 模拟请求
   setTimeout(() => {
     loading.value = false;
     ElMessage.success('通知已更新');
   }, 800);
 };
 
+// 下拉刷新事件处理
+const touchStart = (e) => {
+  if (listContainer.value.scrollTop > 0) return;
+  startY.value = e.touches[0].clientY;
+  isPulling.value = true;
+};
+
+const touchMove = (e) => {
+  if (!isPulling.value) return;
+  const currentY = e.touches[0].clientY;
+  pullDistance.value = Math.max(0, currentY - startY.value);
+  
+  // 添加阻尼效果，实际下拉距离小于手指移动距离
+  if (pullDistance.value > 0) {
+    listContainer.value.style.transform = `translateY(${Math.min(pullDistance.value * 0.6, pullThreshold)}px)`;
+  }
+};
+
+const touchEnd = () => {
+  if (!isPulling.value) return;
+  
+  if (pullDistance.value >= pullThreshold) {
+    // 触发刷新
+    isRefreshing.value = true;
+    
+    // 模拟请求
+    setTimeout(() => {
+      isRefreshing.value = false;
+      pullDistance.value = 0;
+      listContainer.value.style.transform = 'translateY(0)';
+      isPulling.value = false;
+      ElMessage.success('刷新成功');
+    }, 1000);
+  } else {
+    // 回弹
+    pullDistance.value = 0;
+    listContainer.value.style.transform = 'translateY(0)';
+    isPulling.value = false;
+  }
+};
+
 // 标记所有通知为已读
 const markAllAsRead = () => {
+  if (unreadCount.value === 0) return;
+  
   notifications.value.forEach(notification => {
     notification.isRead = true;
   });
   ElMessage.success('已将所有通知标记为已读');
+};
+
+// 切换标签
+const switchTab = (tab) => {
+  activeTab.value = tab;
+  currentPage.value = 1;
+  hasMoreData.value = true;
+  
+  // 模拟重新加载
+  loading.value = true;
+  setTimeout(() => {
+    loading.value = false;
+  }, 300);
 };
 
 // 查看通知详情
@@ -203,76 +294,255 @@ const viewNotification = (notification) => {
 
 // 根据通知标题获取通知类型
 const getNotificationType = (title) => {
+  if (!title) return 'info';
+  
   if (title.includes('成功')) {
     return 'success';
-  } else if (title.includes('提醒') || title.includes('异常')) {
+  } else if (title.includes('提醒') || title.includes('异常') || title.includes('不足')) {
     return 'warning';
   } else {
     return 'info';
   }
 };
 
-// 分页处理
-const handleCurrentChange = (page) => {
-  currentPage.value = page;
-  // 模拟分页，实际情况应该是请求后端数据
+// 获取通知类型文本
+const getNotificationTypeText = (title) => {
+  const type = getNotificationType(title);
+  switch (type) {
+    case 'success':
+      return '成功通知';
+    case 'warning':
+      return '提醒通知';
+    default:
+      return '系统通知';
+  }
 };
 
-// 标签切换处理
-const handleTabChange = (tab) => {
-  currentPage.value = 1;
+// 格式化时间显示
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  
+  const now = new Date();
+  const notificationTime = new Date(timeStr);
+  const timeDiff = now - notificationTime;
+  
+  // 一小时内
+  if (timeDiff < 3600000) {
+    const minutes = Math.floor(timeDiff / 60000);
+    return `${minutes}分钟前`;
+  }
+  
+  // 当天
+  if (notificationTime.toDateString() === now.toDateString()) {
+    return `今天 ${notificationTime.getHours()}:${String(notificationTime.getMinutes()).padStart(2, '0')}`;
+  }
+  
+  // 昨天
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (notificationTime.toDateString() === yesterday.toDateString()) {
+    return `昨天 ${notificationTime.getHours()}:${String(notificationTime.getMinutes()).padStart(2, '0')}`;
+  }
+  
+  // 一周内
+  if (timeDiff < 604800000) {
+    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return `${days[notificationTime.getDay()]} ${notificationTime.getHours()}:${String(notificationTime.getMinutes()).padStart(2, '0')}`;
+  }
+  
+  // 其他情况显示完整日期
+  return timeStr.split(' ')[0];
+};
+
+// 处理滚动加载更多
+const handleScroll = (e) => {
+  const { scrollTop, scrollHeight, clientHeight } = e.target;
+  
+  // 滚动到底部附近时加载更多
+  if (scrollTop + clientHeight >= scrollHeight - 50 && hasMoreData.value && !loadingMore.value) {
+    loadMore();
+  }
+};
+
+// 加载更多数据
+const loadMore = () => {
+  if (loadingMore.value || !hasMoreData.value) return;
+  
+  loadingMore.value = true;
+  currentPage.value++;
+  
+  // 模拟加载更多
+  setTimeout(() => {
+    // 这里应该是实际的API调用
+    // 当没有更多数据时，设置hasMoreData为false
+    if (currentPage.value >= 3) {
+      hasMoreData.value = false;
+    }
+    
+    loadingMore.value = false;
+  }, 800);
 };
 
 onMounted(() => {
   total.value = notifications.value.length;
+  
+  // 初始加载
+  loading.value = true;
+  setTimeout(() => {
+    loading.value = false;
+  }, 500);
+});
+
+// 清理事件监听
+onUnmounted(() => {
+  if (listContainer.value) {
+    listContainer.value.style.transform = 'translateY(0)';
+  }
 });
 </script>
 
 <style scoped>
-.eb-notification-header {
+.notification-page {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 头部样式 */
+.notification-header {
+  background-color: #fff;
+  padding: 16px 16px 10px;
+  z-index: 10;
+  border-bottom: none;
+}
+
+.header-title {
+  display: flex;
   align-items: center;
-  padding: 5px 0;
 }
 
-.header-spacer {
-  flex: 1;
+.header-title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
 }
 
-.action-buttons {
+/* 标签栏样式 */
+.notification-tabs {
   display: flex;
-  gap: 10px;
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  font-size: 15px;
+  position: relative;
+  cursor: pointer;
+}
+
+.tab-item.active {
+  color: #409eff;
+  font-weight: 500;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 30%;
+  right: 30%;
+  height: 2px;
+  background-color: #409eff;
+  border-radius: 2px;
+}
+
+/* 下拉刷新区域 */
+.pull-refresh {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: #fff;
+}
+
+.pull-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #909399;
+  z-index: 1;
+}
+
+.pull-icon {
+  margin-right: 8px;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 通知列表样式 */
 .notification-list {
-  margin-bottom: 20px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 16px;
+  background-color: #fff;
+  transition: transform 0.3s;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 40px 0;
 }
 
 .notification-item {
-  position: relative;
   display: flex;
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #f5f7fa;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
+  background-color: #fff;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s;
+  position: relative;
+  border-left: 3px solid transparent;
 }
 
-.notification-item:hover {
-  background-color: #ecf5ff;
-  transform: translateY(-2px);
+.notification-item:active {
+  transform: scale(0.98);
 }
 
 .notification-item.unread {
-  background-color: #ecf5ff;
+  border-left-color: #409eff;
 }
 
-.notification-dot {
+.notification-status {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 14px;
+  right: 14px;
+}
+
+.status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -280,30 +550,32 @@ onMounted(() => {
 }
 
 .notification-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 15px;
+  margin-right: 12px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .notification-icon .el-icon {
-  font-size: 24px;
-  color: white;
+  font-size: 18px;
+  color: #606266;
 }
 
-.notification-icon.warning {
-  background-color: #e6a23c;
+.notification-icon.warning .el-icon {
+  color: #e6a23c;
 }
 
-.notification-icon.success {
-  background-color: #67c23a;
+.notification-icon.success .el-icon {
+  color: #67c23a;
 }
 
-.notification-icon.info {
-  background-color: #409eff;
+.notification-icon.info .el-icon {
+  color: #909399;
 }
 
 .notification-content {
@@ -311,20 +583,22 @@ onMounted(() => {
 }
 
 .notification-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  color: #303133;
 }
 
 .notification-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #606266;
-  margin-bottom: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
 .notification-time {
@@ -332,22 +606,96 @@ onMounted(() => {
   color: #909399;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.notification-detail-time {
+/* 加载更多与无更多数据 */
+.load-more {
+  text-align: center;
+  padding: 16px 0;
   color: #909399;
   font-size: 14px;
-  text-align: right;
-  margin-bottom: 15px;
 }
 
-.notification-detail-content {
-  font-size: 14px;
-  line-height: 1.6;
+.load-more p {
+  margin: 0;
+  cursor: pointer;
+}
+
+.no-more {
+  text-align: center;
+  padding: 16px 0;
+  color: #c0c4cc;
+  font-size: 12px;
+}
+
+/* 通知详情弹窗样式 */
+.notification-dialog :deep(.el-dialog) {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.notification-dialog :deep(.el-dialog__header) {
+  padding: 16px;
+  margin: 0;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-dialog :deep(.el-dialog__title) {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.notification-dialog :deep(.el-dialog__body) {
+  padding: 16px;
+}
+
+.notification-dialog :deep(.el-dialog__footer) {
+  padding: 10px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-time {
+  color: #909399;
+  font-size: 13px;
+}
+
+.detail-type {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
   color: #606266;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.detail-type.success {
+  color: #67c23a;
+  border-color: rgba(103, 194, 58, 0.2);
+}
+
+.detail-type.warning {
+  color: #e6a23c;
+  border-color: rgba(230, 162, 60, 0.2);
+}
+
+.detail-type.info {
+  color: #909399;
+  border-color: rgba(144, 147, 153, 0.2);
+}
+
+.detail-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #606266;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
 }
 </style> 

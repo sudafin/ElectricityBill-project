@@ -1,12 +1,5 @@
 <template>
-  <EBPageLayout>
-    <template #header>
-      <div class="eb-help-header">
-        <!-- 移除标题元素 -->
-      </div>
-    </template>
-
-    <div class="help-container">
+  <div class="help-page">
       <!-- 搜索框 -->
       <div class="search-section">
         <el-input
@@ -25,9 +18,9 @@
         </el-input>
         
         <div class="hot-questions">
-          <span class="hot-label">热门问题：</span>
+        <div class="hot-tags">
           <el-tag
-            v-for="(tag, index) in hotQuestions"
+            v-for="(tag, index) in hotQuestions.slice(0, 3)"
             :key="index"
             class="hot-tag"
             @click="searchQuery = tag; searchHelp()"
@@ -36,97 +29,15 @@
           </el-tag>
         </div>
       </div>
+              </div>
 
-      <!-- 主要内容区域 -->
-      <el-row :gutter="20" class="main-content">
-        <!-- 左侧导航 -->
-        <el-col :span="6">
-          <el-card class="nav-card">
-            <template #header>
-              <div class="nav-header">
-                <h3>帮助分类</h3>
-              </div>
-            </template>
-            <el-menu
-              :default-active="activeCategory"
-              class="help-menu"
-              @select="handleCategorySelect"
-            >
-              <el-menu-item index="account">
-                <el-icon><User /></el-icon>
-                <span>账户管理</span>
-              </el-menu-item>
-              <el-menu-item index="payment">
-                <el-icon><Money /></el-icon>
-                <span>电费缴纳</span>
-              </el-menu-item>
-              <el-menu-item index="usage">
-                <el-icon><DataAnalysis /></el-icon>
-                <span>用电分析</span>
-              </el-menu-item>
-              <el-menu-item index="notification">
-                <el-icon><Bell /></el-icon>
-                <span>通知设置</span>
-              </el-menu-item>
-              <el-menu-item index="security">
-                <el-icon><Lock /></el-icon>
-                <span>安全问题</span>
-              </el-menu-item>
-              <el-menu-item index="billing">
-                <el-icon><Ticket /></el-icon>
-                <span>账单查询</span>
-              </el-menu-item>
-              <el-menu-item index="smart-meter">
-                <el-icon><Monitor /></el-icon>
-                <span>智能电表</span>
-              </el-menu-item>
-              <el-menu-item index="energy-saving">
-                <el-icon><Sunny /></el-icon>
-                <span>节能建议</span>
-              </el-menu-item>
-              <el-menu-item index="contact">
-                <el-icon><Service /></el-icon>
-                <span>联系我们</span>
-              </el-menu-item>
-            </el-menu>
-          </el-card>
-
-          <el-card class="contact-card">
-            <template #header>
-              <div class="contact-header">
-                <h3>联系客服</h3>
-              </div>
-            </template>
-            <div class="contact-content">
-              <div class="contact-item">
-                <el-icon><Phone /></el-icon>
-                <span>客服热线：400-123-4567</span>
-              </div>
-              <div class="contact-item">
-                <el-icon><Message /></el-icon>
-                <span>邮箱：support@ebill.com</span>
-              </div>
-              <div class="contact-item">
-                <el-icon><Clock /></el-icon>
-                <span>工作时间：周一至周日 8:00-22:00</span>
-              </div>
-              <el-button type="primary" class="contact-btn" @click="showFeedbackDialog">
-                <el-icon><Edit /></el-icon>
-                反馈问题
-              </el-button>
-            </div>
-          </el-card>
-        </el-col>
-
-        <!-- 右侧内容 -->
-        <el-col :span="18">
-          <el-card v-if="searchResults.length > 0" class="search-results-card">
-            <template #header>
-              <div class="results-header">
+    <!-- 搜索结果区域 -->
+    <div v-if="searchResults.length > 0" class="search-results-section">
+      <div class="section-header">
                 <h3>搜索结果</h3>
-                <el-button text @click="clearSearch">清除搜索</el-button>
+        <el-button text type="primary" @click="clearSearch">清除</el-button>
               </div>
-            </template>
+      
             <div class="search-results">
               <div
                 v-for="(result, index) in searchResults"
@@ -135,7 +46,7 @@
                 @click="selectFaq(result)"
               >
                 <h4 class="result-title">{{ result.question }}</h4>
-                <p class="result-preview">{{ result.answer.substring(0, 100) }}...</p>
+          <p class="result-preview">{{ result.answer.substring(0, 60) }}...</p>
                 <div class="result-category">
                   <el-tag size="small" :type="getCategoryType(result.category)">
                     {{ getCategoryName(result.category) }}
@@ -143,16 +54,37 @@
                 </div>
               </div>
             </div>
-          </el-card>
+    </div>
 
-          <el-card v-else class="faq-card">
-            <template #header>
-              <div class="faq-header">
+    <!-- 主要内容区域 -->
+    <div v-else class="main-content">
+      <!-- 内容 Tab 控制区域 -->
+      <el-tabs v-model="activeTab" class="help-tabs">
+        <el-tab-pane label="常见问题" name="faq">
+          <!-- 常见问题分类选择 -->
+          <el-select 
+            v-model="activeCategory" 
+            placeholder="选择问题分类" 
+            class="category-select"
+            @change="handleCategorySelect"
+          >
+            <el-option label="账户管理" value="account" />
+            <el-option label="电费缴纳" value="payment" />
+            <el-option label="用电分析" value="usage" />
+            <el-option label="通知设置" value="notification" />
+            <el-option label="安全问题" value="security" />
+            <el-option label="账单查询" value="billing" />
+            <el-option label="智能电表" value="smart-meter" />
+            <el-option label="节能建议" value="energy-saving" />
+          </el-select>
+          
+          <!-- FAQs 列表 -->
+          <div class="faq-list">
+            <div class="section-header">
                 <h3>{{ getCategoryName(activeCategory) }}</h3>
               </div>
-            </template>
-            <div class="faq-content">
-              <el-collapse accordion>
+            
+            <el-collapse accordion class="faq-collapse">
                 <el-collapse-item
                   v-for="(faq, index) in filteredFaqs"
                   :key="index"
@@ -165,340 +97,198 @@
                     <p v-html="faq.answer"></p>
                     <div v-if="faq.links && faq.links.length > 0" class="faq-links">
                       <span>相关链接：</span>
+                    <div class="link-list">
                       <el-link
                         v-for="(link, linkIndex) in faq.links"
                         :key="linkIndex"
-                        :href="link.url"
-                        target="_blank"
                         type="primary"
                         class="faq-link"
+                        @click.prevent="handleLinkClick(link)"
                       >
                         {{ link.text }}
                       </el-link>
                     </div>
+                    </div>
                     <div class="faq-feedback">
                       <span>这个回答对您有帮助吗？</span>
-                      <el-button text type="primary" @click="submitFeedback(faq.id, true)">
+                    <div class="feedback-buttons">
+                      <el-button text type="primary" @click="submitFAQFeedback(faq.id, true)">
                         <el-icon><Star /></el-icon> 有帮助
                       </el-button>
-                      <el-button text type="danger" @click="submitFeedback(faq.id, false)">
+                      <el-button text type="danger" @click="submitFAQFeedback(faq.id, false)">
                         <el-icon><CircleClose /></el-icon> 没帮助
                       </el-button>
+                    </div>
                     </div>
                   </div>
                 </el-collapse-item>
               </el-collapse>
             </div>
-          </el-card>
-
-          <el-card class="guide-card">
-            <template #header>
-              <div class="guide-header">
-                <h3>操作指南</h3>
+        </el-tab-pane>
+        
+        <el-tab-pane label="操作指南" name="guides">
+          <!-- 操作指南选择 -->
+          <el-select 
+            v-model="activeGuide" 
+            placeholder="选择操作指南" 
+            class="guide-select"
+          >
+            <el-option 
+              v-for="guide in guides" 
+              :key="guide.id" 
+              :label="guide.title" 
+              :value="guide.id" 
+            />
+          </el-select>
+          
+          <!-- 操作指南内容 -->
+          <div class="guide-content" v-if="currentGuide">
+            <div class="section-header">
+              <h3>{{ currentGuide.title }}</h3>
               </div>
-            </template>
-            <div class="guide-content">
-              <el-tabs v-model="activeGuide" tab-position="left" class="guide-tabs">
-                <el-tab-pane
-                  v-for="(guide, index) in guides"
+            
+            <el-timeline class="guide-steps">
+              <el-timeline-item
+                v-for="(step, index) in currentGuide.steps"
                   :key="index"
-                  :label="guide.title"
-                  :name="guide.id"
-                >
-                  <div class="guide-container">
-                    <div class="guide-steps">
-                      <el-steps :active="guide.steps.length" direction="vertical" space="20px">
-                        <el-step
-                          v-for="(step, stepIndex) in guide.steps"
-                          :key="stepIndex"
-                          :title="step.title"
-                          :description="step.description"
-                        >
-                          <template #icon>
-                            <el-icon><component :is="step.icon" /></el-icon>
-                          </template>
-                        </el-step>
-                      </el-steps>
-                    </div>
+                :type="getCategoryType(activeCategory)"
+                :icon="step.icon"
+                color="#409EFF"
+              >
+                <h4>{{ step.title }}</h4>
+                <p>{{ step.description }}</p>
+              </el-timeline-item>
+            </el-timeline>
                   </div>
                 </el-tab-pane>
               </el-tabs>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
+
+    <!-- 联系与反馈卡片 -->
+    <div class="contact-card">
+      <div class="contact-info">
+        <div class="contact-title">联系客服</div>
+        <div class="contact-item">
+          <el-icon><Phone /></el-icon>
+          <span>客服热线：400-123-4567</span>
+        </div>
+        <div class="contact-item">
+          <el-icon><Clock /></el-icon>
+          <span>工作时间：周一至周日 8:00-22:00</span>
+        </div>
+      </div>
+      <el-button type="primary" class="contact-btn" @click="showFeedbackDialog">
+        <el-icon><Edit /></el-icon>
+        问题反馈
+      </el-button>
     </div>
 
     <!-- 反馈问题对话框 -->
     <el-dialog
       v-model="feedbackDialogVisible"
       title="问题反馈"
-      width="60%"
+      width="35%"
+      :close-on-click-modal="false"
+      top="30vh"
       destroy-on-close
+      class="feedback-dialog"
     >
-      <EBFeedbackForm ref="feedbackFormRef" />
+      <el-form 
+        ref="feedbackFormRef" 
+        :model="feedbackForm" 
+        :rules="feedbackRules"
+        label-position="top"
+        class="feedback-form"
+        size="small"
+      >
+        <el-form-item label="问题类型" prop="category">
+          <el-select v-model="feedbackForm.category" placeholder="选择类型" class="form-select">
+            <el-option label="账户问题" value="ACCOUNT" />
+            <el-option label="电费问题" value="PAYMENT" />
+            <el-option label="电表问题" value="METER" />
+            <el-option label="系统故障" value="SYSTEM" />
+            <el-option label="其他问题" value="OTHER" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="标题" prop="title">
+          <el-input  v-model="feedbackForm.title" placeholder="问题标题" />
+        </el-form-item>
+        
+        <el-form-item label="描述" prop="content">
+          <el-input
+            v-model="feedbackForm.content"
+            type="textarea"
+            :rows="2"
+            placeholder="问题描述"
+          />
+        </el-form-item>
+        
+        <el-form-item label="联系方式" prop="contact">
+          <el-input v-model="feedbackForm.contact" placeholder="手机号码" />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button size="small" @click="feedbackDialogVisible = false">取消</el-button>
+          <el-button size="small" type="primary" @click="submitFeedback" :loading="submitting">提交</el-button>
+        </div>
+      </template>
     </el-dialog>
-  </EBPageLayout>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  Search,
-  User,
-  Money,
-  DataAnalysis,
-  Bell,
-  Lock,
-  Service,
-  Phone,
-  Message,
-  Clock,
-  ChatDotRound,
-  Star,
-  CircleClose,
-  Picture,
-  Plus,
-  Setting,
-  Refresh,
-  Download,
-  Upload,
-  Edit,
-  Ticket,
-  Monitor,
-  Sunny,
-  VideoPlay,
-  Link,
-  Connection,
-  Notification,
-  Position,
-  Promotion,
-  Printer,
-  CreditCard,
-  OfficeBuilding,
-  MessageBox
+  Search, User, Money, DataAnalysis, Bell, Lock, 
+  Service, Phone, Message, Clock, Star, CircleClose, 
+  Edit, Ticket, Monitor, Sunny
 } from '@element-plus/icons-vue';
-import { EBPageLayout, EBFeedbackForm } from '@/components';
-import { 
-  searchHelp as apiSearchHelp, 
-  getCategoryFAQs, 
-  submitFeedback, 
-  submitFeedbackForm, 
-  getHotQuestions, 
-  getAllCategories,
-  getOperationGuide
-} from '@/api/user/help';
 
 // 页面状态管理
-const activeTab = ref('faqs');
+const activeTab = ref('faq');
 const searchQuery = ref('');
-const activeCategoryId = ref(null);
-const feedbackForm = ref({
+const activeCategory = ref('account');
+const activeGuide = ref('payment-guide');
+const feedbackDialogVisible = ref(false);
+const submitting = ref(false);
+
+// 反馈表单数据
+const feedbackForm = reactive({
   title: '',
   content: '',
   category: '',
   contact: '',
-  email: '',
-  phone: '',
-  attachments: []
 });
-const loading = ref(false);
-const searchLoading = ref(false);
-const submitting = ref(false);
 
-// 数据存储
-const helpCategories = ref([]);
-const hotQuestions = ref([]);
-const categoryFAQs = ref([]);
-const searchResults = ref([]);
-const operationGuides = ref([]);
-
-// 初始化页面数据
-const initPageData = async () => {
-  loading.value = true;
-  try {
-    // 获取所有帮助类别
-    const categoriesResponse = await getAllCategories();
-    if (categoriesResponse.code === 200) {
-      helpCategories.value = categoriesResponse.data || [];
-      
-      // 设置默认选中第一个类别
-      if (helpCategories.value.length > 0) {
-        activeCategoryId.value = helpCategories.value[0].id;
-        await loadCategoryFAQs(activeCategoryId.value);
-      }
-    }
-    
-    // 获取热门问题
-    const hotQuestionsResponse = await getHotQuestions({ limit: 5 });
-    if (hotQuestionsResponse.code === 200) {
-      hotQuestions.value = hotQuestionsResponse.data || [];
-    }
-    
-    // 获取操作指南
-    await loadOperationGuides();
-  } catch (error) {
-    console.error('初始化帮助中心数据失败:', error);
-    ElMessage.error('加载帮助中心数据失败，请稍后重试');
-  } finally {
-    loading.value = false;
-  }
+// 反馈表单验证规则
+const feedbackRules = {
+  category: [{ required: true, message: '请选择问题类型', trigger: 'change' }],
+  title: [{ required: true, message: '请输入问题标题', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入问题描述', trigger: 'blur' }],
+  contact: [
+    { required: true, message: '请输入联系方式', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+  ]
 };
 
-// 加载类别FAQ
-const loadCategoryFAQs = async (categoryId) => {
-  loading.value = true;
-  try {
-    const response = await getCategoryFAQs(categoryId);
-    if (response.code === 200) {
-      categoryFAQs.value = response.data || [];
-    } else {
-      categoryFAQs.value = [];
-      ElMessage.warning(response.message || '获取FAQ列表失败');
-    }
-  } catch (error) {
-    console.error('获取FAQ列表失败:', error);
-    ElMessage.error('获取FAQ列表失败，请稍后重试');
-    categoryFAQs.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
-
-// 加载操作指南
-const loadOperationGuides = async () => {
-  try {
-    const response = await getOperationGuide();
-    if (response.code === 200) {
-      operationGuides.value = response.data || [];
-    }
-  } catch (error) {
-    console.error('获取操作指南失败:', error);
-    ElMessage.error('获取操作指南失败，请稍后重试');
-  }
-};
-
-// 切换类别
-const handleCategoryChange = (categoryId) => {
-  activeCategoryId.value = categoryId;
-  loadCategoryFAQs(categoryId);
-};
-
-// 搜索帮助信息
-const searchHelp = () => {
-  if (!searchQuery.value.trim()) {
-    searchResults.value = [];
-    return;
-  }
-
-  const query = searchQuery.value.toLowerCase();
-  searchResults.value = faqs.value.filter(faq => 
-    faq.question.toLowerCase().includes(query) || 
-    faq.answer.toLowerCase().includes(query)
-  );
-};
-
-// 提交FAQ反馈
-const submitFAQFeedback = async (faqId, isHelpful) => {
-  try {
-    const response = await submitFeedback({
-      faqId,
-      isHelpful,
-      additionalComment: ''
-    });
-    
-    if (response.code === 200) {
-      ElMessage.success(isHelpful ? '感谢您的反馈！' : '感谢您的反馈，我们会努力改进');
-    } else {
-      ElMessage.warning(response.message || '反馈提交失败');
-    }
-  } catch (error) {
-    console.error('提交反馈失败:', error);
-    ElMessage.error('提交反馈失败，请稍后重试');
-  }
-};
-
-// 提交反馈表单
-const handleSubmitFeedback = async () => {
-  // 表单验证
-  if (!feedbackForm.value.title.trim()) {
-    ElMessage.warning('请输入反馈标题');
-    return;
-  }
-  
-  if (!feedbackForm.value.content.trim()) {
-    ElMessage.warning('请输入反馈内容');
-    return;
-  }
-  
-  if (!feedbackForm.value.category) {
-    ElMessage.warning('请选择反馈类别');
-    return;
-  }
-  
-  submitting.value = true;
-  try {
-    const response = await submitFeedbackForm(feedbackForm.value);
-    
-    if (response.code === 200) {
-      ElMessage.success('反馈提交成功，感谢您的建议');
-      // 清空表单
-      Object.keys(feedbackForm.value).forEach(key => {
-        if (key === 'attachments') {
-          feedbackForm.value[key] = [];
-        } else {
-          feedbackForm.value[key] = '';
-        }
-      });
-      // 切换回FAQ标签页
-      activeTab.value = 'faqs';
-    } else {
-      ElMessage.warning(response.message || '反馈提交失败');
-    }
-  } catch (error) {
-    console.error('提交反馈表单失败:', error);
-    ElMessage.error('提交反馈失败，请稍后重试');
-  } finally {
-    submitting.value = false;
-  }
-};
-
-// 处理文件上传
-const handleFileUpload = (file) => {
-  const isLt5M = file.size / 1024 / 1024 < 5;
-  if (!isLt5M) {
-    ElMessage.warning('文件大小不能超过5MB!');
-    return false;
-  }
-  
-  feedbackForm.value.attachments.push(file);
-  return false; // 阻止自动上传
-};
-
-// 移除上传的文件
-const handleRemoveFile = (file) => {
-  const index = feedbackForm.value.attachments.indexOf(file);
-  if (index !== -1) {
-    feedbackForm.value.attachments.splice(index, 1);
-  }
-};
-
-// 查看操作指南详情
-const viewGuideDetail = (guide) => {
-  // 这里可以显示详细的操作指南，例如打开一个弹窗或导航到详情页
-  ElMessage.info(`正在查看：${guide.title}`);
-};
-
-// 分类导航
-const activeCategory = ref('account');
-
-// 操作指南
-const activeGuide = ref('payment-guide');
-
-// 在线客服对话框改为反馈对话框
-const feedbackDialogVisible = ref(false);
+// 引用
 const feedbackFormRef = ref(null);
+
+// 热门问题
+const hotQuestions = ref([
+  '如何缴纳电费',
+  '忘记密码怎么办',
+  '电费计算方式',
+  '如何查看用电分析',
+  '如何设置自动扣款'
+]);
+
+// 搜索结果
+const searchResults = ref([]);
 
 // FAQ数据
 const faqs = ref([
@@ -542,13 +332,57 @@ const faqs = ref([
     answer: '您可以在"个人信息"页面修改您的基本信息、联系方式和通知设置等。点击右上角的"保存修改"按钮即可保存您的更改。',
     category: 'account',
     links: []
+  },
+  {
+    id: 6,
+    question: '如何查询历史账单？',
+    answer: '您可以在"账单查询"页面查看您的历史账单信息。系统默认显示最近6个月的账单，您可以通过筛选功能查看更早的账单记录。点击账单记录可以查看详细的账单明细。',
+    category: 'billing',
+    links: []
+  },
+  {
+    id: 7,
+    question: '如何导出账单？',
+    answer: '在"账单查询"页面，您可以选择需要导出的账单记录，点击"导出"按钮，选择导出格式（PDF或Excel）即可下载账单文件。您也可以在账单详情页面点击"打印"按钮直接打印账单。',
+    category: 'billing',
+    links: []
+  },
+  {
+    id: 8,
+    question: '智能电表显示的数据与实际不符怎么办？',
+    answer: '如果您发现智能电表显示的数据与实际情况不符，可以通过以下方式处理：<br>1. 检查电表是否正常工作<br>2. 拍照记录当前电表读数<br>3. 联系客服反馈问题，我们会安排技术人员上门检查',
+    category: 'smart-meter',
+    links: []
+  },
+  {
+    id: 9,
+    question: '如何查看智能电表的实时数据？',
+    answer: '您可以通过移动APP随时查看智能电表的实时数据。在APP首页点击"实时监测"，即可查看当前用电情况、历史用电趋势等信息。如果您已安装家庭能源管理系统，还可以查看分设备的用电情况。',
+    category: 'smart-meter',
+    links: []
+  },
+  {
+    id: 10,
+    question: '有哪些实用的节能建议？',
+    answer: '我们根据用户用电习惯，总结了以下节能建议：<br>1. 使用高能效电器：购买电器时优先选择能效等级高的产品<br>2. 合理设置空调温度：夏季不低于26℃，冬季不高于20℃<br>3. 避开用电高峰：尽量在电力负荷较低的时段使用大功率电器<br>4. 及时关闭待机设备：完全关闭不使用的电器而非待机状态<br>5. 充分利用自然光：减少白天照明用电',
+    category: 'energy-saving',
+    links: []
+  },
+  {
+    id: 11,
+    question: '如何设置用电超额提醒？',
+    answer: '您可以在"通知设置"页面设置用电超额提醒。进入页面后，找到"用电提醒"区域，开启"用电超额提醒"功能，并设置您的月度用电额度和提醒方式（短信/邮件/APP推送）。系统会在您的用电量达到设定额度的80%和100%时发送提醒。',
+    category: 'notification',
+    links: []
+  },
+  {
+    id: 12,
+    question: '如何使用分时电价功能节约电费？',
+    answer: '分时电价是指电价根据用电时段不同而有所区别，通常分为峰时、平时和谷时三个时段，峰时电价最高，谷时电价最低。您可以：<br>1. 了解您所在地区的分时电价时段划分<br>2. 将高耗电设备的使用时间尽量安排在电价较低的时段<br>3. 使用智能定时插座，在低谷电价时段自动开启设备',
+    category: 'energy-saving',
+    links: []
   }
 ]);
-
-// 根据当前选中的分类过滤FAQ
-const filteredFaqs = computed(() => {
-  return faqs.value.filter(faq => faq.category === activeCategory.value);
-});
 
 // 操作指南数据
 const guides = ref([
@@ -580,14 +414,8 @@ const guides = ref([
         title: '步骤5：完成支付',
         description: '点击"立即支付"按钮，按照提示完成支付流程。',
         icon: 'Money'
-      },
-      {
-        title: '步骤6：查看支付结果',
-        description: '支付完成后，系统会显示支付结果，您可以查看或下载电子收据。',
-        icon: 'Download'
       }
-    ],
-    image: '/images/guides/payment-guide.png'
+    ]
   },
   {
     id: 'analysis-guide',
@@ -612,14 +440,8 @@ const guides = ref([
         title: '步骤4：分析用电时段',
         description: '查看不同时段的用电分布，了解您的用电习惯。',
         icon: 'DataAnalysis'
-      },
-      {
-        title: '步骤5：查看节电建议',
-        description: '根据系统提供的节电建议，优化您的用电方式。',
-        icon: 'Setting'
       }
-    ],
-    image: '/images/guides/analysis-guide.png'
+    ]
   },
   {
     id: 'profile-guide',
@@ -644,19 +466,8 @@ const guides = ref([
         title: '步骤4：修改密码',
         description: '在密码管理区域，您可以修改您的登录密码。',
         icon: 'Lock'
-      },
-      {
-        title: '步骤5：设置通知偏好',
-        description: '选择您希望接收的通知类型和方式。',
-        icon: 'Bell'
-      },
-      {
-        title: '步骤6：保存更改',
-        description: '完成修改后，点击"保存"按钮应用更改。',
-        icon: 'Upload'
       }
-    ],
-    image: '/images/guides/profile-guide.png'
+    ]
   },
   {
     id: 'billing-guide',
@@ -681,230 +492,33 @@ const guides = ref([
         title: '步骤4：查看账单详情',
         description: '点击账单记录可查看详细的账单明细和用电情况。',
         icon: 'Document'
-      },
-      {
-        title: '步骤5：导出或打印账单',
-        description: '点击"导出"或"打印"按钮，将账单保存为电子文档或打印纸质版。',
-        icon: 'Printer'
       }
-    ],
-    image: '/images/guides/billing-guide.png'
-  },
-  {
-    id: 'meter-guide',
-    title: '智能电表指南',
-    steps: [
-      {
-        title: '步骤1：查看电表信息',
-        description: '在"智能电表"页面查看您的电表基本信息和实时数据。',
-        icon: 'Monitor'
-      },
-      {
-        title: '步骤2：设置用电阈值',
-        description: '设置每日/每月用电量阈值，超过时系统将发送提醒。',
-        icon: 'Setting'
-      },
-      {
-        title: '步骤3：查看用电记录',
-        description: '查看历史用电记录，了解您的用电趋势和变化。',
-        icon: 'DataAnalysis'
-      },
-      {
-        title: '步骤4：报告电表异常',
-        description: '如发现电表数据异常，可通过系统报告故障。',
-        icon: 'Warning'
-      },
-      {
-        title: '步骤5：远程抄表',
-        description: '了解系统如何自动远程抄表，免去人工抄表的烦恼。',
-        icon: 'Connection'
-      }
-    ],
-    image: '/images/guides/meter-guide.png'
-  },
-  {
-    id: 'notification-guide',
-    title: '通知设置指南',
-    steps: [
-      {
-        title: '步骤1：进入通知设置页面',
-        description: '在个人中心选择"通知设置"选项，进入设置页面。',
-        icon: 'Bell'
-      },
-      {
-        title: '步骤2：设置账单通知',
-        description: '开启或关闭账单生成、缴费截止日提醒等通知。',
-        icon: 'Notification'
-      },
-      {
-        title: '步骤3：设置用电提醒',
-        description: '设置用电量超过阈值时的提醒方式和条件。',
-        icon: 'Warning'
-      },
-      {
-        title: '步骤4：选择通知方式',
-        description: '选择您偏好的通知方式，如短信、邮件或APP推送。',
-        icon: 'Message'
-      },
-      {
-        title: '步骤5：设置通知时间',
-        description: '设置您希望接收通知的时间段，避免在休息时间打扰您。',
-        icon: 'Clock'
-      }
-    ],
-    image: '/images/guides/notification-guide.png'
-  },
-  {
-    id: 'energy-guide',
-    title: '节能建议指南',
-    steps: [
-      {
-        title: '步骤1：查看用电分析',
-        description: '查看系统生成的用电分析报告，了解您的用电情况。',
-        icon: 'DataAnalysis'
-      },
-      {
-        title: '步骤2：获取节能建议',
-        description: '查看基于您的用电习惯生成的个性化节能建议。',
-        icon: 'Sunny'
-      },
-      {
-        title: '步骤3：了解峰谷电价',
-        description: '了解当地峰谷电价政策，合理安排用电时间。',
-        icon: 'Money'
-      },
-      {
-        title: '步骤4：设置节能目标',
-        description: '设置每月的节能目标，系统将追踪您的完成情况。',
-        icon: 'Setting'
-      },
-      {
-        title: '步骤5：查看节能成果',
-        description: '定期查看您的节能成果和节约的电费金额。',
-        icon: 'Star'
-      }
-    ],
-    image: '/images/guides/energy-guide.png'
+    ]
   }
 ]);
 
-// 获取FAQ数据
-const fetchFaqs = async () => {
-  loading.value = true;
-  try {
-    // 这里应该从API获取数据，但为了演示，我们使用本地数据
-    faqs.value = [
-      {
-        id: 1,
-        question: '如何缴纳电费？',
-        answer: '您可以通过以下方式缴纳电费：<br>1. 在线支付：登录系统后，访问"缴纳电费"页面，选择支付方式完成支付<br>2. 自动扣款：在"个人信息"页面设置自动扣款，系统将在账单生成后自动扣款',
-        category: 'payment',
-        links: [
-          { text: '查看缴费指南', url: '#/help/guide/payment' }
-        ]
-      },
-      {
-        id: 2,
-        question: '忘记密码怎么办？',
-        answer: '如果您忘记了登录密码，可以通过以下步骤重置：<br>1. 在登录页面点击"忘记密码"<br>2. 输入您的注册手机号或邮箱<br>3. 获取并输入验证码<br>4. 设置新密码并确认',
-        category: 'account',
-        links: []
-      },
-      {
-        id: 3, 
-        question: '如何查看用电分析？',
-        answer: '您可以在"用电分析"页面查看您的用电趋势和分析报告。系统提供月度用电趋势、时段分布、用电类型分布等多种分析维度，并给出节电建议。',
-        category: 'usage',
-        links: [
-          { text: '了解更多用电分析功能', url: '#/help/guide/analysis' }
-        ]
-      },
-      {
-        id: 4,
-        question: '电费是如何计算的？',
-        answer: '电费计算公式为：电费 = 用电量 × 电价 + 附加费用。<br>其中电价根据用户类型、用电时段不同而有所区别。居民用电通常采用阶梯电价，用电量越多，单价越高。详细费率请查看"费率说明"。',
-        category: 'payment',
-        links: [
-          { text: '查看费率说明', url: '#/help/rates' }
-        ]
-      },
-      {
-        id: 5,
-        question: '如何修改个人信息？',
-        answer: '您可以在"个人信息"页面修改您的基本信息、联系方式和通知设置等。点击右上角的"保存修改"按钮即可保存您的更改。',
-        category: 'account',
-        links: []
-      },
-      {
-        id: 6,
-        question: '如何查询历史账单？',
-        answer: '您可以在"账单查询"页面查看您的历史账单信息。系统默认显示最近6个月的账单，您可以通过筛选功能查看更早的账单记录。点击账单记录可以查看详细的账单明细。',
-        category: 'billing',
-        links: [
-          { text: '账单查询指南', url: '#/help/guide/billing' }
-        ]
-      },
-      {
-        id: 7,
-        question: '如何导出账单？',
-        answer: '在"账单查询"页面，您可以选择需要导出的账单记录，点击"导出"按钮，选择导出格式（PDF或Excel）即可下载账单文件。您也可以在账单详情页面点击"打印"按钮直接打印账单。',
-        category: 'billing',
-        links: []
-      },
-      {
-        id: 8,
-        question: '智能电表显示的数据与实际不符怎么办？',
-        answer: '如果您发现智能电表显示的数据与实际情况不符，可以通过以下方式处理：<br>1. 检查电表是否正常工作<br>2. 拍照记录当前电表读数<br>3. 联系客服反馈问题，我们会安排技术人员上门检查',
-        category: 'smart-meter',
-        links: []
-      },
-      {
-        id: 9,
-        question: '如何查看智能电表的实时数据？',
-        answer: '您可以通过移动APP随时查看智能电表的实时数据。在APP首页点击"实时监测"，即可查看当前用电情况、历史用电趋势等信息。如果您已安装家庭能源管理系统，还可以查看分设备的用电情况。',
-        category: 'smart-meter',
-        links: [
-          { text: '下载移动APP', url: '#/help/app-download' }
-        ]
-      },
-      {
-        id: 10,
-        question: '有哪些实用的节能建议？',
-        answer: '我们根据用户用电习惯，总结了以下节能建议：<br>1. 使用高能效电器：购买电器时优先选择能效等级高的产品<br>2. 合理设置空调温度：夏季不低于26℃，冬季不高于20℃<br>3. 避开用电高峰：尽量在电力负荷较低的时段使用大功率电器<br>4. 及时关闭待机设备：完全关闭不使用的电器而非待机状态<br>5. 充分利用自然光：减少白天照明用电',
-        category: 'energy-saving',
-        links: [
-          { text: '更多节能技巧', url: '#/help/energy-tips' }
-        ]
-      },
-      {
-        id: 11,
-        question: '如何设置用电超额提醒？',
-        answer: '您可以在"通知设置"页面设置用电超额提醒。进入页面后，找到"用电提醒"区域，开启"用电超额提醒"功能，并设置您的月度用电额度和提醒方式（短信/邮件/APP推送）。系统会在您的用电量达到设定额度的80%和100%时发送提醒。',
-        category: 'notification',
-        links: []
-      },
-      {
-        id: 12,
-        question: '如何使用分时电价功能节约电费？',
-        answer: '分时电价是指电价根据用电时段不同而有所区别，通常分为峰时、平时和谷时三个时段，峰时电价最高，谷时电价最低。您可以：<br>1. 了解您所在地区的分时电价时段划分<br>2. 将高耗电设备的使用时间尽量安排在电价较低的时段<br>3. 使用智能定时插座，在低谷电价时段自动开启设备',
-        category: 'energy-saving',
-        links: [
-          { text: '查看分时电价表', url: '#/help/time-price' }
-        ]
-      }
-    ];
-  } catch (error) {
-    ElMessage.error('获取帮助信息失败');
-    faqs.value = []; // 使用空数组防止错误
-  } finally {
-    loading.value = false;
-  }
-};
+// 计算当前显示的指南
+const currentGuide = computed(() => {
+  return guides.value.find(guide => guide.id === activeGuide.value) || guides.value[0];
+});
 
-// 处理分类选择
-const handleCategorySelect = (key) => {
-  activeCategory.value = key;
-  clearSearch();
+// 根据当前选中的分类过滤FAQ
+const filteredFaqs = computed(() => {
+  return faqs.value.filter(faq => faq.category === activeCategory.value);
+});
+
+// 搜索帮助信息
+const searchHelp = () => {
+  if (!searchQuery.value.trim()) {
+    searchResults.value = [];
+    return;
+  }
+
+  const query = searchQuery.value.toLowerCase();
+  searchResults.value = faqs.value.filter(faq => 
+    faq.question.toLowerCase().includes(query) || 
+    faq.answer.toLowerCase().includes(query)
+  );
 };
 
 // 清除搜索结果
@@ -916,13 +530,55 @@ const clearSearch = () => {
 // 选择FAQ
 const selectFaq = (faq) => {
   activeCategory.value = faq.category;
+  activeTab.value = 'faq';
   clearSearch();
-  // 这里可以添加逻辑来自动展开选中的FAQ
 };
 
-// 显示反馈问题对话框
+// 提交FAQ反馈
+const submitFAQFeedback = (faqId, isHelpful) => {
+  ElMessage.success(isHelpful ? '感谢您的反馈！' : '感谢您的反馈，我们会努力改进');
+};
+
+// 提交反馈表单
+const submitFeedback = async () => {
+  if (!feedbackFormRef.value) return;
+  
+  await feedbackFormRef.value.validate(async (valid) => {
+    if (!valid) {
+      ElMessage.warning('请完善表单信息');
+      return;
+    }
+    
+    submitting.value = true;
+    
+    try {
+      // 这里应该是实际的API调用
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      ElMessage.success('反馈提交成功，感谢您的建议');
+      feedbackDialogVisible.value = false;
+      
+      // 重置表单
+      feedbackForm.title = '';
+      feedbackForm.content = '';
+      feedbackForm.category = '';
+      feedbackForm.contact = '';
+    } catch (error) {
+      ElMessage.error('提交失败，请稍后重试');
+    } finally {
+      submitting.value = false;
+    }
+  });
+};
+
+// 显示反馈对话框
 const showFeedbackDialog = () => {
   feedbackDialogVisible.value = true;
+};
+
+// 处理分类选择
+const handleCategorySelect = (category) => {
+  activeCategory.value = category;
 };
 
 // 获取分类名称
@@ -965,396 +621,321 @@ watch(activeCategory, (newCategory) => {
     activeGuide.value = 'analysis-guide';
   } else if (newCategory === 'account') {
     activeGuide.value = 'profile-guide';
+  } else if (newCategory === 'billing') {
+    activeGuide.value = 'billing-guide';
   }
 });
 
+// 处理链接点击
+const handleLinkClick = (link) => {
+  ElMessage.info(`查看内容：${link.text}`);
+};
+
 onMounted(() => {
-  initPageData();
+  // 在这里可以加载一些初始数据
 });
 </script>
 
 <style scoped>
-.eb-help-header {
+.help-page {
+  padding: 16px;
+  background-color: #ffffff;
+  min-height: calc(100vh - 140px);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  margin-bottom: 15px;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.help-container {
-  padding: 20px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-}
-
+/* 搜索区域样式 */
 .search-section {
-  margin-bottom: 30px;
+  margin-bottom: 16px;
 }
 
 .search-input {
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
 }
 
 .hot-questions {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-.hot-label {
-  margin-right: 10px;
-  color: #606266;
+.hot-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .hot-tag {
-  margin: 5px;
   cursor: pointer;
 }
 
-.main-content {
-  margin-bottom: 30px;
-}
-
-.nav-card,
-.contact-card,
-.faq-card,
-.guide-card,
-.search-results-card {
-  margin-bottom: 20px;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-  transition: all 0.2s;
+/* 搜索结果样式 */
+.search-results-section {
   background-color: #ffffff;
-  box-shadow: none;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-.nav-card:hover,
-.contact-card:hover,
-.faq-card:hover,
-.guide-card:hover,
-.search-results-card:hover {
-  border-color: #e4e7ed;
-  background-color: #f9f9f9;
-}
-
-.nav-card :deep(.el-card__header),
-.contact-card :deep(.el-card__header),
-.faq-card :deep(.el-card__header),
-.guide-card :deep(.el-card__header),
-.search-results-card :deep(.el-card__header) {
-  padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
-  background-color: #ffffff;
-}
-
-.help-menu {
-  border-right: none;
-}
-
-/* 添加以下样式确保菜单项中的文字显示 */
-.help-menu .el-menu-item {
+.section-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
 }
 
-.help-menu .el-menu-item span {
-  display: inline-block;
-  margin-left: 8px;
-}
-
-.contact-content {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.contact-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.contact-btn {
-  margin-top: 10px;
-}
-
-.faq-question {
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 500;
-}
-
-.faq-answer {
-  padding: 10px 0;
-  color: #606266;
-  line-height: 1.6;
-}
-
-.faq-links {
-  margin-top: 15px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.faq-link {
-  margin-left: 5px;
-}
-
-.faq-feedback {
-  margin-top: 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.guide-card {
-  margin-bottom: 20px;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-  transition: all 0.2s;
-  background-color: #ffffff;
-  box-shadow: none;
-}
-
-.guide-card:hover {
-  border-color: #e4e7ed;
-  background-color: #f9f9f9;
-}
-
-.guide-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
-  background-color: #ffffff;
-}
-
-.guide-tabs {
-  height: 500px;
-}
-
-.guide-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  padding: 20px;
-}
-
-.guide-steps {
-  flex: 1;
-  padding-right: 30px;
-  overflow-y: auto;
-  max-height: 460px;
-  scrollbar-width: thin;
-}
-
-.guide-steps::-webkit-scrollbar {
-  width: 6px;
-}
-
-.guide-steps::-webkit-scrollbar-thumb {
-  background-color: #dcdfe6;
-  border-radius: 3px;
-}
-
-.guide-steps::-webkit-scrollbar-track {
-  background-color: #f5f7fa;
-  border-radius: 3px;
-}
-
-.guide-steps :deep(.el-step) {
-  padding-bottom: 35px;
-}
-
-.guide-steps :deep(.el-step__title) {
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 24px;
-  margin-bottom: 8px;
-}
-
-.guide-steps :deep(.el-step__description) {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #606266;
-  padding-right: 20px;
-}
-
-.guide-steps :deep(.el-step__icon) {
-  background-color: #ecf5ff;
-  color: #409eff;
-}
-
-.guide-steps :deep(.el-step__line) {
-  margin-top: 12px;
 }
 
 .search-results {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .result-item {
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
 .result-item:hover {
-  border-color: #e4e7ed;
   background-color: #f9f9f9;
 }
 
 .result-title {
-  margin: 0 0 10px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 15px;
   color: #303133;
 }
 
 .result-preview {
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   color: #606266;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .result-category {
   text-align: right;
 }
 
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 500px;
-}
-
-.chat-messages {
+/* 主要内容区域样式 */
+.main-content {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
 }
 
-.chat-message {
-  display: flex;
-  gap: 10px;
-  max-width: 80%;
+.help-tabs {
+  width: 100%;
 }
 
-.user-message {
-  align-self: flex-end;
-  flex-direction: row-reverse;
+.category-select,
+.guide-select {
+  width: 100%;
+  margin-bottom: 16px;
 }
 
-.system-message {
-  align-self: flex-start;
-}
-
-.message-content {
-  background-color: #f4f4f5;
-  padding: 10px 15px;
+.faq-list {
+  background-color: #ffffff;
   border-radius: 8px;
-  position: relative;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-.user-message .message-content {
-  background-color: #ecf5ff;
+.faq-collapse {
+  width: 100%;
 }
 
-.message-sender {
+.faq-question {
   font-weight: 500;
-  margin-bottom: 5px;
+  font-size: 15px;
+  color: #303133;
+}
+
+.faq-answer {
+  padding: 12px 0;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.faq-links {
+  margin-top: 12px;
   font-size: 14px;
 }
 
-.message-text {
-  word-break: break-word;
-}
-
-.message-time {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 5px;
-  text-align: right;
-}
-
-.chat-input {
-  padding: 15px;
-  border-top: 1px solid #ebeef5;
+.link-list {
+  margin-top: 8px;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.chat-input .el-textarea {
-  flex: 1;
+.faq-feedback {
+  margin-top: 16px;
+  font-size: 14px;
 }
 
-/* 为活动类别下的内容区域添加背景色 */
-.faq-card {
-  background-color: #ffffff !important;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+.feedback-buttons {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
 }
 
-/* 折叠面板项样式 */
-:deep(.el-collapse-item) {
-  background-color: #ffffff !important;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  transition: all 0.3s;
-  overflow: hidden;
+/* 操作指南样式 */
+.guide-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-/* 统一问题和答案区域的背景色为白色 */
-:deep(.el-collapse-item__wrap),
-:deep(.el-collapse-item__header) {
-  background-color: #ffffff !important;
+.guide-steps {
+  margin-top: 16px;
 }
 
-/* 左侧导航选中状态样式增强 */
-:deep(.el-menu-item.is-active) {
-  background-color: #f0f2f5;
-  color: #409EFF;
+.guide-steps :deep(.el-timeline-item__content) h4 {
   font-weight: 500;
+  font-size: 15px;
+  color: #303133;
+  margin-bottom: 8px;
 }
 
-/* 为指向导航项的悬浮样式添加过渡效果 */
-:deep(.el-menu-item) {
-  transition: all 0.3s;
+.guide-steps :deep(.el-timeline-item__content) p {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-:deep(.el-menu-item:hover) {
-  background-color: #f5f7fa;
+/* 联系卡片样式 */
+.contact-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-/* 问题项的悬浮效果 */
-:deep(.el-collapse-item__header:hover) {
-  background-color: #f5f7fa;
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* 保持问题回答区域与标题区域保持一致的样式 */
-:deep(.el-collapse-item__wrap) {
-  background-color: #ffffff !important;
+.contact-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
 }
 
-.faq-card :deep(.el-card__header) {
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #ebeef5;
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #606266;
 }
 
-.faq-card :deep(.el-card__body) {
-  background-color: #ffffff !important;
+.contact-btn {
+  width: 100%;
+}
+
+/* 反馈表单样式 */
+.feedback-dialog {
+  border-radius: 8px;
+}
+
+.feedback-dialog :deep(.el-dialog) {
+  max-width: 320px;
+  margin: 0 auto !important;
+}
+
+.feedback-form {
+  width: 100%;
+  margin: 0;
+}
+
+.feedback-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+.feedback-form :deep(.el-form-item__label) {
+  padding-bottom: 5px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.form-select {
+  width: 100%;
+}
+
+:deep(.el-dialog__body) {
+  padding: 12px 14px;
+}
+
+:deep(.el-dialog__header) {
+  padding: 8px 10px;
+  margin-right: 0;
+  box-sizing: border-box;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.el-dialog__title) {
+  font-size: 14px;
+}
+
+:deep(.el-dialog__headerbtn) {
+  top: 8px;
+  right: 8px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 6px 10px;
+  box-sizing: border-box;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dialog-footer .el-button {
+  flex: 1;
+  margin: 0 4px;
+  height: 28px;
+  font-size: 12px;
+}
+
+/* 适配小屏幕 */
+@media screen and (max-width: 480px) {
+  .help-page {
+    padding: 12px;
+  }
+  
+  .section-header h3 {
+    font-size: 15px;
+  }
+  
+  .faq-question {
+    font-size: 14px;
+  }
+  
+  .faq-answer {
+    font-size: 13px;
+  }
 }
 </style> 

@@ -1,117 +1,271 @@
 <template>
-  <div class="eb-app-container">
-    <el-container class="eb-app-main-container">
-      <!-- 侧边栏放在最左侧 -->
-      <el-aside width="auto" class="eb-app-aside">
-        <EBSidebar />
-      </el-aside>
-      
-      <!-- 右侧内容区域 -->
-      <el-container class="eb-app-right-container">
-        <!-- 头部放在侧边栏右侧 -->
-        <el-header class="eb-app-header">
-          <EBHeader />
-        </el-header>
-        
-        <!-- 主内容区域 -->
-        <el-main class="eb-app-main">
-          <EBBreadcrumb />
-          <router-view></router-view>
-        </el-main>
-        
-        <!-- 底部 -->
-        <el-footer class="eb-app-footer">
-          <EBFooter />
-        </el-footer>
-      </el-container>
-    </el-container>
+  <div class="mobile-app-container">
+    <!-- 应用头部 -->
+    <div class="mobile-app-header">
+      <div class="header-logo">
+        <img src="@/assets/images/logo.png" alt="Logo" class="app-logo">
+      </div>
+      <div class="header-actions">
+        <div class="action-item">
+          <el-badge :value="unreadCount > 0 ? unreadCount : ''" class="notification-badge" type="danger" @click="goToNotifications">
+            <el-icon><Bell /></el-icon>
+          </el-badge>
+        </div>
+        <div class="action-item">
+          <el-button class="logout-btn" type="text" @click="confirmLogout">退出</el-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="mobile-app-content" ref="contentRef" @scroll="handleScroll">
+      <transition name="fade" mode="out-in">
+        <router-view v-slot="{ Component }">
+          <component :is="Component" />
+        </router-view>
+      </transition>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="mobile-app-footer" :class="{ 'footer-hidden': isFooterHidden }">
+      <EBUserSidebar />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount } from 'vue';
-import EBHeader from '@/components/EBHeader.vue';
-import EBSidebar from '@/components/EBUserSidebar.vue';
-import EBFooter from '@/components/EBFooter.vue';
-import EBBreadcrumb from '@/components/EBBreadcrumb.vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { Bell } from '@element-plus/icons-vue';
+import { ElMessageBox, ElButton } from 'element-plus';
+import EBUserSidebar from '@/components/EBUserSidebar.vue';
+import { getUnreadCount } from '@/api/user/notification';
 
-// 侧边栏切换处理
-const handleSidebarToggle = (e) => {
-  const rightContainer = document.querySelector('.eb-app-right-container');
-  if (e.detail.expanded) {
-    rightContainer.style.marginLeft = '180px'; // 从200px减小到180px
-  } else {
-    rightContainer.style.marginLeft = '50px'; // 从60px减小到50px
+// 确保组件已正确注册
+const components = {
+  EBUserSidebar
+};
+
+const router = useRouter();
+const route = useRoute();
+const unreadCount = ref(0);
+let refreshTimer = null;
+const contentRef = ref(null); // 内容区域的引用
+const isFooterHidden = ref(false); // 底部导航栏是否隐藏
+let lastScrollTop = 0; // 上次滚动位置
+let scrollTimeout = null; // 滚动延时器
+
+// 处理滚动事件
+const handleScroll = (e) => {
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
+  }
+  
+  const currentScrollTop = e.target.scrollTop;
+  
+  // 向下滚动超过20px隐藏导航栏，向上滚动显示导航栏
+  if (currentScrollTop > lastScrollTop && currentScrollTop > 50) {
+    isFooterHidden.value = true;
+  } else if (currentScrollTop < lastScrollTop) {
+    isFooterHidden.value = false;
+  }
+  
+  lastScrollTop = currentScrollTop;
+  
+  // 滚动停止3秒后显示导航栏
+  scrollTimeout = setTimeout(() => {
+    isFooterHidden.value = false;
+  }, 3000);
+};
+
+// 根据当前路由计算页面标题
+const currentPageTitle = computed(() => {
+  const pathMap = {
+    '/user/dashboard': '概览',
+    '/user/paymentDashboard': '缴费',
+    '/user/notifications': '通知',
+    '/user/profile': '我的',
+    '/user/help': '帮助'
+  };
+  
+  // 查找最匹配的路径
+  const currentPath = Object.keys(pathMap).find(path => 
+    route.path.startsWith(path)
+  );
+  
+  return currentPath ? pathMap[currentPath] : '电力账单';
+});
+
+// 获取未读通知数量
+const fetchUnreadCount = async () => {
+  try {
+    const { data } = await getUnreadCount();
+    unreadCount.value = data;
+  } catch (error) {
+    console.error('获取未读通知数量失败:', error);
   }
 };
 
+// 跳转到通知页面
+const goToNotifications = () => {
+  router.push('/user/notifications');
+};
+
+// 退出登录确认
+const confirmLogout = () => {
+  ElMessageBox.confirm('确定要退出登录吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    localStorage.removeItem('token');
+    router.push('/login');
+  }).catch(() => {});
+};
+
 onMounted(() => {
-  // 添加全局事件监听，检测侧边栏状态变化
-  document.addEventListener('sidebarToggle', handleSidebarToggle);
+  fetchUnreadCount();
+  // 定时刷新未读通知数（每分钟）
+  refreshTimer = setInterval(fetchUnreadCount, 60000);
 });
 
 onBeforeUnmount(() => {
-  // 移除事件监听
-  document.removeEventListener('sidebarToggle', handleSidebarToggle);
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+  }
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout);
+  }
 });
 </script>
 
 <style scoped>
-.eb-app-container {
-  min-height: 100vh;
+.mobile-app-container {
   display: flex;
-  background-color: #f5f7fa;
-}
-
-.eb-app-main-container {
-  flex: 1;
-  display: flex;
-  min-height: 100vh;
-}
-
-.eb-app-aside {
-  background-color: transparent;
-  color: #333;
-  text-align: center;
-  padding: 0;
-  margin: 0;
-  width: 50px !important; /* 从60px减小到50px */
-  min-width: 50px !important; /* 从60px减小到50px */
-  z-index: 1000;
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-}
-
-.eb-app-right-container {
-  flex: 1;
   flex-direction: column;
-  margin-left: 50px; /* 从60px减小到50px */
-  transition: margin-left 0.3s ease;
+  min-height: 100vh;
+  height: 100vh;
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
-.eb-app-header {
-  width: 100%;
+.mobile-app-header {
+  height: 60px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  background-color: #fff;
-  height: 50px; /* 从60px减小到50px */
-  padding: 0;
 }
 
-.eb-app-main {
+.header-logo {
+  display: flex;
+  align-items: center;
+  min-width: 50px;
+  margin-right: 8px;
+}
+
+.app-logo {
+  height: 40px;
+  width: auto;
+}
+
+.header-title {
   flex: 1;
-  padding: 15px; /* 从20px减小到15px */
-  min-height: calc(100vh - 50px - 30px); /* 调整计算，减去头部和底部的高度 */
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.eb-app-footer {
-  width: 100%;
-  background-color: #fff;
-  height: 30px; /* 从40px减小到30px */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+
+.notification-badge {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.notification-badge :deep(.el-icon) {
+  font-size: 22px;
+  color: #606266;
+}
+
+.notification-badge :deep(.el-badge__content) {
+  transform: translate(5px, -5px);
+}
+
+.logout-btn {
+  font-size: 16px;
+  color: #f56c6c;
   padding: 0;
+  font-weight: 500;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.logout-btn:hover {
+  color: #ff7c7c;
+}
+
+.mobile-app-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  padding-bottom: 76px; /* 恢复原来的底部填充，因为现在导航栏可以隐藏 */
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-width: 500px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+
+.footer-hidden {
+  transform: translateY(100%);
+}
+
+/* 页面切换动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style> 
