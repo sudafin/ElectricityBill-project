@@ -50,7 +50,7 @@
                     </template>
                     <div class="chart-container" style="height: 350px;">
                        <EBChart :option="typeDistributionChartOption" :loading="loading" />
-                    </div>
+      </div>
                  </el-card>
               </el-col>
                <el-col :xs="24" :md="12">
@@ -59,14 +59,14 @@
                        <div class="chart-header">
                           <span>反馈趋势 ({{ granularityText }})</span>
                            <el-radio-group v-model="trendChartType" size="small">
-                              <el-radio-button label="bar">柱状图</el-radio-button>
+          <el-radio-button label="bar">柱状图</el-radio-button>
                               <el-radio-button label="line">折线图</el-radio-button>
-                          </el-radio-group>
-                       </div>
+        </el-radio-group>
+      </div>
                     </template>
                     <div class="chart-container" style="height: 350px;">
                        <EBChart :option="feedbackTrendChartOption" :loading="loading" />
-                    </div>
+    </div>
                  </el-card>
               </el-col>
            </el-row>
@@ -93,7 +93,7 @@
                  <el-table-column prop="process_time" label="处理时间" width="160" sortable />
               </el-table>
            </el-card>
-        </div>
+    </div>
       </template>
     </el-skeleton>
   </div>
@@ -181,8 +181,8 @@ const feedbackTrendChartOption = computed(() => {
             { type: 'inside', start: 0, end: 100 },
             { type: 'slider', start: 0, end: 100, height: 20, bottom: 40 }
         ],
-        series: [
-            {
+  series: [
+    {
                 name: '总反馈数',
                 type: trendChartType.value,
                 data: totalFeedback,
@@ -197,9 +197,9 @@ const feedbackTrendChartOption = computed(() => {
                 smooth: trendChartType.value === 'line',
                 itemStyle: { color: '#E6A23C' },
                  areaStyle: trendChartType.value === 'line' ? { opacity: 0.2 } : undefined
-            },
-             {
-                name: '已处理',
+    },
+    {
+      name: '已处理',
                 type: trendChartType.value,
                 data: processedFeedback,
                 smooth: trendChartType.value === 'line',
