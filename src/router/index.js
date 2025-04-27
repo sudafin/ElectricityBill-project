@@ -121,7 +121,15 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login/EBLogin.vue'),
-    meta: { requiresAuth: false, title: '登录' }
+    meta: { requiresAuth: false, title: '管理员登录' }
+  },
+
+  // 用户登录页面
+  {
+    path: '/userlogin',
+    name: 'UserLogin',
+    component: () => import('@/views/login/EBUserLogin.vue'),
+    meta: { requiresAuth: false, title: '用户登录' }
   },
 
   // 404 页面

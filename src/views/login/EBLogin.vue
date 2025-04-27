@@ -1,5 +1,13 @@
 <template>
   <div class="login-page">
+    <!-- 添加切换按钮 -->
+    <div class="switch-login-type" @click="switchToUserLogin">
+      <span>用户登录</span>
+      <div class="arrow-icon">
+        <i class="el-icon-arrow-right"></i>
+      </div>
+    </div>
+    
     <div class="login-container">
       <!-- 左侧装饰区域 -->
       <div class="login-decoration">
@@ -27,10 +35,6 @@
           <div class="login-header">
             <h2 class="welcome-text">Hello !</h2>
             <p class="sub-title">欢迎使用电费管理系统</p>
-            <el-button-group class="role-toggle-button">
-              <el-button :type="!isAdmin ? 'primary' : 'default'" @click="setRole(false)">学生</el-button>
-              <el-button :type="isAdmin ? 'primary' : 'default'" @click="setRole(true)">管理员</el-button>
-            </el-button-group>
           </div>
           <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
             <el-form-item prop="account">
@@ -49,7 +53,7 @@
                 size="large"
               ></el-input>
             </el-form-item>
-            <el-form-item v-if="!isAdmin" prop="captcha">
+            <el-form-item prop="captcha">
               <div class="captcha-container">
                 <el-input
                   v-model="loginForm.captcha"
@@ -90,6 +94,11 @@ import { v4 as uuidv4 } from 'uuid';
 const router = useRouter();
 const userStore = useUserStore();
 
+// 添加切换到用户登录的方法
+const switchToUserLogin = () => {
+  router.push('/userlogin');
+};
+
 const loginForm = reactive({
   account: '',
   password: '',
@@ -116,15 +125,6 @@ const loginRules = {
 
 const loginFormRef = ref(null);
 const captchaUrl = ref('');
-const isAdmin = ref(false);
-
-const setRole = (role) => {
-  isAdmin.value = role;
-};
-
-const toggleRole = () => {
-  isAdmin.value = !isAdmin.value;
-};
 
 // 获取公钥
 async function fetchPublicKey() {
@@ -189,6 +189,45 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
+/* 添加切换登录类型按钮样式 */
+.switch-login-type {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  font-size: 14px;
+  color: #486AE6;
+  transition: all 0.3s ease;
+  z-index: 20;
+}
+
+.switch-login-type:hover {
+  background-color: rgba(235, 240, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(75, 106, 230, 0.15);
+}
+
+.switch-login-type span {
+  margin-right: 4px;
+}
+
+.arrow-icon {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.switch-login-type:hover .arrow-icon {
+  transform: translateX(3px);
+}
+
 .login-page {
   width: 100%;
   height: 100vh;
@@ -199,6 +238,7 @@ const handleLogin = async () => {
   background-size: cover;
   background-position: center;
   overflow: hidden;
+  position: relative; /* 确保可以相对此定位 */
 }
 
 .login-container {
@@ -213,7 +253,7 @@ const handleLogin = async () => {
 
 .login-decoration {
   flex: 1;
-  background: linear-gradient(135deg, #66aaff 0%, #3388cc 100%);
+  background: linear-gradient(135deg, #7B9CFF 0%, #486AE6 100%);
   position: relative;
   overflow: hidden;
 }
@@ -372,48 +412,6 @@ const handleLogin = async () => {
   margin-bottom: 20px;
 }
 
-.role-toggle-button {
-  margin-top: 20px;
-  padding: 2px;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  display: inline-block;
-}
-
-.role-toggle-button :deep(.el-button) {
-  padding: 8px 24px;
-  border: none;
-  background: transparent;
-  color: #606266;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.role-toggle-button :deep(.el-button:first-child) {
-  border-radius: 10px 0 0 10px;
-}
-
-.role-toggle-button :deep(.el-button:last-child) {
-  border-radius: 0 10px 10px 0;
-}
-
-.role-toggle-button :deep(.el-button.is-active),
-.role-toggle-button :deep(.el-button--primary) {
-  background: #66aaff;
-  color: white;
-  box-shadow: 0 2px 12px 0 rgba(102, 170, 255, 0.2);
-}
-
-.role-toggle-button :deep(.el-button:hover) {
-  color: #66aaff;
-}
-
-.role-toggle-button :deep(.el-button--primary:hover) {
-  color: white;
-  background: #80bbff;
-}
-
 .login-form {
   width: 100%;
 }
@@ -425,16 +423,16 @@ const handleLogin = async () => {
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #66aaff inset;
+  box-shadow: 0 0 0 1px #6A8CFF inset;
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #66aaff inset;
+  box-shadow: 0 0 0 1px #6A8CFF inset;
 }
 
 .login-button {
   width: 100%;
-  background: linear-gradient(135deg, #66aaff 0%, #3388cc 100%);
+  background: linear-gradient(135deg, #7B9CFF 0%, #486AE6 100%);
   border: none;
   height: 44px;
   font-size: 16px;
@@ -442,7 +440,7 @@ const handleLogin = async () => {
 }
 
 .login-button:hover {
-  background: linear-gradient(135deg, #80bbff 0%, #4d9ed9 100%);
+  background: linear-gradient(135deg, #8BABFF 0%, #5C7FFF 100%);
 }
 
 .captcha-container {

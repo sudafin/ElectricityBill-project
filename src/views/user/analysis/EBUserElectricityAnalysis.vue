@@ -10,7 +10,7 @@
       <div class="stats-item">
         <div class="stats-value">{{ totalUsage }} <span class="unit">度</span></div>
         <div class="stats-label">月总用电量</div>
-      </div>
+        </div>
       <div class="divider"></div>
       <div class="stats-item">
         <div class="stats-value">{{ totalCost }} <span class="unit">元</span></div>
@@ -20,8 +20,8 @@
       <div class="stats-item">
         <div class="stats-value">{{ avgDailyUsage }} <span class="unit">度</span></div>
         <div class="stats-label">日均用电量</div>
-      </div>
-    </div>
+              </div>
+            </div>
 
     <!-- 图表区域 -->
     <div class="chart-container">
@@ -30,11 +30,11 @@
         <el-button type="primary" size="small" plain @click="refreshData" :loading="loading">
           <el-icon><Refresh /></el-icon>
         </el-button>
-      </div>
+              </div>
       <div class="chart-content">
         <div ref="chartRef" class="usage-chart"></div>
-      </div>
-    </div>
+              </div>
+            </div>
 
     <!-- 数据列表 -->
     <div class="data-list-container">
@@ -43,7 +43,7 @@
         <div class="header-item date">日期</div>
         <div class="header-item usage">用电量(度)</div>
         <div class="header-item cost">电费(元)</div>
-      </div>
+              </div>
       <div class="list-content" v-loading="loading">
         <template v-if="dailyData.length > 0">
           <div 
@@ -59,7 +59,7 @@
         <div v-else class="empty-data">
           <el-empty description="暂无数据" :image-size="80"></el-empty>
         </div>
-      </div>
+        </div>
     </div>
   </div>
 </template>
@@ -112,7 +112,7 @@ const avgDailyUsage = computed(() => {
   if (dailyData.value.length === 0) return '0.0';
   return (dailyData.value.reduce((sum, item) => sum + item.usage, 0) / dailyData.value.length).toFixed(1);
 });
-
+      
 // 格式化日期
 const formatDate = (dateStr) => {
   const date = new Date(dateStr);
@@ -230,15 +230,15 @@ const initChart = () => {
         data: usages,
         markLine: {
           symbol: 'none',
-          lineStyle: {
+    lineStyle: {
             color: '#E6A23C',
-            type: 'dashed'
-          },
+      type: 'dashed'
+    },
           data: [
-            {
+      {
               name: '日均线',
               type: 'average',
-              label: {
+        label: {
                 formatter: '日均: {c} 度',
                 position: 'end'
               }
