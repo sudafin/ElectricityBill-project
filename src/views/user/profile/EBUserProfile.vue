@@ -26,10 +26,6 @@
         <div class="item-content disabled">{{ electricityInfo.userType }}</div>
       </div>
       
-      <div class="info-item">
-        <div class="item-label">电表类型</div>
-        <div class="item-content disabled">{{ electricityInfo.meterType }}</div>
-      </div>
       
       <div class="info-item">
         <div class="item-label">用电地址</div>
@@ -105,6 +101,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowRight } from '@element-plus/icons-vue';
+import { getUserProfile, updateUserProfile, changePassword as changePasswordApi } from '@/api/user/profile';
 
 // 组件状态
 const loading = ref(false);
@@ -115,20 +112,19 @@ const passwordChanging = ref(false);
 // 表单引用
 const passwordFormRef = ref(null);
 
-// 用户基本信息 - 使用本地假数据
+// 用户基本信息
 const userInfo = reactive({
-  name: '张三',
-  phone: '13800138000',
+  name: '',
+  phone: '',
 });
 
-// 用电信息 - 使用本地假数据
+// 用电信息
 const electricityInfo = reactive({
-  userType: '居民用电',
-  meterType: '智能电表',
-  address: '北京市海淀区西二旗大街58号院',
+  userType: '',
+  address: '',
 });
 
-// 通知设置 - 使用本地假数据，只保留两种提醒
+// 通知设置
 const notificationSettings = reactive({
   billReminder: true,
   paymentReminder: true,
@@ -166,24 +162,82 @@ const passwordRules = {
 };
 
 // 加载用户信息
-const loadUserInfo = () => {
+const loadUserInfo = async () => {
   loading.value = true;
-
-  // 模拟加载用户信息
-  setTimeout(() => {
+  
+  try {
+    console.log('开始获取用户信息...');
+    const response = await getUserProfile();
+    console.log('用户信息响应:', JSON.stringify(response));
+    
+    // 直接使用响应数据，不检查code字段
+    if (response) {
+      // 更新用户基本信息
+      userInfo.name = response.username || '';
+      userInfo.phone = response.phone || '';
+      
+      // 更新用电信息 - 字段名映射
+      electricityInfo.userType = response.electricityInfo?.userType || response.userType || '';
+      electricityInfo.address = response.electricityInfo?.address || response.address || '';
+      
+      // 更新通知设置
+      notificationSettings.billReminder = response.notificationSettings?.billReminder ?? 
+                                         response.billReminder ?? true;
+      notificationSettings.paymentReminder = response.notificationSettings?.paymentReminder ?? 
+                                           response.paymentReminder ?? true;
+                                           
+      console.log('用户信息加载成功');
+    } else {
+      console.error('获取用户信息响应异常:', response);
+      ElMessage.error('获取用户信息失败');
+      setDefaultValues();
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    ElMessage.error('获取用户信息失败，请稍后重试');
+    
+    // 设置默认值以防请求失败
+    setDefaultValues();
+  } finally {
     loading.value = false;
-  }, 800);
+  }
+};
+
+// 设置默认值（请求失败时使用）
+const setDefaultValues = () => {
+  userInfo.name = '用户';
+  userInfo.phone = '未绑定';
+  electricityInfo.userType = '普通用户';
+  electricityInfo.address = '';
+  notificationSettings.billReminder = true;
+  notificationSettings.paymentReminder = true;
 };
 
 // 保存修改
-const handleSave = () => {
+const handleSave = async () => {
   saving.value = true;
-
-  // 模拟保存操作
-  setTimeout(() => {
+  
+  // 构造提交的数据
+  const profileData = {
+    name: userInfo.name,
+    billReminder: notificationSettings.billReminder,
+    paymentReminder: notificationSettings.paymentReminder,
+    address: electricityInfo.address
+  };
+  
+  try {
+    console.log('开始保存用户信息:', JSON.stringify(profileData));
+    const response = await updateUserProfile(profileData);
+    console.log('保存用户信息响应:', JSON.stringify(response));
+    
+    // 无需检查code，直接处理成功情况
     ElMessage.success('保存成功');
+  } catch (error) {
+    console.error('保存用户信息失败:', error);
+    ElMessage.error('保存失败，请稍后重试');
+  } finally {
     saving.value = false;
-  }, 1000);
+  }
 };
 
 // 显示修改密码对话框
@@ -201,13 +255,27 @@ const changePassword = async () => {
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       passwordChanging.value = true;
-
-      // 模拟修改密码
-      setTimeout(() => {
+      
+      try {
+        const passwordData = {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+          confirmPassword: passwordForm.confirmPassword
+        };
+        
+        console.log('开始修改密码...');
+        const response = await changePasswordApi(passwordData);
+        console.log('修改密码响应:', JSON.stringify(response));
+        
+        // 无需检查code，直接处理成功情况
         ElMessage.success('密码修改成功');
-        passwordChanging.value = false;
         passwordDialogVisible.value = false;
-      }, 1000);
+      } catch (error) {
+        console.error('密码修改失败:', error);
+        ElMessage.error('密码修改失败，请稍后重试');
+      } finally {
+        passwordChanging.value = false;
+      }
     }
   });
 };

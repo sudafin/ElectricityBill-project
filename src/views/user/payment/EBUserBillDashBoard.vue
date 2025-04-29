@@ -6,7 +6,7 @@
     <!-- 当不在子路由页面时显示的内容 -->
     <div v-else class="bill-content">
       <!-- 顶部卡片 -->
-      <div class="account-summary-card">
+      <div class="account-summary-card" v-loading="overviewLoading">
         <div class="summary-header">
           <h3>账单概览</h3>
         </div>
@@ -48,11 +48,11 @@
         <!-- 账单列表 -->
         <div 
           class="bill-list"
-          v-loading="loading && !isRefreshing && !loadingMore"
+          v-loading="billListLoading || (loading && !isRefreshing && !loadingMore)"
           @scroll="handleScroll"
           ref="listContainer"
         >
-          <div v-if="loading && !isRefreshing && !loadingMore" class="loading-container">
+          <div v-if="billListLoading || (loading && !isRefreshing && !loadingMore)" class="loading-container">
             <el-skeleton :rows="3" animated />
             <el-skeleton :rows="3" animated style="margin-top: 20px" />
           </div>
@@ -83,7 +83,7 @@
                     <span class="label">用电量:</span>
                     <span class="value">{{ bill.usage }} 度</span>
                   </div>
-                  <div class="info-item" v-if="bill.status === '未缴费'">
+                  <div class="info-item" v-if="bill.status === '未支付'">
                     <span class="label">截止日期:</span>
                     <span class="value" :class="{'overdue-soon': isOverdueSoon(bill.dueDate)}">
                       {{ formatDate(bill.dueDate) }}
@@ -97,7 +97,7 @@
               </div>
               <div class="bill-footer">
                 <el-button 
-                  v-if="bill.status === '未缴费'" 
+                  v-if="bill.status === '未支付'" 
                   type="primary" 
                   size="small"
                   @click.stop="payBill(bill)"
@@ -111,7 +111,7 @@
                   @click.stop="viewBillDetail(bill)"
                 >
                   查看详情
-            </el-button>
+                </el-button>
               </div>
             </div>
           </template>
@@ -138,10 +138,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElSkeleton } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
+import { getBillOverview, getBillList } from '@/api/user/bill';
 
 const router = useRouter();
 const loading = ref(true);
@@ -149,6 +150,19 @@ const loadingMore = ref(false);
 const hasMore = ref(true);
 const currentPage = ref(1);
 const pageSize = ref(10);
+const bills = ref([]);
+
+// 添加独立的加载状态
+const overviewLoading = ref(false);
+const billListLoading = ref(false);
+
+// Overview data state
+const overviewData = reactive({
+  totalPayment: '0.00',
+  totalBills: 0,
+  unpaidBills: 0,
+  avgMonthlyPayment: '0.00'
+});
 
 // 下拉刷新相关
 const isRefreshing = ref(false);
@@ -158,124 +172,11 @@ const pullDistance = ref(0);
 const pullThreshold = 60;
 const listContainer = ref(null);
 
-// 模拟账单数据的生成函数
-const generateMockBill = (index) => {
-  const baseDate = new Date('2023-03-15');
-  baseDate.setMonth(baseDate.getMonth() - index);
-  
-  const billDate = new Date(baseDate);
-  const dueDate = new Date(billDate);
-  dueDate.setDate(dueDate.getDate() + 15);
-  
-  const isPaid = index > 1 && Math.random() > 0.3;
-  const usageAmount = 100 + Math.floor(Math.random() * 100);
-  const amount = (usageAmount * 0.65).toFixed(2);
-  
-  const paymentMethods = ['微信支付', '支付宝', '银行卡支付'];
-  const paymentDate = isPaid ? new Date(billDate.getTime() + Math.random() * 14 * 24 * 60 * 60 * 1000) : null;
-  
-  const prevReading = 3000 + index * 100;
-  const currentReading = prevReading + usageAmount;
-  
-  const billId = `B${billDate.getFullYear()}${String(billDate.getMonth() + 1).padStart(2, '0')}${String(1000 + index).slice(1)}`;
-  
-  return {
-    billId,
-    meterId: 'M2023001',
-    userId: 10001,
-    amount: parseFloat(amount),
-    usage: usageAmount,
-    billDate: billDate.toISOString().split('T')[0],
-    dueDate: dueDate.toISOString().split('T')[0],
-    status: isPaid ? '已缴费' : '未缴费',
-    paymentDate: isPaid ? paymentDate.toISOString().split('T')[0] : null,
-    paymentMethod: isPaid ? paymentMethods[Math.floor(Math.random() * paymentMethods.length)] : null,
-    startReading: prevReading,
-    endReading: currentReading,
-    billPeriod: `${new Date(billDate.getFullYear(), billDate.getMonth() - 1, 15).toISOString().split('T')[0]} 至 ${billDate.toISOString().split('T')[0]}`
-  };
-};
-
-// 初始账单数据 (前4项保持原样，便于测试)
-const bills = ref([
-  {
-    billId: 'B20230315001',
-    meterId: 'M2023001',
-    userId: 10001,
-    amount: 98.93,
-    usage: 152.2,
-    billDate: '2023-03-15',
-    dueDate: '2023-03-31',
-    status: '未缴费',
-    paymentDate: null,
-    paymentMethod: null,
-    startReading: 3250.5,
-    endReading: 3402.7,
-    billPeriod: '2023-02-15 至 2023-03-15'
-  },
-  {
-    billId: 'B20230215002',
-    meterId: 'M2023001',
-    userId: 10001,
-    amount: 85.65,
-    usage: 131.8,
-    billDate: '2023-02-15',
-    dueDate: '2023-02-28',
-    status: '已缴费',
-    paymentDate: '2023-02-20',
-    paymentMethod: '微信支付',
-    startReading: 3118.7,
-    endReading: 3250.5,
-    billPeriod: '2023-01-15 至 2023-02-15'
-  },
-  {
-    billId: 'B20230115003',
-    meterId: 'M2023001',
-    userId: 10001,
-    amount: 102.38,
-    usage: 157.5,
-    billDate: '2023-01-15',
-    dueDate: '2023-01-31',
-    status: '已缴费',
-    paymentDate: '2023-01-25',
-    paymentMethod: '支付宝',
-    startReading: 2961.2,
-    endReading: 3118.7,
-    billPeriod: '2022-12-15 至 2023-01-15'
-  },
-  {
-    billId: 'B20221215004',
-    meterId: 'M2023001',
-    userId: 10001,
-    amount: 118.72,
-    usage: 182.6,
-    billDate: '2022-12-15',
-    dueDate: '2022-12-31',
-    status: '已缴费',
-    paymentDate: '2022-12-18',
-    paymentMethod: '银行卡支付',
-    startReading: 2778.6,
-    endReading: 2961.2,
-    billPeriod: '2022-11-15 至 2022-12-15'
-  }
-]);
-
 // 计算统计数据
-const totalBills = computed(() => bills.value.length);
-const unpaidBills = computed(() => bills.value.filter(b => b.status === '未缴费').length);
-
-const totalPayment = computed(() => {
-  return bills.value
-    .filter(b => b.status === '已缴费')
-    .reduce((sum, bill) => sum + bill.amount, 0)
-    .toFixed(2);
-});
-
-const avgMonthlyPayment = computed(() => {
-  const paidBills = bills.value.filter(b => b.status === '已缴费');
-  if (paidBills.length === 0) return '0.00';
-  return (paidBills.reduce((sum, bill) => sum + bill.amount, 0) / paidBills.length).toFixed(2);
-});
+const totalBills = computed(() => overviewData.totalBills);
+const unpaidBills = computed(() => overviewData.unpaidBills);
+const totalPayment = computed(() => overviewData.totalPayment);
+const avgMonthlyPayment = computed(() => overviewData.avgMonthlyPayment);
 
 // 格式化日期
 const formatDate = (dateString) => {
@@ -302,11 +203,11 @@ const isOverdueSoon = (dueDate) => {
 // 获取状态对应的样式类型
 const getStatusType = (status) => {
   switch (status) {
-    case '已缴费':
+    case '已支付':
       return 'success';
-    case '未缴费':
+    case '未支付':
       return 'warning';
-    case '逾期':
+    case '已过期':
       return 'danger';
     default:
       return 'info';
@@ -335,22 +236,11 @@ const touchEnd = () => {
   if (!isPulling.value) return;
   
   if (pullDistance.value >= pullThreshold) {
-    // 触发刷新
-    isRefreshing.value = true;
-    
-    // 模拟请求刷新数据
-    setTimeout(() => {
-      resetBillsList();
-      isRefreshing.value = false;
-      pullDistance.value = 0;
-      if (listContainer.value) {
-        listContainer.value.style.transform = 'translateY(0)';
-      }
-      isPulling.value = false;
-      ElMessage.success('刷新成功');
-    }, 1000);
+    // Trigger refresh via resetBillsList
+    resetBillsList(); 
+    // Resetting animation state is handled within resetBillsList's finally block
   } else {
-    // 回弹
+    // Rebound animation
     pullDistance.value = 0;
     if (listContainer.value) {
       listContainer.value.style.transform = 'translateY(0)';
@@ -364,31 +254,15 @@ const loadMoreBills = async () => {
   if (loadingMore.value || !hasMore.value) return;
 
   loadingMore.value = true;
-  
+  currentPage.value++; // 增加页码
+  console.log(`加载更多账单，当前页码: ${currentPage.value}`);
+
   try {
-    // 模拟API请求加载更多数据
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const nextPage = currentPage.value + 1;
-    const startIndex = bills.value.length;
-    const newBills = [];
-    
-    // 生成新的假数据
-    for (let i = 0; i < pageSize.value; i++) {
-      newBills.push(generateMockBill(startIndex + i + 1));
-    }
-    
-    // 添加到现有数据中
-    bills.value = [...bills.value, ...newBills];
-    currentPage.value = nextPage;
-    
-    // 模拟数据上限，当加载到30条数据时，设置没有更多数据
-    if (bills.value.length >= 30) {
-      hasMore.value = false;
-    }
+    await fetchBillListPage(currentPage.value);
   } catch (error) {
     console.error('加载更多账单失败:', error);
     ElMessage.error('加载更多账单失败，请稍后重试');
+    currentPage.value--; // 出错时回退页码
   } finally {
     loadingMore.value = false;
   }
@@ -405,41 +279,157 @@ const handleScroll = (e) => {
 };
 
 // 重置账单列表
-const resetBillsList = () => {
-  // 保留初始的4条数据
-  const initialBills = bills.value.slice(0, 4);
-  bills.value = initialBills;
-  hasMore.value = true;
+const resetBillsList = async () => {
   currentPage.value = 1;
+  hasMore.value = true;
+  bills.value = []; // Clear existing list
+  isRefreshing.value = true;
+
+  try {
+    // 分别获取概览和第一页数据
+    await fetchOverview();
+    await fetchBillListPage(1);
+    ElMessage.success('刷新成功');
+  } catch (error) {
+    console.error('刷新账单数据失败:', error);
+    ElMessage.error('刷新失败，请稍后重试');
+  } finally {
+    loading.value = false;
+    isRefreshing.value = false;
+    if (listContainer.value) {
+      listContainer.value.style.transform = 'translateY(0)';
+    }
+    isPulling.value = false;
+    pullDistance.value = 0;
+  }
+};
+
+// 获取特定页码的账单列表
+const fetchBillListPage = async (page) => {
+  if (page === 1) {
+    billListLoading.value = true;
+  }
+  
+  try {
+    const response = await getBillList({ 
+      pageNo: page, 
+      pageSize: pageSize.value 
+    });
+
+    // 获取账单列表数据
+    let billList = [];
+    let totalPages = 1;
+
+    if (response?.data?.list) {
+      billList = response.data.list;
+      totalPages = response.data.pages || 1;
+    } else if (response?.list) {
+      billList = response.list; 
+      totalPages = response.pages || 1;
+    } else if (Array.isArray(response)) {
+      billList = response;
+    }
+
+    // 处理账单数据
+    const mappedBills = billList.map(bill => ({
+      billId: bill.billId,
+      amount: bill.amount || (bill.usage * 0.4).toFixed(2),
+      usage: bill.usage || 0,
+      status: bill.status || '未支付',
+      dueDate: bill.dueDate || null,
+      paymentDate: bill.paymentDate || null,
+      billDate: bill.createdAt || bill.createTime || bill.dueDate || new Date().toISOString()
+    }));
+  
+    // 更新账单列表
+    if (page === 1) {
+      bills.value = mappedBills;
+    } else {
+      bills.value = [...bills.value, ...mappedBills];
+    }
+
+    hasMore.value = page < totalPages;
+
+  } catch (error) {
+    console.error('加载账单列表失败:', error);
+    if (page === 1) bills.value = [];
+    hasMore.value = false;
+    throw error;
+  } finally {
+    if (page === 1) {
+      billListLoading.value = false;
+    }
+  }
+}
+
+// 获取账单概览
+const fetchOverview = async () => {
+  overviewLoading.value = true;
+  
+  try {
+    console.log('获取账单概览...');
+    const response = await getBillOverview();
+    console.log('账单概览响应:', JSON.stringify(response));
+    
+    // 直接处理响应数据，不检查code字段
+    if (response) {
+      // 如果响应中有data字段，使用data字段
+      const data = response.data || response;
+      
+      // 更新概览数据
+      Object.assign(overviewData, {
+        totalPayment: data.totalPayment || '0.00',
+        totalBills: data.totalBills || parseInt(data.total) || 0,
+        unpaidBills: data.unpaidBills || (bills.value.filter(bill => 
+          bill.status === '未支付').length) || 0,
+        avgMonthlyPayment: data.avgMonthlyPayment || '0.00'
+      });
+      
+      console.log('账单概览数据加载成功:', JSON.stringify(overviewData));
+    } else {
+      console.error('获取账单概览响应异常:', response);
+      // 重置为默认值
+      Object.assign(overviewData, { totalPayment: '0.00', totalBills: 0, unpaidBills: 0, avgMonthlyPayment: '0.00' });
+    }
+  } catch (error) {
+    console.error('获取账单概览失败:', error);
+    // 重置为默认值
+    Object.assign(overviewData, { totalPayment: '0.00', totalBills: 0, unpaidBills: 0, avgMonthlyPayment: '0.00' });
+    throw error; // 重新抛出异常，由Promise.all处理
+  } finally {
+    overviewLoading.value = false;
+  }
 };
 
 // 加载初始数据
-const loadInitialBills = async () => {
+const loadInitialData = async () => {
   loading.value = true;
   
   try {
-    // 模拟请求延迟
-    await new Promise(resolve => setTimeout(resolve, 800));
-    loading.value = false;
+    // 顺序加载数据，避免使用Promise.all
+    await fetchOverview();
+    await fetchBillListPage(1);
+    console.log('初始数据加载完成');
   } catch (error) {
-    console.error('加载账单列表失败:', error);
-    ElMessage.error('加载账单列表失败，请稍后重试');
+    console.error('加载初始数据失败:', error);
+    ElMessage.error('加载账单数据失败，请稍后重试');
+  } finally {
     loading.value = false;
   }
 };
 
 // 查看账单详情
 const viewBillDetail = (bill) => {
-  router.push(`/user/paymentDashboard/detail/${bill.billId}`);
+  router.push(`/user/payment/detail/${bill.billId}`);
 };
 
 // 缴费
 const payBill = (bill) => {
-  router.push(`/user/paymentDashboard/payment/${bill.billId}`);
+  router.push(`/user/payment/${bill.billId}`);
 };
 
 onMounted(() => {
-  loadInitialBills();
+  loadInitialData();
 });
 
 onUnmounted(() => {

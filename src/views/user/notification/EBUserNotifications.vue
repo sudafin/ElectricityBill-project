@@ -12,14 +12,14 @@
       <div 
         class="tab-item" 
         :class="{ 'active': activeTab === 'all' }" 
-        @click="switchTab('all')"
+        @click="switchTab('全部')"
       >
         全部通知
       </div>
       <div 
         class="tab-item" 
         :class="{ 'active': activeTab === 'unread' }" 
-        @click="switchTab('unread')"
+        @click="switchTab('未读')"
       >
         未读
       </div>
@@ -45,7 +45,7 @@
         @scroll="handleScroll"
         ref="listContainer"
       >
-        <template v-if="filteredNotifications.length === 0">
+        <template v-if="notifications.length === 0">
           <div class="empty-state">
             <el-empty :description="activeTab === 'all' ? '暂无通知' : '暂无未读通知'" />
           </div>
@@ -53,7 +53,7 @@
         
         <template v-else>
           <div 
-            v-for="notification in filteredNotifications" 
+            v-for="notification in notifications" 
             :key="notification.id" 
             class="notification-item"
             :class="{ 'unread': !notification.isRead }"
@@ -81,7 +81,7 @@
           </div>
           
           <!-- 全部加载完毕 -->
-          <div class="no-more" v-if="!hasMoreData && filteredNotifications.length > 0">
+          <div class="no-more" v-if="!hasMoreData && notifications.length > 0">
             — 已经到底了 —
           </div>
         </template>
@@ -91,26 +91,45 @@
     <!-- 通知详情弹窗 -->
     <el-dialog
       v-model="detailVisible"
-      :title="currentNotification.title || '通知详情'"
+      :title="notificationDetail.title || '通知详情'"
       width="90%"
       top="20vh"
       destroy-on-close
       class="notification-dialog"
+      @closed="handleDetailDialogClosed"
     >
-      <div class="notification-detail">
+      <div class="notification-detail" v-loading="detailLoading">
         <div class="detail-header">
-          <div class="detail-time">{{ formatTime(currentNotification.createTime) }}</div>
-          <div class="detail-type" :class="getNotificationType(currentNotification.title)">
-            {{ getNotificationTypeText(currentNotification.title) }}
+          <div class="detail-time">{{ formatTime(notificationDetail.createTime) }}</div>
+          <div class="detail-type" :class="getNotificationType(notificationDetail.title)">
+            {{ notificationDetail.noticeType || getNotificationTypeText(notificationDetail.title) }}
           </div>
         </div>
         <div class="detail-content">
-          {{ currentNotification.content }}
+          {{ notificationDetail.content }}
+        </div>
+        
+        <!-- 反馈回复区域 -->
+        <div v-if="notificationDetail.noticeType === '反馈类型'" class="feedback-reply">
+          <div class="reply-header">
+            <div class="reply-title">回复内容</div>
+            <div class="reply-time" v-if="notificationDetail.replyTime">{{ formatTime(notificationDetail.replyTime) }}</div>
+          </div>
+          <div class="reply-content" v-if="notificationDetail.replyContent">
+            {{ notificationDetail.replyContent }}
+          </div>
+          <div class="no-reply" v-else>
+            <el-empty description="暂无回复" :image-size="60">
+              <template #description>
+                <p>您的反馈正在处理中，请耐心等待</p>
+              </template>
+            </el-empty>
+          </div>
         </div>
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="detailVisible = false" size="small">关闭</el-button>
+          <el-button @click="closeDetailDialog" size="small">关闭</el-button>
         </div>
       </template>
     </el-dialog>
@@ -121,12 +140,14 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Refresh, Bell, Check, WarningFilled, SuccessFilled } from '@element-plus/icons-vue';
+import { getNotifications, getNotificationDetail } from '@/api/user/notification';
 
 // 页面状态
 const loading = ref(false);
 const activeTab = ref('all');
 const detailVisible = ref(false);
-const currentNotification = ref({});
+const notificationDetail = ref({});
+const detailLoading = ref(false);
 const isRefreshing = ref(false);
 const isPulling = ref(false);
 const loadingMore = ref(false);
@@ -138,80 +159,26 @@ const pullDistance = ref(0);
 const pullThreshold = 60;
 const listContainer = ref(null);
 
+// 通知数据
+const notifications = ref([]);
+
 // 分页相关
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-
-// 本地假数据
-const notifications = ref([
-  {
-    id: 1,
-    title: '电费缴纳成功通知',
-    content: '您已成功缴纳电费100元，感谢您的使用。交易单号：PAY202303150001，如有疑问请联系客服。',
-    createTime: '2023-03-15 09:25:00',
-    isRead: false
-  },
-  {
-    id: 2,
-    title: '系统维护通知',
-    content: '系统将于2023-03-20 22:00至次日02:00进行维护升级，届时可能无法访问系统，敬请谅解。维护完成后，系统将会有更好的用户体验和性能提升。',
-    createTime: '2023-03-18 10:00:00',
-    isRead: false
-  },
-  {
-    id: 3,
-    title: '电费余额不足提醒',
-    content: '您的账户电费余额已不足50元，为避免影响正常用电，请及时充值。您可以通过网站、APP或前往营业厅进行充值。',
-    createTime: '2023-03-10 15:30:00',
-    isRead: true
-  },
-  {
-    id: 4,
-    title: '用电量异常提醒',
-    content: '系统检测到您近期用电量明显高于平均水平，建议检查家中电器是否存在异常。如有需要，可联系客服安排专业人员上门检查。',
-    createTime: '2023-03-05 08:15:00',
-    isRead: true
-  },
-  {
-    id: 5,
-    title: '节能建议提醒',
-    content: '根据您的用电习惯分析，建议您调整空调温度，减少待机设备能耗，预计可节省电费约30元/月。更多节能建议请查看用电分析页面。',
-    createTime: '2023-02-28 14:20:00',
-    isRead: true
-  }
-]);
-
-// 未读通知计数
-const unreadCount = computed(() => {
-  return notifications.value.filter(item => !item.isRead).length;
-});
-
-// 未读通知列表
-const unreadNotifications = computed(() => {
-  return notifications.value.filter(item => !item.isRead);
-});
-
-// 根据当前标签过滤通知
-const filteredNotifications = computed(() => {
-  if (activeTab.value === 'all') {
-    return notifications.value;
-  } else {
-    return unreadNotifications.value;
-  }
-});
+const currentStatus = ref('全部');
 
 // 处理刷新
 const handleRefresh = () => {
   if (isRefreshing.value) return;
   
-  loading.value = true;
+  isRefreshing.value = true;
+  currentPage.value = 1;
   
-  // 模拟请求
-  setTimeout(() => {
-    loading.value = false;
-    ElMessage.success('通知已更新');
-  }, 800);
+  // 请求第一页数据
+  fetchNotifications(true).finally(() => {
+    isRefreshing.value = false;
+  });
 };
 
 // 下拉刷新事件处理
@@ -237,59 +204,141 @@ const touchEnd = () => {
   
   if (pullDistance.value >= pullThreshold) {
     // 触发刷新
-    isRefreshing.value = true;
-    
-    // 模拟请求
-    setTimeout(() => {
-      isRefreshing.value = false;
-      pullDistance.value = 0;
-      listContainer.value.style.transform = 'translateY(0)';
-      isPulling.value = false;
-      ElMessage.success('刷新成功');
-    }, 1000);
-  } else {
-    // 回弹
-    pullDistance.value = 0;
-    listContainer.value.style.transform = 'translateY(0)';
-    isPulling.value = false;
+    handleRefresh();
   }
-};
-
-// 标记所有通知为已读
-const markAllAsRead = () => {
-  if (unreadCount.value === 0) return;
   
-  notifications.value.forEach(notification => {
-    notification.isRead = true;
-  });
-  ElMessage.success('已将所有通知标记为已读');
+  // 回弹
+  pullDistance.value = 0;
+  listContainer.value.style.transform = 'translateY(0)';
+  isPulling.value = false;
 };
 
 // 切换标签
-const switchTab = (tab) => {
-  activeTab.value = tab;
+const switchTab = (status) => {
+  if (status === '全部') {
+    activeTab.value = 'all';
+    currentStatus.value = '全部';
+  } else {
+    activeTab.value = 'unread';
+    currentStatus.value = '未读';
+  }
+  
   currentPage.value = 1;
   hasMoreData.value = true;
+  notifications.value = [];
   
-  // 模拟重新加载
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 300);
+  // 重新加载
+  fetchNotifications();
+};
+
+// 获取通知列表
+const fetchNotifications = (isRefresh = false) => {
+  if (loading.value && !isRefresh) return Promise.reject('正在加载中');
+  
+  if (!isRefresh) {
+    loading.value = true;
+  }
+  
+  return getNotifications({
+    status: currentStatus.value,
+    pageNo: currentPage.value,
+    pageSize: pageSize.value
+  })
+    .then(response => {
+      console.log('获取通知响应:', JSON.stringify(response));
+      
+      // 直接处理响应，不检查code字段
+      let records = [];
+      let totalCount = 0;
+      
+      // 处理分页数据结构
+      if (response && response.records) {
+        // 标准分页格式 {records: [], total: 10}
+        records = response.records;
+        totalCount = response.total || 0;
+      } else if (response && response.list) {
+        // 带list的数据结构 {list: [], total: 10}
+        records = response.list;
+        totalCount = response.total || 0;
+      } else if (Array.isArray(response)) {
+        // 直接返回数组的情况
+        records = response;
+        totalCount = response.length;
+      }
+      
+      // 映射字段
+      const mappedRecords = records.map(item => {
+        return {
+          id: item.id || '',
+          title: item.title || '',
+          content: item.content || '',
+          noticeType: item.type || '',
+          createTime: item.createdAt || item.createTime || '',
+          isRead: item.readStatus === 1 || item.isRead === true, // 0表示未读，1表示已读
+          readTime: item.readTime || null
+        };
+      });
+      
+      if (isRefresh || currentPage.value === 1) {
+        notifications.value = mappedRecords;
+      } else {
+        notifications.value = [...notifications.value, ...mappedRecords];
+      }
+      
+      total.value = totalCount;
+      hasMoreData.value = notifications.value.length < total.value;
+      
+      console.log('通知数据加载成功，共 ' + notifications.value.length + ' 条，未读 ' + 
+        mappedRecords.filter(item => !item.isRead).length + ' 条');
+      return { records: mappedRecords, total: totalCount };
+    })
+    .catch(error => {
+      ElMessage.error('获取通知失败');
+      console.error('获取通知失败:', error);
+      return Promise.reject(error);
+    })
+    .finally(() => {
+      loading.value = false;
+      loadingMore.value = false;
+    });
 };
 
 // 查看通知详情
 const viewNotification = (notification) => {
-  currentNotification.value = notification;
   detailVisible.value = true;
+  detailLoading.value = true;
   
-  // 标记为已读
-  if (!notification.isRead) {
-    const index = notifications.value.findIndex(item => item.id === notification.id);
-    if (index !== -1) {
-      notifications.value[index].isRead = true;
-    }
-  }
+  // 先设置基本信息，以便快速显示
+  notificationDetail.value = { ...notification };
+  
+  // 获取详情
+  getNotificationDetail(notification.id)
+    .then(response => {
+      console.log('获取通知详情响应:', JSON.stringify(response));
+      
+      // 直接处理响应数据，不检查code
+      if (response) {
+        // 映射字段
+        notificationDetail.value = {
+          id: response.id || notification.id || '',
+          title: response.title || notification.title || '',
+          content: response.content || notification.content || '',
+          noticeType: response.type || notification.noticeType || '',
+          createTime: response.createdAt || response.createTime || notification.createTime || '',
+          isRead: response.readStatus === 1 || response.isRead === true,
+          readTime: response.readTime || null,
+          replyContent: response.replyContent || null,
+          replyTime: response.replyTime || null
+        };
+      }
+    })
+    .catch(error => {
+      ElMessage.error('获取通知详情失败');
+      console.error('获取通知详情失败:', error);
+    })
+    .finally(() => {
+      detailLoading.value = false;
+    });
 };
 
 // 根据通知标题获取通知类型
@@ -371,26 +420,37 @@ const loadMore = () => {
   loadingMore.value = true;
   currentPage.value++;
   
-  // 模拟加载更多
-  setTimeout(() => {
-    // 这里应该是实际的API调用
-    // 当没有更多数据时，设置hasMoreData为false
-    if (currentPage.value >= 3) {
-      hasMoreData.value = false;
-    }
-    
-    loadingMore.value = false;
-  }, 800);
+  fetchNotifications();
+};
+
+// 关闭详情对话框
+const closeDetailDialog = () => {
+  detailVisible.value = false;
+};
+
+// 详情对话框关闭后的处理
+const handleDetailDialogClosed = () => {
+  console.log('通知详情对话框已关闭，刷新列表数据');
+  // 刷新当前页的通知列表数据
+  fetchNotifications().then(result => {
+    console.log('关闭对话框后刷新列表完成，加载通知：', result?.records?.length || 0);
+  }).catch(err => {
+    console.error('关闭对话框后刷新列表失败:', err);
+  });
 };
 
 onMounted(() => {
-  total.value = notifications.value.length;
-  
   // 初始加载
-  loading.value = true;
-  setTimeout(() => {
-    loading.value = false;
-  }, 500);
+  console.log('通知中心初始化');
+  fetchNotifications().then(result => {
+    console.log('初始通知加载完成，共加载通知:', result?.records?.length || 0);
+    
+    // 初始数据加载后再执行其他操作（比如设置标签页计数等）
+    const unreadCount = result?.records?.filter(item => !item.isRead).length || 0;
+    console.log('初始未读通知数量:', unreadCount);
+  }).catch(err => {
+    console.error('初始加载通知失败:', err);
+  });
 });
 
 // 清理事件监听
@@ -697,5 +757,53 @@ onUnmounted(() => {
 .dialog-footer {
   display: flex;
   justify-content: center;
+}
+
+/* 反馈回复区域样式 */
+.feedback-reply {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reply-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.reply-content {
+  background-color: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #606266;
+}
+
+.no-reply {
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-reply p {
+  margin: 5px 0 0;
+  color: #909399;
+  font-size: 12px;
 }
 </style> 

@@ -103,73 +103,53 @@ import {
   Document,
   Bell
 } from '@element-plus/icons-vue';
+import { getDashboardData, getLatestNotifications } from '@/api/user/dashboard';
 
 const router = useRouter();
 
-// 模拟用户信息
+// 定义loading状态
+const dashboardLoading = ref(false);
+const notificationsLoading = ref(false);
+
+// 初始化用户信息（默认空值）
 const userInfo = ref({
-  id: 10001,
-  username: '张三',
-  phone: '13812345678',
-  address: '北京市海淀区XXX小区X号楼X单元',
-  user_type: '居民用户',
-  account_status: '正常',
-  meter_id: 'M2023001'
+  id: '',
+  username: '加载中...',
+  phone: '',
+  address: '',
+  user_type: '',
+  account_status: '',
+  meter_id: ''
 });
 
-// 模拟电表信息
+// 初始化电表信息（默认空值）
 const meterInfo = ref({
-  id: 'M2023001',
-  model: 'DDS-102',
-  install_place: '厨房',
-  status: '正常',
-  install_date: '2023-01-15',
-  start_reading: 3250.5,
-  ending_reading: 3402.7,
-  last_meter_reading_date: '2023-03-15'
+  id: '加载中...',
+  model: '',
+  install_place: '',
+  status: '',
+  install_date: '',
+  start_reading: 0,
+  ending_reading: 0,
+  last_meter_reading_date: ''
 });
 
-// 模拟当前账单
+// 初始化当前账单（默认空值）
 const currentBill = ref({
-  id: 'B2023031501',
-  user_id: 10001,
-  usage_amount: 152.2,
-  total_amount: 98.93,
-  status: '未支付',
-  due_date: '2023-03-25',
-  created_at: '2023-03-15',
-  meter_id: 'M2023001',
-  start_reading: 3250.5,
-  ending_reading: 3402.7
+  id: '',
+  user_id: '',
+  usage_amount: 0,
+  total_amount: 0,
+  status: '',
+  due_date: '',
+  created_at: '',
+  meter_id: '',
+  start_reading: 0,
+  ending_reading: 0
 });
 
-// 模拟通知数据
-const notifications = ref([
-  {
-    id: 1,
-    title: '电费缴纳成功通知',
-    content: '您已成功缴纳电费100元，感谢您的使用。',
-    type: 'payment',
-    created_at: '2023-03-15 09:25:00',
-    read: true
-  },
-  {
-    id: 2,
-    title: '系统维护通知',
-    content: '系统将于2023-03-20 22:00至次日02:00进行升级维护。',
-    type: 'system',
-    created_at: '2023-03-18 10:00:00',
-    read: false
-  },
-  {
-    id: 3,
-    title: '电费余额不足提醒',
-    content: '您的账户电费余额低于50元，为避免影响正常用电，请及时充值。',
-    type: 'alert',
-    created_at: '2023-03-20 15:30:00',
-    read: false
-  }
-]);
+// 初始化通知数据（默认空数组）
+const notifications = ref([]);
 
 // 获取时间问候语
 const getTimeGreeting = () => {
@@ -243,7 +223,7 @@ const getBillStatusType = (status) => {
 // 页面功能方法
 const payBill = () => {
   router.push({
-    path: `/user/paymentDashboard/payment/${currentBill.value.id}`
+    path: `/user/payment/${currentBill.value.id}`
   });
 };
 
@@ -260,18 +240,155 @@ const viewMoreNotifications = () => {
 };
 
 const viewNotificationDetail = (notice) => {
-  ElMessage.info(`查看通知: ${notice.title}`);
-  // 实际项目中跳转到通知详情页
-  // router.push({
-  //   path: '/user/notifications/detail',
-  //   query: { id: notice.id }
-  // });
+  // 跳转到通知中心页面，不再跳转详情页
+  router.push('/user/notifications');
+};
+
+// 获取仪表盘数据
+const fetchDashboardData = async () => {
+  dashboardLoading.value = true;
+  try {
+    console.log('正在获取仪表盘数据...');
+    const response = await getDashboardData();
+    console.log('仪表盘数据响应:', JSON.stringify(response));
+    
+    // 直接使用响应数据
+    if (response) {
+      // 处理用户信息，映射字段名
+      if (response.userInfo) {
+        userInfo.value = {
+          id: response.userInfo.userId || '',
+          username: response.userInfo.username || '未知用户',
+          phone: response.userInfo.phone || '',
+          address: response.userInfo.address || '',
+          user_type: response.userInfo.userType || '',
+          account_status: response.userInfo.accountStatus || '',
+          meter_id: response.meterInfo?.meterId || ''
+        };
+        console.log('用户信息更新成功:', userInfo.value);
+      }
+      
+      // 处理电表信息，映射字段名
+      if (response.meterInfo) {
+        meterInfo.value = {
+          id: response.meterInfo.meterId || '未绑定',
+          status: response.meterInfo.status || '未知',
+          model: response.meterInfo.model || '',
+          install_place: response.meterInfo.installPlace || '',
+          install_date: response.meterInfo.installDate || '',
+          start_reading: response.meterInfo.startReading || 0,
+          ending_reading: response.meterInfo.currentReading || 0,
+          last_meter_reading_date: response.meterInfo.lastReadingDate || ''
+        };
+        console.log('电表信息更新成功:', meterInfo.value);
+      }
+      
+      // 处理账单信息，映射字段名
+      if (response.billInfo && response.billInfo.unpaidBill) {
+        currentBill.value = {
+          id: response.billInfo.unpaidBill.billId || '',
+          user_id: response.userInfo?.userId || '',
+          usage_amount: response.billInfo.unpaidBill.usageAmount || 0,
+          total_amount: response.billInfo.unpaidBill.amount || 0,
+          status: '未支付', // 假设这是一个未支付账单
+          due_date: response.billInfo.unpaidBill.dueDate || '',
+          created_at: response.billInfo.unpaidBill.createdAt || '',
+          meter_id: response.meterInfo?.meterId || '',
+          start_reading: 0, // 数据中未提供
+          ending_reading: 0  // 数据中未提供
+        };
+        console.log('账单信息更新成功:', currentBill.value);
+      } else {
+        // 没有未支付账单，清空当前账单
+        currentBill.value = {
+          id: '',
+          user_id: '',
+          usage_amount: 0,
+          total_amount: 0,
+          status: '',
+          due_date: '',
+          created_at: '',
+          meter_id: '',
+          start_reading: 0,
+          ending_reading: 0
+        };
+      }
+    }
+    
+    console.log('仪表盘数据加载成功');
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error);
+    ElMessage.error('获取仪表盘数据失败，请稍后重试');
+  } finally {
+    dashboardLoading.value = false;
+  }
+};
+
+// 获取最新通知
+const fetchLatestNotifications = async () => {
+  notificationsLoading.value = true;
+  try {
+    console.log('正在获取最新通知...');
+    const response = await getLatestNotifications({ limit: 3 });
+    console.log('最新通知响应:', JSON.stringify(response));
+    
+    // 处理通知数据
+    if (response) {
+      // 检查是否存在列表数据
+      if (response.list && Array.isArray(response.list)) {
+        // 映射字段名
+        notifications.value = response.list.map(item => ({
+          id: item.id || '',
+          title: item.title || '',
+          content: item.content || '',
+          type: item.type || '',
+          created_at: item.createdAt || '',
+          read: item.readStatus === 1, // 0表示未读，1表示已读
+          readTime: item.readTime || null
+        }));
+      } else if (Array.isArray(response)) {
+        // 兼容直接返回数组的情况
+        notifications.value = response.map(item => ({
+          id: item.id || '',
+          title: item.title || '',
+          content: item.content || '',
+          type: item.type || '',
+          created_at: item.createdAt || item.created_at || '',
+          read: item.readStatus === 1 || !!item.read,
+          readTime: item.readTime || null
+        }));
+      } else if (response.notifications && Array.isArray(response.notifications)) {
+        // 兼容 notifications 字段的情况
+        notifications.value = response.notifications.map(item => ({
+          id: item.id || '',
+          title: item.title || '',
+          content: item.content || '',
+          type: item.type || '',
+          created_at: item.createdAt || item.created_at || '',
+          read: item.readStatus === 1 || !!item.read,
+          readTime: item.readTime || null
+        }));
+      }
+      
+      console.log('通知数据处理成功:', notifications.value);
+    }
+    
+    console.log('最新通知加载成功，共 ' + notifications.value.length + ' 条');
+  } catch (error) {
+    console.error('获取最新通知失败:', error);
+    ElMessage.error('获取最新通知失败，请稍后重试');
+  } finally {
+    notificationsLoading.value = false;
+  }
 };
 
 // 生命周期钩子
-onMounted(() => {
-  // 实际项目中这里会请求API获取真实数据
+onMounted(async () => {
   console.log('用户仪表盘初始化');
+  // 分别获取数据，不等待通知数据加载完成
+  //promise.all
+  await fetchDashboardData();
+  await fetchLatestNotifications();
 });
 </script>
 

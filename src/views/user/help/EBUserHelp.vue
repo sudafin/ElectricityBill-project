@@ -203,16 +203,17 @@
       >
         <el-form-item label="问题类型" prop="category">
           <el-select v-model="feedbackForm.category" placeholder="选择类型" class="form-select">
-            <el-option label="账户问题" value="ACCOUNT" />
-            <el-option label="电费问题" value="PAYMENT" />
-            <el-option label="电表问题" value="METER" />
-            <el-option label="系统故障" value="SYSTEM" />
-            <el-option label="其他问题" value="OTHER" />
+            <el-option 
+              v-for="type in feedbackTypes" 
+              :key="type.value" 
+              :label="type.label" 
+              :value="type.value" 
+            />
           </el-select>
         </el-form-item>
         
         <el-form-item label="标题" prop="title">
-          <el-input  v-model="feedbackForm.title" placeholder="问题标题" />
+          <el-input v-model="feedbackForm.title" placeholder="问题标题" />
         </el-form-item>
         
         <el-form-item label="描述" prop="content">
@@ -232,7 +233,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button size="small" @click="feedbackDialogVisible = false">取消</el-button>
-          <el-button size="small" type="primary" @click="submitFeedback" :loading="submitting">提交</el-button>
+          <el-button size="small" type="primary" @click="submitFeedbackForm" :loading="submitting">提交</el-button>
         </div>
       </template>
     </el-dialog>
@@ -247,6 +248,7 @@ import {
   Service, Phone, Message, Clock, Star, CircleClose, 
   Edit, Ticket, Monitor, Sunny
 } from '@element-plus/icons-vue';
+import { getFeedbackTypes, submitFeedback } from '@/api/user/feedback';
 
 // 页面状态管理
 const activeTab = ref('faq');
@@ -263,6 +265,56 @@ const feedbackForm = reactive({
   category: '',
   contact: '',
 });
+
+// 反馈类型列表
+const feedbackTypes = ref([]);
+
+// 获取反馈类型
+const fetchFeedbackTypes = async () => {
+  try {
+    console.log('获取反馈类型...');
+    const response = await getFeedbackTypes();
+    console.log('反馈类型响应:', JSON.stringify(response));
+    
+    // 直接使用响应数据，不检查code字段
+    if (response && (Array.isArray(response) || response.data)) {
+      // 处理两种可能的数据结构
+      const typesData = Array.isArray(response) ? response : response.data;
+      
+      if (Array.isArray(typesData)) {
+        feedbackTypes.value = typesData.map(type => {
+          return {
+            label: type.typeName || type.name || type,
+            value: type.typeCode || type.code || type
+          };
+        });
+        console.log('成功获取反馈类型列表:', feedbackTypes.value);
+      } else {
+        console.error('反馈类型数据格式不正确:', typesData);
+        setDefaultFeedbackTypes();
+      }
+    } else {
+      console.error('反馈类型响应异常:', response);
+      setDefaultFeedbackTypes();
+    }
+  } catch (error) {
+    console.error('获取反馈类型失败:', error);
+    ElMessage.error('获取反馈类型失败，使用默认类型');
+    setDefaultFeedbackTypes();
+  }
+};
+
+// 设置默认反馈类型
+const setDefaultFeedbackTypes = () => {
+  feedbackTypes.value = [
+    { label: '账户问题', value: 'ACCOUNT' },
+    { label: '电费问题', value: 'PAYMENT' },
+    { label: '电表问题', value: 'METER' },
+    { label: '系统故障', value: 'SYSTEM' },
+    { label: '其他问题', value: 'OTHER' }
+  ];
+  console.log('已设置默认反馈类型');
+};
 
 // 反馈表单验证规则
 const feedbackRules = {
@@ -536,11 +588,14 @@ const selectFaq = (faq) => {
 
 // 提交FAQ反馈
 const submitFAQFeedback = (faqId, isHelpful) => {
+  console.log('提交FAQ反馈:', { faqId, isHelpful });
+  // 注：这里可以添加实际的API调用来记录反馈
+  // 例如：await submitFAQFeedbackApi({ faqId, isHelpful });
   ElMessage.success(isHelpful ? '感谢您的反馈！' : '感谢您的反馈，我们会努力改进');
 };
 
 // 提交反馈表单
-const submitFeedback = async () => {
+const submitFeedbackForm = async () => {
   if (!feedbackFormRef.value) return;
   
   await feedbackFormRef.value.validate(async (valid) => {
@@ -552,9 +607,11 @@ const submitFeedback = async () => {
     submitting.value = true;
     
     try {
-      // 这里应该是实际的API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('提交反馈数据:', JSON.stringify(feedbackForm));
+      const response = await submitFeedback(feedbackForm);
+      console.log('提交反馈响应:', JSON.stringify(response));
       
+      // 无需检查code，直接处理成功情况
       ElMessage.success('反馈提交成功，感谢您的建议');
       feedbackDialogVisible.value = false;
       
@@ -563,7 +620,9 @@ const submitFeedback = async () => {
       feedbackForm.content = '';
       feedbackForm.category = '';
       feedbackForm.contact = '';
+      
     } catch (error) {
+      console.error('反馈提交失败:', error);
       ElMessage.error('提交失败，请稍后重试');
     } finally {
       submitting.value = false;
@@ -573,11 +632,16 @@ const submitFeedback = async () => {
 
 // 显示反馈对话框
 const showFeedbackDialog = () => {
+  // 确保已获取反馈类型
+  if (feedbackTypes.value.length === 0) {
+    fetchFeedbackTypes();
+  }
   feedbackDialogVisible.value = true;
 };
 
 // 处理分类选择
 const handleCategorySelect = (category) => {
+  console.log('选择问题分类:', category);
   activeCategory.value = category;
 };
 
@@ -628,11 +692,28 @@ watch(activeCategory, (newCategory) => {
 
 // 处理链接点击
 const handleLinkClick = (link) => {
+  console.log('点击链接:', link);
+  if (link.url) {
+    // 如果有URL，可以处理导航
+    console.log('准备导航到:', link.url);
+    // 实际项目中可以使用router.push或window.open等方式进行导航
+    // 例如：router.push(link.url);
+  }
   ElMessage.info(`查看内容：${link.text}`);
 };
 
 onMounted(() => {
-  // 在这里可以加载一些初始数据
+  console.log('帮助中心页面初始化');
+  
+  // 加载反馈类型数据
+  fetchFeedbackTypes().then(() => {
+    console.log('反馈类型加载完成');
+  }).catch(error => {
+    console.error('反馈类型加载失败:', error);
+  });
+  
+  // 在这里可以加载一些初始数据，如常见问题列表等
+  console.log('初始化完成');
 });
 </script>
 

@@ -7,25 +7,15 @@
         <span>返回</span>
       </div>
       <div class="actions">
-        <el-button 
-          v-if="billDetail.status === '已缴费'" 
-          type="primary" 
-          size="small" 
-          plain 
-          @click="downloadReceipt"
-          :loading="downloadLoading"
-        >
-          <el-icon><Download /></el-icon>
-          电子收据
-        </el-button>
+        <!-- Removed Download Button -->
       </div>
     </div>
 
     <!-- 付款状态卡片 -->
     <div class="status-card" v-loading="loading">
       <div class="status-icon" :class="getStatusClass(billDetail.status)">
-        <el-icon v-if="billDetail.status === '已缴费'"><CircleCheckFilled /></el-icon>
-        <el-icon v-else-if="billDetail.status === '逾期'"><WarnTriangleFilled /></el-icon>
+        <el-icon v-if="billDetail.status === '已支付'"><CircleCheckFilled /></el-icon>
+        <el-icon v-else-if="billDetail.status === '已过期'"><WarnTriangleFilled /></el-icon>
         <el-icon v-else><Clock /></el-icon>
       </div>
       <div class="status-content">
@@ -39,7 +29,7 @@
       <div class="amount-title">账单金额</div>
       <div class="amount-value">{{ billDetail.amount }} <span class="unit">元</span></div>
       
-      <div class="bill-actions" v-if="billDetail.status === '未缴费'">
+      <div class="bill-actions" v-if="billDetail.status === '未支付'">
         <el-button type="primary" @click="payBill" size="large" block>立即缴费</el-button>
       </div>
     </div>
@@ -50,11 +40,15 @@
       <div class="info-list">
         <div class="info-item">
           <span class="label">账单编号</span>
-          <span class="value">{{ billDetail.billId }}</span>
+          <span class="value">{{ route.params.id }}</span>
         </div>
         <div class="info-item">
           <span class="label">账单周期</span>
           <span class="value">{{ billDetail.billPeriod }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">用户类型</span>
+          <span class="value">{{ billDetail.userType }}</span>
         </div>
         <div class="info-item">
           <span class="label">用电量</span>
@@ -76,7 +70,7 @@
           <span class="label">生成日期</span>
           <span class="value">{{ formatDate(billDetail.billDate) }}</span>
         </div>
-        <div class="info-item" v-if="billDetail.status === '未缴费'">
+        <div class="info-item" v-if="billDetail.status === '未支付'">
           <span class="label">截止日期</span>
           <span class="value" :class="{'overdue-soon': isOverdueSoon(billDetail.dueDate)}">
             {{ formatDate(billDetail.dueDate) }}
@@ -105,7 +99,7 @@
     </div>
 
     <!-- 缴费信息 (仅当已缴费时显示) -->
-    <div class="detail-card" v-if="billDetail.status === '已缴费'">
+    <div class="detail-card" v-if="billDetail.status === '已支付'">
       <div class="card-title">缴费信息</div>
       <div class="info-list">
         <div class="info-item">
@@ -115,10 +109,6 @@
         <div class="info-item">
           <span class="label">缴费方式</span>
           <span class="value">{{ billDetail.paymentMethod }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">交易流水</span>
-          <span class="value">{{ billDetail.transactionId || '--' }}</span>
         </div>
       </div>
     </div>
@@ -131,43 +121,33 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { 
   ArrowLeft, 
-  Download, 
   CircleCheckFilled, 
   WarnTriangleFilled, 
   Clock
 } from '@element-plus/icons-vue';
+import { getBillDetail } from '@/api/user/bill'; // Import API function
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(true);
-const downloadLoading = ref(false);
 const billId = computed(() => route.params.id);
 
-// 模拟账单详情
+// Initialize billDetail with default structure but empty/null values
 const billDetail = ref({
-  billId: 'B20230315001',
-  meterId: 'M2023001',
-  userId: 10001,
-  amount: 98.93,
-  usage: 152.2,
-  billDate: '2023-03-15',
-  dueDate: '2023-03-31',
-  status: '未缴费',
+  billId: billId.value, // Pre-fill with ID from route
+  meterId: '--',
+  userType: '--',
+  amount: 0.00,
+  usage: 0,
+  billDate: null,
+  dueDate: null,
+  status: '未知', // Default status
   paymentDate: null,
-  paymentMethod: null,
-  transactionId: null,
-  startReading: 3250.5,
-  endReading: 3402.7,
-  billPeriod: '2023-02-15 至 2023-03-15',
-  billDetails: [
-    { name: '基本电费', value: '10.00 元' },
-    { name: '平段电量', value: '32.5 度' },
-    { name: '平段电费', value: '19.50 元' },
-    { name: '峰段电量', value: '89.3 度' },
-    { name: '峰段电费', value: '62.51 元' },
-    { name: '谷段电量', value: '30.4 度' },
-    { name: '谷段电费', value: '6.92 元' }
-  ]
+  paymentMethod: '--',
+  startReading: 0,
+  endReading: 0,
+  billPeriod: '--',
+  billDetails: [] // Initialize as empty array
 });
 
 // 格式化日期
@@ -196,9 +176,9 @@ const isOverdueSoon = (dueDate) => {
 // 获取状态样式类
 const getStatusClass = (status) => {
   switch(status) {
-    case '已缴费': return 'status-paid';
-    case '未缴费': return 'status-unpaid';
-    case '逾期': return 'status-overdue';
+    case '已支付': return 'status-paid';
+    case '未支付': return 'status-unpaid';
+    case '已过期': return 'status-overdue';
     default: return '';
   }
 };
@@ -206,9 +186,9 @@ const getStatusClass = (status) => {
 // 获取状态标题
 const getStatusTitle = (status) => {
   switch(status) {
-    case '已缴费': return '已完成缴费';
-    case '未缴费': return '等待缴费';
-    case '逾期': return '已逾期';
+    case '已支付': return '已完成支付';
+    case '未支付': return '等待支付';
+    case '已过期': return '已过期';
     default: return '未知状态';
   }
 };
@@ -216,37 +196,21 @@ const getStatusTitle = (status) => {
 // 获取状态信息提示
 const getStatusMessage = (status) => {
   switch(status) {
-    case '已缴费': return '您已成功缴纳电费，感谢您的支付';
-    case '未缴费': return '请在截止日期前完成缴费，避免影响用电';
-    case '逾期': return '您的账单已逾期，请尽快缴纳';
+    case '已支付': return '您已成功支付电费，感谢您的支付';
+    case '未支付': return '请在截止日期前完成支付，避免影响用电';
+    case '已过期': return '您的账单已过期，请尽快支付';
     default: return '';
   }
 };
 
-// 下载电子收据
-const downloadReceipt = () => {
-  if (billDetail.value.status !== '已缴费') {
-    ElMessage.warning('只有已缴费的账单才能下载电子收据');
-    return;
-  }
-  
-  downloadLoading.value = true;
-  
-  // 模拟下载过程
-  setTimeout(() => {
-    ElMessage.success('电子收据下载成功');
-    downloadLoading.value = false;
-  }, 1000);
-};
-
 // 缴费
 const payBill = () => {
-  if (billDetail.value.status === '已缴费') {
-    ElMessage.warning('该账单已完成缴费');
+  if (billDetail.value.status === '已支付') {
+    ElMessage.warning('该账单已完成支付');
     return;
   }
   
-  router.push(`/user/paymentDashboard/payment/${billDetail.value.billId}`);
+  router.push(`/user/payment/${route.params.id }`);
 };
 
 // 返回上一页
@@ -254,54 +218,41 @@ const goBack = () => {
   router.back();
 };
 
-// 获取账单详情
+// --- MODIFY fetchBillDetail to use API ---
 const fetchBillDetail = async () => {
+  if (!billId.value) {
+    ElMessage.error('无效的账单 ID');
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   
   try {
-    // 模拟API请求
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // 假设我们已经有了账单ID，这里根据ID确定模拟数据的状态
-    if (billId.value === 'B20230215002') {
-      // 已缴费状态的账单
-      billDetail.value = {
-        billId: 'B20230215002',
-        meterId: 'M2023001',
-        userId: 10001,
-        amount: 85.65,
-        usage: 131.8,
-        billDate: '2023-02-15',
-        dueDate: '2023-02-28',
-        status: '已缴费',
-        paymentDate: '2023-02-20',
-        paymentMethod: '微信支付',
-        transactionId: 'TX20230220125489',
-        startReading: 3118.7,
-        endReading: 3250.5,
-        billPeriod: '2023-01-15 至 2023-02-15',
-        billDetails: [
-          { name: '基本电费', value: '10.00 元' },
-          { name: '平段电量', value: '28.6 度' },
-          { name: '平段电费', value: '17.16 元' },
-          { name: '峰段电量', value: '76.5 度' },
-          { name: '峰段电费', value: '53.55 元' },
-          { name: '谷段电量', value: '26.7 度' },
-          { name: '谷段电费', value: '4.94 元' }
-        ]
-      };
+    const response = await getBillDetail(billId.value); // Call API
+
+    if (response) {
+      // Ensure billDetails is an array, even if API returns null/undefined
+      response.billDetails = response.billDetails || [];
+      billDetail.value = response; // Assign fetched data
+    } else {
+      console.error('获取账单详情失败: 未收到有效数据');
+      ElMessage.error('获取账单详情失败，请稍后重试');
+      // Optionally reset or navigate back
+      // router.back(); 
     }
-    
+
   } catch (error) {
     console.error('获取账单详情失败:', error);
     ElMessage.error('获取账单详情失败，请稍后重试');
+     // Optionally reset or navigate back
+     // router.back();
   } finally {
     loading.value = false;
   }
 };
 
-onMounted(() => {
-  fetchBillDetail();
+onMounted(async () => {
+  await fetchBillDetail();
 });
 </script>
 

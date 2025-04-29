@@ -15,26 +15,21 @@ const routes = [
         children: [
           { path: 'dashboard', name: 'UserDashboard', component: () => import('@/views/user/dashboard/EBUserDashboard.vue'), meta: { title: '电费概览' } },
           { path: 'analysis', name: 'UserAnalysis', component: () => import('@/views/user/analysis/EBUserElectricityAnalysis.vue'), meta: { title: '电费分析' } },
-          { 
-            path: 'paymentDashboard', 
-            name: 'PaymentDashboard', 
+          {
+            path: 'paymentDashboard',
+            name: 'PaymentDashboard',
             component: () => import('@/views/user/payment/EBUserBillDashBoard.vue'),
             meta: { title: '账单中心' },
-            children: [
-                { path: 'payment/:id', name: 'UserPayment', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费' } },
-                { path: 'detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserBillDetail.vue'), meta: { title: '缴费详情' } },
-              ]
-            },
+          },
+          { path: 'payment/:id', name: 'UserPayment', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费' } },
+          { path: 'detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserBillDetail.vue'), meta: { title: '缴费详情' } },
           { path: 'notifications', name: 'UserNotifications', component: () => import('@/views/user/notification/EBUserNotifications.vue'), meta: { title: '通知中心' } },
           { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/profile/EBUserProfile.vue'), meta: { title: '个人信息' } },
-          { 
-            path: 'help', 
-            name: 'UserHelp', 
-            component: () => import('../views/user/help/EBUserHelp.vue').catch(() => {
-              console.error('Failed to load help component');
-              return import('../views/user/help/EBUserHelpCenter.vue');
-            }), 
-            meta: { title: '帮助中心' } 
+          {
+            path: 'help',
+            name: 'UserHelp',
+            component: () => import('@/views/user/help/EBUserHelp.vue'),
+            meta: { title: '帮助中心' }
           }
         ]
       },
@@ -109,7 +104,7 @@ const routes = [
             children: [
               { path: 'list', name: 'FeedbackList', component: () => import('@/views/admin/feedback/FeedbackList.vue'), meta: { title: '反馈列表' } },
               { path: 'process/:id', name: 'ProcessFeedback', component: () => import('@/views/admin/feedback/ProcessFeedback.vue'), meta: { title: '处理反馈' } }
-            ]  
+            ]
           }
         ]
       }

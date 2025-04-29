@@ -7,8 +7,11 @@
       </div>
       <div class="header-actions">
         <div class="action-item">
-          <el-badge :value="unreadCount > 0 ? unreadCount : ''" class="notification-badge" type="danger" @click="goToNotifications">
-            <el-icon><Bell /></el-icon>
+          <el-badge :value="unreadCount > 0 ? unreadCount : ''" class="notification-badge" type="danger"
+            @click="goToNotifications">
+            <el-icon>
+              <Bell />
+            </el-icon>
           </el-badge>
         </div>
         <div class="action-item">
@@ -19,11 +22,11 @@
 
     <!-- 主内容区 -->
     <div class="mobile-app-content" ref="contentRef" @scroll="handleScroll">
-      <transition name="fade" mode="out-in">
-        <router-view v-slot="{ Component }">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
           <component :is="Component" />
-        </router-view>
-      </transition>
+        </transition>
+      </router-view>
     </div>
 
     <!-- 底部导航 -->
@@ -49,7 +52,6 @@ const components = {
 const router = useRouter();
 const route = useRoute();
 const unreadCount = ref(0);
-let refreshTimer = null;
 const contentRef = ref(null); // 内容区域的引用
 const isFooterHidden = ref(false); // 底部导航栏是否隐藏
 let lastScrollTop = 0; // 上次滚动位置
@@ -60,18 +62,18 @@ const handleScroll = (e) => {
   if (scrollTimeout) {
     clearTimeout(scrollTimeout);
   }
-  
+
   const currentScrollTop = e.target.scrollTop;
-  
+
   // 向下滚动超过20px隐藏导航栏，向上滚动显示导航栏
   if (currentScrollTop > lastScrollTop && currentScrollTop > 50) {
     isFooterHidden.value = true;
   } else if (currentScrollTop < lastScrollTop) {
     isFooterHidden.value = false;
   }
-  
+
   lastScrollTop = currentScrollTop;
-  
+
   // 滚动停止3秒后显示导航栏
   scrollTimeout = setTimeout(() => {
     isFooterHidden.value = false;
@@ -87,12 +89,12 @@ const currentPageTitle = computed(() => {
     '/user/profile': '我的',
     '/user/help': '帮助'
   };
-  
+
   // 查找最匹配的路径
-  const currentPath = Object.keys(pathMap).find(path => 
+  const currentPath = Object.keys(pathMap).find(path =>
     route.path.startsWith(path)
   );
-  
+
   return currentPath ? pathMap[currentPath] : '电力账单';
 });
 
@@ -120,23 +122,16 @@ const confirmLogout = () => {
   }).then(() => {
     localStorage.removeItem('token');
     router.push('/login');
-  }).catch(() => {});
+  }).catch(() => { });
 };
 
 onMounted(() => {
-  fetchUnreadCount();
-  // 定时刷新未读通知数（每分钟）
-  refreshTimer = setInterval(fetchUnreadCount, 60000);
+  //5秒后再获取未读通知数量
+  setTimeout(() => {
+    fetchUnreadCount();
+  }, 5000);
 });
 
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout);
-  }
-});
 </script>
 
 <style scoped>
@@ -235,7 +230,8 @@ onBeforeUnmount(() => {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
-  padding-bottom: 76px; /* 恢复原来的底部填充，因为现在导航栏可以隐藏 */
+  padding-bottom: 76px;
+  /* 恢复原来的底部填充，因为现在导航栏可以隐藏 */
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -268,4 +264,4 @@ onBeforeUnmount(() => {
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>

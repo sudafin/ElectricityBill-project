@@ -52,7 +52,7 @@
             class="list-item"
           >
             <div class="item-date">{{ formatDate(item.date) }}</div>
-            <div class="item-usage">{{ item.usage }}</div>
+            <div class="item-usage">{{ item.consumption }}</div>
             <div class="item-cost">{{ item.cost }}</div>
           </div>
         </template>
@@ -78,6 +78,8 @@ import {
   MarkLineComponent
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
+// 导入电量分析相关API
+import { getElectricityStatistics, getDailyElectricityUsage} from '@/api/user/electricity';
 
 // 注册必需的组件
 echarts.use([
@@ -94,23 +96,48 @@ const loading = ref(false);
 const chartRef = ref(null);
 let usageChart = null;
 
-// 模拟数据 - 最近30天的用电量和电费数据
+// 存储用电数据
 const dailyData = ref([]);
+// 存储统计数据
+const statisticsData = ref({
+  totalConsumption: 0,
+  totalCost: 0,
+  dailyAvgConsumption: 0
+});
+
+// 独立 loading 状态
+const statisticsLoading = ref(false);
+const dailyLoading = ref(false);
 
 // 计算总用电量
 const totalUsage = computed(() => {
-  return dailyData.value.reduce((sum, item) => sum + item.usage, 0).toFixed(1);
+  // 优先使用API返回的统计数据
+  if (statisticsData.value.totalConsumption) {
+    return statisticsData.value.totalConsumption.toFixed(1);
+  }
+  // 如果没有统计数据，从每日数据中计算
+  return dailyData.value.reduce((sum, item) => sum + (item.consumption || 0), 0).toFixed(1);
 });
 
 // 计算总电费
 const totalCost = computed(() => {
-  return dailyData.value.reduce((sum, item) => sum + item.cost, 0).toFixed(2);
+  // 优先使用API返回的统计数据
+  if (statisticsData.value.totalCost) {
+    return statisticsData.value.totalCost.toFixed(2);
+  }
+  // 如果没有统计数据，从每日数据中计算
+  return dailyData.value.reduce((sum, item) => sum + (item.cost || 0), 0).toFixed(2);
 });
 
 // 计算日均用电量
 const avgDailyUsage = computed(() => {
+  // 优先使用API返回的统计数据
+  if (statisticsData.value.dailyAvgConsumption) {
+    return statisticsData.value.dailyAvgConsumption.toFixed(1);
+  }
+  // 如果没有统计数据，从每日数据中计算
   if (dailyData.value.length === 0) return '0.0';
-  return (dailyData.value.reduce((sum, item) => sum + item.usage, 0) / dailyData.value.length).toFixed(1);
+  return (dailyData.value.reduce((sum, item) => sum + (item.consumption || 0), 0) / dailyData.value.length).toFixed(1);
 });
       
 // 格式化日期
@@ -119,44 +146,32 @@ const formatDate = (dateStr) => {
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 };
 
-// 生成随机示例数据
-const generateMockData = () => {
-  const result = [];
-  const today = new Date();
-  
-  for (let i = 0; i < 30; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    
-    // 模拟用电量 - 周末略高于工作日
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-    const baseUsage = isWeekend ? 5.5 : 4.5;
-    const usage = +(baseUsage + Math.random() * 2).toFixed(1);
-    
-    // 电费按0.6元/度计算
-    const cost = +(usage * 0.6).toFixed(2);
-    
-    result.push({
-      date: date.toISOString().split('T')[0],
-      usage,
-      cost
-    });
-  }
-  
-  // 按日期从旧到新排序
-  return result.reverse();
-};
-
 // 初始化图表
 const initChart = () => {
-  if (!chartRef.value) return;
+  console.log('initChart被调用，DOM元素存在:', !!chartRef.value);
+  if (!chartRef.value) {
+    console.error('图表DOM元素不存在');
+    return;
+  }
+  
+  console.log('日期数据:', dailyData.value.map(item => item.date));
+  console.log('用电量数据:', dailyData.value.map(item => item.consumption));
   
   if (!usageChart) {
+    console.log('创建新的echarts实例');
     usageChart = echarts.init(chartRef.value);
+    window.addEventListener('resize', () => {
+      if (usageChart) usageChart.resize();
+    });
+  } else {
+    console.log('使用现有echarts实例');
   }
   
   const dates = dailyData.value.map(item => formatDate(item.date));
-  const usages = dailyData.value.map(item => item.usage);
+  const usages = dailyData.value.map(item => item.consumption);
+  
+  console.log('格式化后的日期:', dates);
+  console.log('用电量数据:', usages);
   
   const option = {
     tooltip: {
@@ -230,15 +245,15 @@ const initChart = () => {
         data: usages,
         markLine: {
           symbol: 'none',
-    lineStyle: {
+          lineStyle: {
             color: '#E6A23C',
-      type: 'dashed'
-    },
+            type: 'dashed'
+          },
           data: [
-      {
+            {
               name: '日均线',
               type: 'average',
-        label: {
+              label: {
                 formatter: '日均: {c} 度',
                 position: 'end'
               }
@@ -249,29 +264,131 @@ const initChart = () => {
     ]
   };
   
+  console.log('设置echarts option');
   usageChart.setOption(option);
-  
-  // 窗口大小改变时重新渲染图表
-  window.addEventListener('resize', () => {
-    usageChart.resize();
-  });
+  console.log('图表初始化完成');
 };
 
-// 加载数据
+// 优化后的 fetchStatisticsData
+const fetchStatisticsData = async (isRetry = false) => {
+  const TIMEOUT_DURATION = 12000;
+  statisticsLoading.value = true;
+  try {
+    console.log('开始请求电量统计数据...');
+    const statisticsPromise = getElectricityStatistics({
+      days: 30
+    });
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), TIMEOUT_DURATION);
+    });
+    const statisticsResponse = await Promise.race([statisticsPromise, timeoutPromise]);
+    
+    console.log('获取到统计数据响应:', JSON.stringify(statisticsResponse));
+    
+    // 检查响应是否有效（直接使用后端返回的数据结构）
+    if (statisticsResponse && typeof statisticsResponse === 'object') {
+      // 根据实际后端返回格式处理数据
+      const responseData = statisticsResponse.code === 200 ? statisticsResponse.data : statisticsResponse;
+      console.log('解析统计数据:', responseData);
+      
+      // 更新统计数据，确保每个值都存在，否则默认为0
+      statisticsData.value = {
+        totalConsumption: responseData.totalConsumption || 0,
+        totalCost: responseData.totalCost || 0,
+        dailyAvgConsumption: responseData.dailyAvgConsumption || 0
+      };
+      
+      console.log('设置统计数据成功:', statisticsData.value);
+    } else {
+      console.error('统计数据响应无效:', statisticsResponse);
+      ElMessage.error('获取电量统计数据失败');
+    }
+  } catch (error) {
+    console.error('fetchStatisticsData error:', error);
+    if (error.message === '请求超时' && !isRetry) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return fetchStatisticsData(true);
+    } else {
+      ElMessage.error(isRetry ? '获取统计数据重试失败' : '获取统计数据超时，请稍后重试');
+    }
+  } finally {
+    statisticsLoading.value = false;
+  }
+};
+
+// 优化后的 fetchDailyUsageData
+const fetchDailyUsageData = async (isRetry = false) => {
+  const TIMEOUT_DURATION = 12000;
+  dailyLoading.value = true;
+  try {
+    console.log('开始请求每日用电记录...');
+    const dailyPromise = getDailyElectricityUsage({
+      days: 30
+    });
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时')), TIMEOUT_DURATION);
+    });
+    const dailyResponse = await Promise.race([dailyPromise, timeoutPromise]);
+    
+    console.log('获取到每日数据响应:', JSON.stringify(dailyResponse));
+    
+    // 检查响应是否有效（直接使用后端返回的数据结构）
+    if (dailyResponse && typeof dailyResponse === 'object') {
+      // 根据实际后端返回格式处理数据
+      const responseData = dailyResponse.code === 200 ? dailyResponse.data : dailyResponse;
+      console.log('解析每日数据:', responseData);
+      
+      // 判断是否包含dailyUsage数组
+      if (responseData.dailyUsage && Array.isArray(responseData.dailyUsage)) {
+        console.log('每日用电记录条数:', responseData.dailyUsage.length);
+        
+        // 确保数据完整
+        dailyData.value = responseData.dailyUsage.map(item => ({
+          date: item.date,
+          consumption: item.consumption || 0,
+          cost: item.cost || 0,
+          timeSharing: item.timeSharing || {}
+        }));
+        
+        console.log('设置每日数据成功，第一条:', dailyData.value[0]);
+        
+        // 初始化图表前检查dom元素
+        if (chartRef.value) {
+          console.log('开始初始化图表...');
+          initChart();
+        } else {
+          console.error('图表DOM元素不存在，无法初始化图表');
+        }
+      } else {
+        console.error('每日用电记录数据格式不正确:', responseData);
+        ElMessage.warning('每日用电记录数据格式不正确');
+      }
+    } else {
+      console.error('每日数据响应无效:', dailyResponse);
+      ElMessage.error('获取每日用电记录失败');
+    }
+  } catch (error) {
+    console.error('fetchDailyUsageData error:', error);
+    if (error.message === '请求超时' && !isRetry) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return fetchDailyUsageData(true);
+    } else {
+      ElMessage.error(isRetry ? '获取用电记录重试失败' : '获取用电记录超时，请稍后重试');
+    }
+  } finally {
+    dailyLoading.value = false;
+  }
+};
+
+// 优化 fetchData，顺序 await，增加全局 catch
 const fetchData = async () => {
   loading.value = true;
-  
   try {
-    // 实际项目中应该调用API获取数据
-    // 这里使用模拟数据进行演示
-    await new Promise(resolve => setTimeout(resolve, 800));
-    dailyData.value = generateMockData();
-    
-    // 初始化图表
-    initChart();
+    await fetchStatisticsData();
+    await fetchDailyUsageData();
   } catch (error) {
-    console.error('获取用电数据失败:', error);
-    ElMessage.error('获取用电数据失败，请稍后重试');
+    console.error('fetchData global error:', error);
+    ElMessage.error('获取用电数据失败，请刷新页面重试');
   } finally {
     loading.value = false;
   }
@@ -279,6 +396,7 @@ const fetchData = async () => {
 
 // 刷新数据
 const refreshData = () => {
+  // 使用合并API获取数据
   fetchData();
 };
 
