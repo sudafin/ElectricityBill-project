@@ -113,15 +113,15 @@ const routes = [
 
   // 登录页面
   {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/views/login/EBLogin.vue'),
+    path: '/login/admin',
+    name: 'AdminLogin',
+    component: () => import('@/views/login/EBAdminLogin.vue'),
     meta: { requiresAuth: false, title: '管理员登录' }
   },
 
   // 用户登录页面
   {
-    path: '/userlogin',
+    path: '/login/user',
     name: 'UserLogin',
     component: () => import('@/views/login/EBUserLogin.vue'),
     meta: { requiresAuth: false, title: '用户登录' }

@@ -141,7 +141,7 @@ import { ref, reactive, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { Search, User, InfoFilled, Calendar, Plus, Delete, Odometer } from '@element-plus/icons-vue';
-import { getUserList, getUserDetail, deleteUser, getUserTypeList } from '@/api/admin/user.js';
+import { getUserList, getUserDetail, deleteUser, getUserTypeList } from '@/api/admin/admin.js';
 import { EBFilterBar, EBTable } from '@/components';
 import EBUserTypeForm from './EBUserTypeForm.vue';
 

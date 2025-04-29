@@ -22,3 +22,4 @@ export * from './profile';
 // 例如:
 // export * from './bill';
 // export * from './payment'; 
+export * from './user';

@@ -3,6 +3,7 @@ import Cookies from 'js-cookie';
 const TokenKey = 'token';
 const RefreshTokenKey = 'refresh';
 const AdminInfoKey = 'adminInfo';
+const UserInfoKey = 'userInfo';
 
 export function getToken() {
   return Cookies.get(TokenKey);
@@ -35,4 +36,17 @@ export function setAdminInfo(adminInfo) {
 
 export function removeAdminInfo() {
   return Cookies.remove(AdminInfoKey);
+}
+
+export function getUserInfo() {
+  const userInfo = Cookies.get(UserInfoKey);
+  return userInfo ? JSON.parse(userInfo) : null;
+}
+
+export function setUserInfo(userInfo) {
+  return Cookies.set(UserInfoKey, JSON.stringify(userInfo));
+}
+
+export function removeUserInfo() {
+  return Cookies.remove(UserInfoKey);
 } 

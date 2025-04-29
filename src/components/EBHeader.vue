@@ -30,7 +30,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store/user'
+import { useUserStore } from '@/store/admin'
 import { ElMessage } from 'element-plus'
 import { SwitchButton } from '@element-plus/icons-vue'
 

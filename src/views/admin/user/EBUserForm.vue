@@ -51,7 +51,7 @@
 <script>
 import { reactive, ref, toRefs, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { createUser, editUser, getUserDetail, getUserTypeList } from '@/api/admin/user'
+import { createUser, editUser, getUserDetail, getUserTypeList } from '@/api/admin/admin'
 import { regionData } from './regionData'
 import { useRoute } from 'vue-router'
 

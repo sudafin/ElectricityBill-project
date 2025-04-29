@@ -175,7 +175,7 @@
 
 <script setup>
 import { ref, reactive, watch, nextTick, computed ,onMounted} from 'vue';
-import { useUserStore } from '@/store/user.js';
+import { useUserStore } from '@/store/admin.js';
 import { ElMessage } from 'element-plus';
 import {
   UserFilled,
@@ -191,7 +191,7 @@ import {
   Monitor
 } from '@element-plus/icons-vue';
 import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/admin/role.js';
-import { getPublicKey } from '@/api/admin/user.js';
+import { getPublicKey } from '@/api/admin/admin.js';
 import { encryptWithRSA } from '@/utils/encrypt.js';
 
 const userStore = useUserStore()

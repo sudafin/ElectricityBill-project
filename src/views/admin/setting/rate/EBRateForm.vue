@@ -184,7 +184,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Calendar } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { getUserTypeList } from '@/api/admin/user';
+import { getUserTypeList } from '@/api/admin/admin';
 import { getRateDetail, createRate, editRate } from '@/api/admin/rate';
 
 const route = useRoute();

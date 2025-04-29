@@ -295,7 +295,7 @@ import { Odometer } from '@element-plus/icons-vue';
 import EBMeterBindUser from './EBMeterBindUser.vue';
 import { getMeterDetail, createMeter, editMeter, getMeterModel, getMeterInspectionHistory } from '@/api/admin/meter';
 import request from '@/utils/request';
-import { bindMeter } from '@/api/admin/user';
+import { bindMeter } from '@/api/admin/admin';
 
 const route = useRoute();
 const router = useRouter();

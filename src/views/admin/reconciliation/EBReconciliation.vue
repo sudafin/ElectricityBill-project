@@ -128,7 +128,7 @@ import { onMounted, ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Document, Search, InfoFilled, Calendar, Download, User, Odometer } from '@element-plus/icons-vue';
 import { queryPage, queryReconciliationDetail, exportReconciliation } from '@/api/admin/reconciliation.js';
-import { getUserTypeList } from '@/api/admin/user.js';
+import { getUserTypeList } from '@/api/admin/admin.js';
 import { ElMessage } from 'element-plus';
 import { EBFilterBar, EBTable } from '@/components';
 

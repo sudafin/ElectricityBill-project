@@ -85,10 +85,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/store/admin';
 import { ElMessage } from 'element-plus';
 import { encryptWithRSA } from '@/utils/encrypt';
-import { getPublicKey, getCaptcha } from '@/api/admin/user';
+import { getPublicKey, getCaptcha } from '@/api/admin/admin';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = useRouter();
@@ -96,7 +96,7 @@ const userStore = useUserStore();
 
 // 添加切换到用户登录的方法
 const switchToUserLogin = () => {
-  router.push('/userlogin');
+  router.push('/login/user');
 };
 
 const loginForm = reactive({
@@ -177,7 +177,7 @@ const handleLogin = async () => {
           key: loginForm.uuid,
           rememberMe: loginForm.rememberMe
         });
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       } catch (error) {
         ElMessage.error('登录失败');
       }

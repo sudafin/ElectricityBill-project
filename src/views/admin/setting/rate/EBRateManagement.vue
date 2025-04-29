@@ -101,7 +101,7 @@ import {
   queryRatePage, 
   deleteRate 
 } from '@/api/admin/rate';
-import { getUserTypeList } from '@/api/admin/user';
+import { getUserTypeList } from '@/api/admin/admin';
 
 const router = useRouter();
 

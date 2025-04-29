@@ -7,7 +7,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import EBBasicLayout from '@/layouts/EBAdminLayout.vue'; // 管理主页面
-import EBLogin from '@/views/login/EBLogin.vue'; // 登录页面
+import EBLogin from '@/views/login/EBAdminLogin.vue'; // 登录页面
 import EBBlankLayout from '@/layouts/EBBlankLayout.vue'; // 空白页面
 
 

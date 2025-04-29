@@ -114,8 +114,8 @@ import {
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from './EBRoleUserForm.vue';
 import { getAdminList, deleteAdmin, updateStatus, getPermissionList, getAdminDetail, getRoleList } from '@/api/admin/role.js';
-import { getPublicKey } from '@/api/admin/user.js';
-import { useUserStore } from '@/store/user.js';
+import { getPublicKey } from '@/api/admin/admin.js';
+import { useUserStore } from '@/store/admin.js';
 import { EBFilterBar, EBTable } from '@/components';
 
 const userStore = useUserStore();

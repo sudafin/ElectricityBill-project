@@ -1,37 +1,27 @@
 import { defineStore } from 'pinia';
-import { login } from '@/api/user/user';
-import { logout, refreshAccessToken } from '@/api/admin/admin';
-import { setToken, removeToken, getToken, setUserInfo, removeUserInfo, getUserInfo, setRefreshToken, removeRefreshToken } from '@/utils/auth';
+import { login, logout, refreshAccessToken } from '@/api/admin/admin';
+import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo,setRefreshToken, removeRefreshToken } from '@/utils/auth';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: getToken() || '',
-    userInfo: getUserInfo() || {},
+    adminInfo: getAdminInfo() || {},
     publicKey: '',
   }),
-  
-  getters: {
-    userId: (state) => state.userInfo?.userId,
-    userName: (state) => state.userInfo?.userName,
-    isLoggedIn: (state) => !!state.token,
-  },
-  
   actions: {
     // 登录
     async login(loginForm) {
       try {
         const res = await login(loginForm);
-        this.token = res.token;
-        this.userInfo = res.userDTO;
+        this.token = res.token;;
+        this.adminInfo = res.adminDTO;
         setToken(res.token);
-        setUserInfo(res.userDTO);
+        setAdminInfo(res.adminDTO);
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);
       }
     },
-    
-    // 刷新令牌
     async refreshLogin() {
       try {
         const res = await refreshAccessToken();
@@ -42,23 +32,21 @@ export const useUserStore = defineStore('user', {
         return Promise.reject(error);
       }
     },
-    
     // 退出登录
     async logout() {
       try {
         await logout();
         this.token = '';
-        this.userInfo = {};
+        this.refreshToken = '';
+        this.adminInfo = {};
         removeToken();
         removeRefreshToken();
-        removeUserInfo();
+        removeAdminInfo();
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);
       }
     },
-    
-    // 设置公钥
     setPublicKey(publicKey) {
       this.publicKey = publicKey;
     },

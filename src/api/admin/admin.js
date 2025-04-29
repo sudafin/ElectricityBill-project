@@ -7,7 +7,7 @@ import request from '@/utils/request';
  */
 export function login(data) {
   return request({
-    url: '/login/login',
+    url: '/login/admin',
     method: 'post',
     data,
   });

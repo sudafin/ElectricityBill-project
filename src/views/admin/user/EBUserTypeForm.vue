@@ -38,7 +38,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import { addUserType } from '@/api/admin/user.js';
+import { addUserType } from '@/api/admin/admin.js';
 
 const props = defineProps({
   visible: {

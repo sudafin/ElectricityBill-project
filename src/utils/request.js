@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getToken, removeToken, removeAdminInfo } from '@/utils/auth';
 import router from '@/router';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '@/store/admin';
 
 const BASE_URL = '/api';
 

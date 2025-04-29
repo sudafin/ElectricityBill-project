@@ -65,7 +65,7 @@
 import { ref, reactive } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
-import { getUserInfoByIdCard, bindMeter } from '@/api/admin/user';
+import { getUserInfoByIdCard, bindMeter } from '@/api/admin/admin';
 
 const props = defineProps({
   meter: {
