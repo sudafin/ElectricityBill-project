@@ -43,12 +43,13 @@ import { Bell } from '@element-plus/icons-vue';
 import { ElMessageBox, ElButton } from 'element-plus';
 import EBUserSidebar from '@/components/EBUserSidebar.vue';
 import { getUnreadCount } from '@/api/user/notification';
-
+import { useUserStore } from '@/store/user';
 // 确保组件已正确注册
 const components = {
   EBUserSidebar
 };
 
+const userStore = useUserStore();
 const router = useRouter();
 const route = useRoute();
 const unreadCount = ref(0);
@@ -120,8 +121,8 @@ const confirmLogout = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    localStorage.removeItem('token');
-    router.push('/login');
+    userStore.logout();
+    router.push('/login/user');
   }).catch(() => { });
 };
 
