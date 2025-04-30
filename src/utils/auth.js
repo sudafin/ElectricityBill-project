@@ -27,7 +27,15 @@ export function removeRefreshToken() {
 
 export function getAdminInfo() {
   const adminInfo = Cookies.get(AdminInfoKey);
-  return adminInfo ? JSON.parse(adminInfo) : null;
+  if (adminInfo && adminInfo !== "undefined" && adminInfo !== "null") {
+    try {
+      return JSON.parse(adminInfo);
+    } catch (e) {
+      console.error('解析管理员信息失败:', e);
+      return null;
+    }
+  }
+  return null;
 }
 
 export function setAdminInfo(adminInfo) {
@@ -40,7 +48,15 @@ export function removeAdminInfo() {
 
 export function getUserInfo() {
   const userInfo = Cookies.get(UserInfoKey);
-  return userInfo ? JSON.parse(userInfo) : null;
+  if (userInfo && userInfo !== "undefined" && userInfo !== "null") {
+    try {
+      return JSON.parse(userInfo);
+    } catch (e) {
+      console.error('解析用户信息失败:', e);
+      return null;
+    }
+  }
+  return null;
 }
 
 export function setUserInfo(userInfo) {

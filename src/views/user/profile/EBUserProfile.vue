@@ -102,6 +102,12 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowRight } from '@element-plus/icons-vue';
 import { getUserProfile, updateUserProfile, changePassword as changePasswordApi } from '@/api/user/profile';
+import { getPublicKey } from '@/api/user/user';
+import { encryptWithRSA } from '@/utils/encrypt';
+import { useUserStore } from '@/store/user';
+import router from '@/router';
+// 获取用户store
+const userStore = useUserStore();
 
 // 组件状态
 const loading = ref(false);
@@ -144,7 +150,7 @@ const passwordRules = {
   ],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, message: '密码长度不能少于8个字符', trigger: 'blur' }
+    { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },
@@ -166,9 +172,7 @@ const loadUserInfo = async () => {
   loading.value = true;
   
   try {
-    console.log('开始获取用户信息...');
     const response = await getUserProfile();
-    console.log('用户信息响应:', JSON.stringify(response));
     
     // 直接使用响应数据，不检查code字段
     if (response) {
@@ -185,7 +189,7 @@ const loadUserInfo = async () => {
                                          response.billReminder ?? true;
       notificationSettings.paymentReminder = response.notificationSettings?.paymentReminder ?? 
                                            response.paymentReminder ?? true;
-                                           
+
       console.log('用户信息加载成功');
     } else {
       console.error('获取用户信息响应异常:', response);
@@ -257,19 +261,44 @@ const changePassword = async () => {
       passwordChanging.value = true;
       
       try {
+        // 获取公钥 - 优先使用store中存储的公钥，没有则重新获取
+        let publicKey = userStore.publicKey;
+        if (!publicKey) {
+          publicKey = await getPublicKey();
+          userStore.setPublicKey(publicKey);
+        }
+        
+        // 使用RSA加密密码
+        const encryptedCurrentPassword = encryptWithRSA(passwordForm.currentPassword, publicKey);
+        const encryptedNewPassword = encryptWithRSA(passwordForm.newPassword, publicKey);
+        
         const passwordData = {
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-          confirmPassword: passwordForm.confirmPassword
+          currentPassword: encryptedCurrentPassword,
+          newPassword: encryptedNewPassword,
+          confirmPassword: encryptedNewPassword // 后端可能不需要，但为保持一致也加密
         };
         
         console.log('开始修改密码...');
         const response = await changePasswordApi(passwordData);
-        console.log('修改密码响应:', JSON.stringify(response));
+        debugger;
+        if(response.code && response.code === 400){
+          ElMessage.error(response.msg);
+          return;
+        }else{
+          // 无需检查code，直接处理成功情况
+          ElMessage.success('密码修改成功');
+          passwordDialogVisible.value = false;
+
+          //清楚token
+          userStore.logout();
+          // 跳转登录页面
+          router.push('/login/user');
+      
+          //刷新页面
+          window.location.reload();
         
-        // 无需检查code，直接处理成功情况
-        ElMessage.success('密码修改成功');
-        passwordDialogVisible.value = false;
+        }
+        
       } catch (error) {
         console.error('密码修改失败:', error);
         ElMessage.error('密码修改失败，请稍后重试');
