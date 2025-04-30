@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { login, logout, refreshAccessToken } from '@/api/admin/admin';
-import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo,setRefreshToken, removeRefreshToken } from '@/utils/auth';
+import { setAdminToken, getAdminToken, removeAdminToken, setAdminInfo, removeAdminInfo, getAdminInfo, setAdminRefreshToken, removeAdminRefreshToken } from '@/utils/auth';
 
-export const useAdminStore = defineStore('user', {
+export const useAdminStore = defineStore('admin', {
   state: () => ({
-    token: getToken() || '',
+    token: getAdminToken() || '',
     adminInfo: getAdminInfo() || {},
     publicKey: '',
   }),
@@ -13,9 +13,9 @@ export const useAdminStore = defineStore('user', {
     async login(loginForm) {
       try {
         const res = await login(loginForm);
-        this.token = res.token;;
+        this.token = res.token;
         this.adminInfo = res.adminDTO;
-        setToken(res.token);
+        setAdminToken(res.token);
         setAdminInfo(res.adminDTO);
         return Promise.resolve();
       } catch (error) {
@@ -26,7 +26,7 @@ export const useAdminStore = defineStore('user', {
       try {
         const res = await refreshAccessToken();
         this.token = res;
-        setToken(res);
+        setAdminToken(res);
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);
@@ -37,10 +37,9 @@ export const useAdminStore = defineStore('user', {
       try {
         await logout();
         this.token = '';
-        this.refreshToken = '';
         this.adminInfo = {};
-        removeToken();
-        removeRefreshToken();
+        removeAdminToken();
+        removeAdminRefreshToken();
         removeAdminInfo();
         return Promise.resolve();
       } catch (error) {

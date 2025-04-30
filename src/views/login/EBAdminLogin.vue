@@ -177,6 +177,8 @@ const handleLogin = async () => {
           key: loginForm.uuid,
           rememberMe: loginForm.rememberMe
         });
+        // 刷新页面
+        window.location.reload();
         router.push('/admin/dashboard');
       } catch (error) {
         ElMessage.error('登录失败');

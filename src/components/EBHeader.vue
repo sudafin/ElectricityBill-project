@@ -31,26 +31,55 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/store/admin'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { SwitchButton } from '@element-plus/icons-vue'
+import { removeAdminToken, removeAdminInfo, removeAdminRefreshToken } from '@/utils/auth'
 
 const router = useRouter()
 const adminStore = useAdminStore()
 // 使用假数据替换用户名和角色
 const adminInfo = ref({
-  username: adminStore.adminInfo.userName,
-  role: adminStore.adminInfo.roleName,
+  username: adminStore.adminInfo.userName || '管理员',
+  role: adminStore.adminInfo.roleName || '未知角色',
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
 })
 
 const handleLogout = async () => {
   try {
-    await adminStore.logout()
-    ElMessage.success('退出登录成功')
-    router.push('/login/admin')
-    window.location.reload();
+    // 使用确认对话框
+    ElMessageBox.confirm('确定要退出登录吗?', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(async () => {
+      try {
+        // 调用 store 的 logout 方法
+        await adminStore.logout()
+        
+        // 额外确保所有 token 和信息都被清除
+        removeAdminToken()
+        removeAdminRefreshToken()
+        removeAdminInfo()
+        
+        ElMessage.success('退出登录成功')
+        
+        // 先导航到登录页，再在导航完成后刷新页面
+        router.push('/login/admin').then(() => {
+          // 可选：延迟一小段时间后刷新页面，确保路由导航已完成
+          setTimeout(() => {
+            window.location.reload()
+          }, 100)
+        })
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        ElMessage.error('退出登录失败，请重试')
+      }
+    }).catch(() => {
+      // 用户取消退出登录操作
+      ElMessage.info('已取消退出操作')
+    })
   } catch (error) {
-    console.error('退出登录失败:', error)
+    console.error('退出登录对话框错误:', error)
   }
 }
 </script>

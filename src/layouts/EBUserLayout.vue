@@ -40,10 +40,11 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Bell } from '@element-plus/icons-vue';
-import { ElMessageBox, ElButton } from 'element-plus';
+import { ElMessageBox, ElButton, ElMessage } from 'element-plus';
 import EBUserSidebar from '@/components/EBUserSidebar.vue';
 import { getUnreadCount } from '@/api/user/notification';
 import { useUserStore } from '@/store/user';
+import { removeUserToken, removeUserRefreshToken, removeUserInfo } from '@/utils/auth';
 // 确保组件已正确注册
 const components = {
   EBUserSidebar
@@ -120,10 +121,34 @@ const confirmLogout = () => {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    userStore.logout();
-    router.push('/login/user');
-  }).catch(() => { });
+  }).then(async () => {
+    try {
+      // 先清除token和状态
+      removeUserToken();
+      removeUserRefreshToken();
+      removeUserInfo();
+      
+      // 更新store状态
+      userStore.token = '';
+      userStore.userInfo = {};
+      
+      // 显示成功消息
+      ElMessage.success('退出登录成功');
+      
+      // 使用window.location.href直接跳转到登录页面，强制刷新页面
+      window.location.href = '/login/user';
+      
+      // 在后台调用logout API，不等待其完成
+      userStore.logout().catch(error => {
+        console.error('退出登录API调用失败:', error);
+      });
+    } catch (error) {
+      console.error('退出登录失败:', error);
+      ElMessage.error('退出登录失败，请重试');
+    }
+  }).catch(() => { 
+    // 用户取消退出
+  });
 };
 
 onMounted(() => {

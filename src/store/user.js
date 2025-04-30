@@ -1,11 +1,20 @@
 import { defineStore } from 'pinia';
 import { login } from '@/api/user/user';
 import { logout, refreshAccessToken } from '@/api/admin/admin';
-import { setToken, removeToken, getToken, setUserInfo, removeUserInfo, getUserInfo, setRefreshToken, removeRefreshToken } from '@/utils/auth';
+import { 
+  getUserToken, 
+  setUserToken, 
+  removeUserToken, 
+  setUserInfo, 
+  removeUserInfo, 
+  getUserInfo, 
+  setUserRefreshToken, 
+  removeUserRefreshToken 
+} from '@/utils/auth';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    token: getToken() || '',
+    token: getUserToken() || '',
     userInfo: getUserInfo() || {},
     publicKey: '',
   }),
@@ -23,7 +32,7 @@ export const useUserStore = defineStore('user', {
         const res = await login(loginForm);
         this.token = res.token;
         this.userInfo = res.userDTO;
-        setToken(res.token);
+        setUserToken(res.token);
         setUserInfo(res.userDTO);
         return Promise.resolve();
       } catch (error) {
@@ -36,7 +45,7 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await refreshAccessToken();
         this.token = res;
-        setToken(res);
+        setUserToken(res);
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);
@@ -49,8 +58,8 @@ export const useUserStore = defineStore('user', {
         await logout();
         this.token = '';
         this.userInfo = {};
-        removeToken();
-        removeRefreshToken();
+        removeUserToken();
+        removeUserRefreshToken();
         removeUserInfo();
         return Promise.resolve();
       } catch (error) {

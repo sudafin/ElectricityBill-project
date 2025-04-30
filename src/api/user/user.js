@@ -26,12 +26,39 @@ export function getCaptcha(uuid) {
   });
 }
 
-// 登录
+/**
+ * 用户登录
+ * @param {Object} data 登录信息
+ * @returns {Promise} 返回Promise对象
+ */
 export function login(data) {
   return request({
     url: '/login/user',
     method: 'post',
     data,
+  });
+}
+
+/**
+ * 用户退出登录
+ * @returns {Promise} 返回Promise对象
+ */
+export function logout() {
+  return request({
+    url: '/login/logout',
+    method: 'post',
+  });
+}
+
+/**
+ * 刷新访问令牌
+ * @returns {Promise} 返回Promise对象
+ */
+export function refreshAccessToken() {
+  return request({
+    url: '/login/refresh',
+    method: 'get',
+    withCredentials: true
   });
 }
 
