@@ -175,7 +175,7 @@
 
 <script setup>
 import { ref, reactive, watch, nextTick, computed ,onMounted} from 'vue';
-import { useUserStore } from '@/store/admin.js';
+import { useAdminStore } from '@/store/admin.js';
 import { ElMessage } from 'element-plus';
 import {
   UserFilled,
@@ -194,7 +194,7 @@ import { createRoleOrAdmin,editAdmin,getRoleList } from '@/api/admin/role.js';
 import { getPublicKey } from '@/api/admin/admin.js';
 import { encryptWithRSA } from '@/utils/encrypt.js';
 
-const userStore = useUserStore()
+const adminStore = useAdminStore()
 const props = defineProps({
   visible: Boolean,
   editData: Object,
@@ -447,7 +447,7 @@ const submitForm = async () => {
             const submitData = {
               account: adminForm.account,
               role: adminForm.adminRole,
-              password: adminForm.password ? encryptWithRSA(adminForm.password, userStore.publicKey) : '',
+              password: adminForm.password ? encryptWithRSA(adminForm.password, adminStore.publicKey) : '',
             };
             const res = await editAdmin(props.editData.adminId,submitData);
             if(res.code === 200){   
@@ -457,11 +457,11 @@ const submitForm = async () => {
               emit('success',"execSuccess", submitData, isEdit.value);
               closeDialog();
             }else if(res.code === 401){
-              await userStore.logout()
+              await adminStore.logout()
               ElMessage.success(res.msg)
               closeDialog();
               //跳转到登录页面
-              router.push('/login');
+              router.push('/login/admin');
             }else{
               ElMessage.error(res.msg);
             }

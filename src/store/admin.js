@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { login, logout, refreshAccessToken } from '@/api/admin/admin';
 import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo,setRefreshToken, removeRefreshToken } from '@/utils/auth';
 
-export const useUserStore = defineStore('user', {
+export const useAdminStore = defineStore('user', {
   state: () => ({
     token: getToken() || '',
     adminInfo: getAdminInfo() || {},

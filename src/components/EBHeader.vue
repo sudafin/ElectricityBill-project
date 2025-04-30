@@ -30,24 +30,25 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store/admin'
+import { useAdminStore } from '@/store/admin'
 import { ElMessage } from 'element-plus'
 import { SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const userStore = useUserStore()
+const adminStore = useAdminStore()
 // 使用假数据替换用户名和角色
 const adminInfo = ref({
-  username: userStore.adminInfo.userName,
-  role: userStore.adminInfo.roleName,
+  username: adminStore.adminInfo.userName,
+  role: adminStore.adminInfo.roleName,
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
 })
 
 const handleLogout = async () => {
   try {
-    await userStore.logout()
+    await adminStore.logout()
     ElMessage.success('退出登录成功')
-    router.push('/login')
+    router.push('/login/admin')
+    window.location.reload();
   } catch (error) {
     console.error('退出登录失败:', error)
   }

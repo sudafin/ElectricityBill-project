@@ -111,7 +111,6 @@ export function exportBills(params) {
   return request({
     url: '/admin/bill/export',
     method: 'get',
-    params,
     responseType: 'blob'
   });
 }

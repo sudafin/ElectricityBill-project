@@ -115,10 +115,10 @@ import {
 import EBRoleUserForm from './EBRoleUserForm.vue';
 import { getAdminList, deleteAdmin, updateStatus, getPermissionList, getAdminDetail, getRoleList } from '@/api/admin/role.js';
 import { getPublicKey } from '@/api/admin/admin.js';
-import { useUserStore } from '@/store/admin.js';
+import { useAdminStore } from '@/store/admin.js';
 import { EBFilterBar, EBTable } from '@/components';
 
-const userStore = useUserStore();
+const adminStore = useAdminStore();
 // 表格数据
 const loading = ref(false);
 const adminList = ref([]);
@@ -229,7 +229,7 @@ onMounted(async () => {
     await getRoleOptions();
     await fetchAdminList(1, true);
     const publicKey = await getPublicKey();
-    userStore.setPublicKey(publicKey);
+    adminStore.setPublicKey(publicKey);
   } catch (error) {
     console.error('初始化数据时出错:', error);
   }

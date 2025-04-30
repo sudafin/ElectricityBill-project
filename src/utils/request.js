@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getToken, removeToken, removeAdminInfo } from '@/utils/auth';
 import router from '@/router';
-import { useUserStore } from '@/store/admin';
+import { useAdminStore } from '@/store/admin';
 
 const BASE_URL = '/api';
 
@@ -67,7 +67,7 @@ service.interceptors.response.use(
   },
   async (error) => {
     const { config, response } = error;
-    const userStore = useUserStore();
+    const userStore = useAdminStore();
     // 检查是否因为accessToken过期引起的401错误
     if (response && response.status === 401 && !config._retry) {
       config._retry = true; // 标记这个请求已经尝试过刷新token

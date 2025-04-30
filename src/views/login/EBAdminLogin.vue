@@ -85,14 +85,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/admin';
+import { useAdminStore } from '@/store/admin';
 import { ElMessage } from 'element-plus';
 import { encryptWithRSA } from '@/utils/encrypt';
 import { getPublicKey, getCaptcha } from '@/api/admin/admin';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = useRouter();
-const userStore = useUserStore();
+const adminStore = useAdminStore();
 
 // 添加切换到用户登录的方法
 const switchToUserLogin = () => {
@@ -156,7 +156,7 @@ const refreshCaptcha = () => {
 onMounted(async () => {
   try {
     const publicKey = await fetchPublicKey();
-    userStore.setPublicKey(publicKey);
+    adminStore.setPublicKey(publicKey);
     fetchCaptcha();
   } catch (error) {
     ElMessage.error('网络出现问题,请刷新页面重试');
@@ -169,8 +169,8 @@ const handleLogin = async () => {
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        const encryptedPassword = encryptWithRSA(loginForm.password, userStore.publicKey);
-        await userStore.login({
+        const encryptedPassword = encryptWithRSA(loginForm.password, adminStore.publicKey);
+        await adminStore.login({
           account: loginForm.account,
           password: encryptedPassword,
           code: loginForm.captcha,
