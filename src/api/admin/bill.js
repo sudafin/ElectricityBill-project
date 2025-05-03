@@ -20,7 +20,7 @@ export function getBillList(params) {
  */
 export function getBillDetail(id) {
   return request({
-    url: `/admin/bill/${id}`,
+    url: `/admin/bill/detail /${id}`,
     method: 'get'
   });
 }

@@ -64,12 +64,7 @@ const handleLogout = async () => {
         ElMessage.success('退出登录成功')
         
         // 先导航到登录页，再在导航完成后刷新页面
-        router.push('/login/admin').then(() => {
-          // 可选：延迟一小段时间后刷新页面，确保路由导航已完成
-          setTimeout(() => {
-            window.location.reload()
-          }, 100)
-        })
+        router.push('/login/admin')
       } catch (error) {
         console.error('退出登录失败:', error)
         ElMessage.error('退出登录失败，请重试')

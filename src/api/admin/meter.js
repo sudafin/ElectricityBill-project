@@ -29,7 +29,7 @@ export function queryMeterPage(params) {
  */
 export function getMeterDetail(meterId) {
   return request({
-    url: `/admin/meter/${meterId}`,
+    url: `/admin/meter/detail/${meterId}`,
     method: 'get'
   });
 }

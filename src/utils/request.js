@@ -1,6 +1,10 @@
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getToken, getUserToken, getAdminToken, removeToken, removeAdminInfo, removeUserInfo } from '@/utils/auth';
+import { 
+  getToken, getUserToken, getAdminToken,
+  removeUserToken, removeUserRefreshToken, removeUserInfo,
+  removeAdminToken, removeAdminRefreshToken, removeAdminInfo 
+} from '@/utils/auth';
 import router from '@/router';
 import { useAdminStore } from '@/store/admin';
 import { useUserStore } from '@/store/user';
@@ -113,7 +117,54 @@ service.interceptors.response.use(
       console.error('获取store失败', e);
     }
     
-    // 检查是否因为accessToken过期引起的401错误
+    // 处理特定的无效token错误信息
+    const isInvalidTokenError = response && 
+      (response.status === 401 || response.status === 403) && 
+      response.data && 
+      (response.data.msg === 'Unauthorized: Invalid token' || 
+       response.data.message === 'Unauthorized: Invalid token' ||
+       (typeof response.data === 'string' && response.data.includes('Invalid token')));
+       
+    if (isInvalidTokenError) {
+      console.log('检测到无效token错误，准备重置登录状态');
+      // 直接重置状态并跳转登录页面，不尝试刷新token
+      ElMessage.error('登录已失效，请重新登录');
+      
+      // 根据请求类型清除对应的token和状态
+      if (config && isAdminRequest(config)) {
+        // 清除管理员token和状态
+        removeAdminToken();
+        removeAdminRefreshToken();
+        removeAdminInfo();
+        
+        // 重置管理员store状态
+        if (store) {
+          store.token = '';
+          store.adminInfo = {};
+        }
+        
+        // 使用window.location跳转，确保完全刷新页面
+        window.location.href = '/login/admin';
+      } else {
+        // 清除用户token和状态
+        removeUserToken();
+        removeUserRefreshToken();
+        removeUserInfo();
+        
+        // 重置用户store状态
+        if (store) {
+          store.token = '';
+          store.userInfo = {};
+        }
+        
+        // 使用window.location跳转，确保完全刷新页面
+        window.location.href = '/login/user';
+      }
+      
+      return Promise.reject(new Error('登录已失效'));
+    }
+    
+    // 处理常规401错误（尝试刷新token）
     if (response && response.status === 401 && !config._retry && store) {
       config._retry = true; // 标记这个请求已经尝试过刷新token
       try {
@@ -122,20 +173,32 @@ service.interceptors.response.use(
       } catch (refreshError) {
         // refreshToken也无效或者获取新token失败
         ElMessage.error('登录信息已过期，请重新登录');
-        await store.logout(); // 清除本地登录状态
         
-        // 根据当前是管理员还是用户决定跳转到对应的登录页
+        // 根据当前是管理员还是用户分别处理
         if (isAdminRequest(config)) {
-          router.push('/login/admin');
+          // 清除管理员token和状态
+          removeAdminToken();
+          removeAdminRefreshToken();
+          removeAdminInfo();
+          
+          // 跳转到管理员登录页面
+          window.location.href = '/login/admin';
         } else {
-          router.push('/login/user');
+          // 清除用户token和状态
+          removeUserToken();
+          removeUserRefreshToken();
+          removeUserInfo();
+          
+          // 跳转到用户登录页面
+          window.location.href = '/login/user';
         }
+        
         return Promise.reject(refreshError);
       }
     } else if (response && response.status === 500) {
       ElMessage.error(response.data?.msg || '服务器错误');
       return Promise.reject(new Error(response.data?.msg || '服务器错误'));
-    } else if (response && response.status === 403) { 
+    } else if (response && response.status === 403 && !isInvalidTokenError) { 
       ElMessage.error("该账号无权限操作");
       // 不用往后面传递错误信息
       return Promise.reject(new Error(response.data?.msg || '无权限操作'));

@@ -11,7 +11,7 @@ import request from '@/utils/request';
  */
 export function exportReport(params) {
   return request({
-    url: '/admin/reports/export',
+    url: '/admin/report/export',
     method: 'get',
     params,
     responseType: 'blob'

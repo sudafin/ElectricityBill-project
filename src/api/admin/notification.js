@@ -97,7 +97,7 @@ export function fetchNotificationDetail(id) {
  */
 export function createNotification(data) {
   return request({
-    url: '/admin/notification',
+    url: '/admin/notification/create',
     method: 'post',
     data
   });

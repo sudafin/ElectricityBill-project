@@ -25,7 +25,7 @@
         </el-form-item>
         <el-form-item label="类型" prop="type" >
           <el-select v-model="form.type" placeholder="请选择通知类型" style="width: 200px;">
-            <el-option label="公告" value="公告"></el-option>
+            <el-option label="公告通知" value="公告通知"></el-option>
             <el-option label="内部通知" value="内部通知"></el-option>
           </el-select>
         </el-form-item>

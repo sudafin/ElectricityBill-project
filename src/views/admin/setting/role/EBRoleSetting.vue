@@ -140,12 +140,36 @@ const roleUserFormVisible = ref(false);
 const roleOptions = ref([]);
 // 获取角色列表
 const getRoleOptions = async () => {
-  const res = await getRoleList();
-  roleOptions.value = res;
+  try {
+    const res = await getRoleList();
+    roleOptions.value = res;
+    
+    // 更新筛选条件的角色选项
+    if (res && res.length > 0) {
+      // 构建新的角色选项数组，保留"全部"选项
+      const roleFilterOptions = [
+        { label: '全部', value: '' }
+      ];
+      
+      // 将API返回的角色数据添加到选项中
+      res.forEach(role => {
+        roleFilterOptions.push({
+          label: role.label,
+          value: role.value
+        });
+      });
+      
+      // 更新筛选配置中的角色选项
+      filterConfig.value[1].options = roleFilterOptions;
+    }
+  } catch (error) {
+    console.error('获取角色列表失败:', error);
+    ElMessage.error('获取角色列表失败');
+  }
 };
 
 // 筛选条件配置
-const filterConfig = [
+const filterConfig = ref([
   {
     type: 'input',
     field: 'searchText',
@@ -157,10 +181,7 @@ const filterConfig = [
     field: 'searchRole',
     label: '角色',
     options: [
-      { label: '全部', value: '' },
-      { label: '系统管理员', value: '系统管理员' },
-      { label: '运营人员', value: '运营人员' },
-      { label: '操作员', value: '操作员' }
+      { label: '全部', value: '' }
     ]
   },
   {
@@ -168,7 +189,7 @@ const filterConfig = [
     field: 'dateRange',
     label: '创建时间'
   }
-];
+]);
 
 // 初始值
 const initialFilterValues = {
@@ -226,7 +247,9 @@ const fetchAdminList = async (page = currentPage.value, shouldResetPage = false)
 
 onMounted(async () => {
   try {
+    // 先获取角色列表，这样筛选条件能立即更新
     await getRoleOptions();
+    // 再获取管理员列表
     await fetchAdminList(1, true);
     const publicKey = await getPublicKey();
     adminStore.setPublicKey(publicKey);
