@@ -14,9 +14,9 @@ export const useAdminStore = defineStore('admin', {
       try {
         const res = await login(loginForm);
         this.token = res.token;
-        this.adminInfo = res.adminDTO;
+        this.adminInfo = res.loginDTO;
         setAdminToken(res.token);
-        setAdminInfo(res.adminDTO);
+        setAdminInfo(res.loginDTO);
         return Promise.resolve();
       } catch (error) {
         return Promise.reject(error);

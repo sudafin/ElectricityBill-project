@@ -103,8 +103,8 @@ const currentPageTitle = computed(() => {
 // 获取未读通知数量
 const fetchUnreadCount = async () => {
   try {
-    const { data } = await getUnreadCount();
-    unreadCount.value = data;
+    const res = await getUnreadCount();
+    unreadCount.value = res;
   } catch (error) {
     console.error('获取未读通知数量失败:', error);
   }
@@ -152,10 +152,9 @@ const confirmLogout = () => {
 };
 
 onMounted(() => {
-  //5秒后再获取未读通知数量
   setTimeout(() => {
     fetchUnreadCount();
-  }, 5000);
+  }, 3000);
 });
 
 </script>
@@ -220,6 +219,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   height: 40px;
+  font-size: 16px;
 }
 
 .notification-badge {
@@ -227,6 +227,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   height: 100%;
+  font-size: 16px;
+  padding-right: 10px;
 }
 
 .notification-badge :deep(.el-icon) {
