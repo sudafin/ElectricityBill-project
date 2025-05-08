@@ -10,7 +10,7 @@ export function getAdminList(params) {
 
 export function deleteAdmin(Ids) {
   return request({
-    url: '/role/delete',
+    url: '/admin/role/delete',
     method: 'delete',
     params: {
       ids: Ids
@@ -70,5 +70,22 @@ export function getRoleList(){
   return request({
     url: '/admin/role/roleList',
     method: 'get',
+  });
+}
+
+/**
+ * 修改角色信息
+ * @param {Object} data - 角色修改数据
+ * @param {string} data.oldRoleName - 原角色名称
+ * @param {string} data.newRoleName - 新角色名称
+ * @param {string} data.roleDesc - 角色描述
+ * @param {string} data.icon - 角色图标
+ * @returns {Promise} 返回Promise对象，包含修改结果
+ */
+export function updateRole(data) {
+  return request({
+    url: '/admin/role/updateRole',
+    method: 'put',
+    data
   });
 }

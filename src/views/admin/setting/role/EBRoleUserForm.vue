@@ -48,38 +48,40 @@
               </template>
             </el-input>
           </el-form-item>
+          <template v-if="!isEdit">
           <el-form-item 
             label="密码" 
             prop="password"
           >
-            <el-input 
-              v-model="adminForm.password" 
-              type="password" 
-              placeholder="请输入密码"
-              class="glass-input"
-              show-password
+              <el-input 
+                v-model="adminForm.password" 
+                type="password" 
+                placeholder="请输入密码"
+                class="glass-input"
+                show-password
+              >
+                <template #prefix>
+                  <el-icon><Lock /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+            <el-form-item 
+              label="确认密码" 
+              prop="confirmPassword"
             >
-              <template #prefix>
-                <el-icon><Lock /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item 
-            label="确认密码" 
-            prop="confirmPassword"
-          >
-            <el-input 
-              v-model="adminForm.confirmPassword" 
-              type="password" 
-              placeholder="请再次输入密码"
-              class="glass-input"
-              show-password
-            >
-              <template #prefix>
-                <el-icon><Key /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
+              <el-input 
+                v-model="adminForm.confirmPassword" 
+                type="password" 
+                placeholder="请再次输入密码"
+                class="glass-input"
+                show-password
+              >
+                <template #prefix>
+                  <el-icon><Key /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
           <el-form-item label="角色" prop="role">
             <el-select 
               v-model="adminForm.adminRole" 
@@ -101,6 +103,7 @@
               </el-option>
             </el-select>
           </el-form-item>
+        </template>
         </el-form>
       </el-tab-pane>
       <el-tab-pane name="role">

@@ -25,7 +25,7 @@
             size="default"
             @click="handleAddRole"
           >
-            <el-icon><Plus /></el-icon>新增角色
+            <el-icon><Plus /></el-icon>新增角色或管理员
           </el-button>
           <el-button 
             type="danger" 
@@ -80,6 +80,7 @@
           <!-- 操作列 -->
           <template #actions="{ row }">
             <el-button type="primary" link size="small" @click="handleEdit(row)">查看</el-button>
+            <el-button type="warning" link size="small" @click="handleModifyRole(row)">修改</el-button>
             <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
             <el-button type="primary" link size="small" @click="handleUpdateStatus(row)">
               {{ row.status === 1 ? '禁用' : '启用' }}
@@ -97,11 +98,67 @@
       :role-options="roleOptions"
       @success="handleRoleUserFormSuccess"
     />
+
+    <!-- 修改角色对话框 -->
+    <el-dialog
+      v-model="roleModifyDialogVisible"
+      title="修改角色或密码"
+      width="450px"
+      :close-on-click-modal="false"
+      @closed="resetRoleForm"
+    >
+      <el-form
+        ref="roleFormRef"
+        :model="roleForm"
+        :rules="roleFormRules"
+        label-width="100px"
+        label-position="right"
+      >
+        <el-form-item label="选择角色" prop="role">
+          <el-select v-model="roleForm.role" placeholder="请选择角色" filterable>
+            <el-option
+              v-for="item in roleOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            >
+              <div style="display: flex; align-items: center;">
+                <el-icon class="el-icon--left" v-if="item.icon">
+                  <component :is="item.icon" />
+                </el-icon>
+                <span>{{ item.label }}</span>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="设置新密码" prop="password">
+          <el-input 
+            v-model="roleForm.password" 
+            placeholder="如不需修改密码可留空" 
+            type="password" 
+            show-password
+          />
+        </el-form-item>
+        <div class="form-tip">
+          <el-alert
+            title="提示：您可以同时修改角色和密码，也可以只修改其中一项"
+            type="info"
+            :closable="false"
+            show-icon
+          />
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="roleModifyDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitRoleAndPassword" :loading="roleSubmitting">确定</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { 
   Search, 
@@ -113,10 +170,20 @@ import {
   Setting
 } from '@element-plus/icons-vue';
 import EBRoleUserForm from './EBRoleUserForm.vue';
-import { getAdminList, deleteAdmin, updateStatus, getPermissionList, getAdminDetail, getRoleList } from '@/api/admin/role.js';
+import { 
+  getAdminList, 
+  deleteAdmin, 
+  updateStatus, 
+  getPermissionList, 
+  getAdminDetail, 
+  getRoleList,
+  updateRole,
+  editAdmin
+} from '@/api/admin/role.js';
 import { getPublicKey } from '@/api/admin/admin.js';
 import { useAdminStore } from '@/store/admin.js';
 import { EBFilterBar, EBTable } from '@/components';
+import JSEncrypt from 'jsencrypt';
 
 const adminStore = useAdminStore();
 // 表格数据
@@ -371,6 +438,124 @@ const handleRoleUserFormSuccess = (type, data, isEdit) => {
   if(type === 'execSuccess') {
     fetchAdminList(1, true);
   }
+};
+
+// 修改角色相关
+const roleModifyDialogVisible = ref(false);
+const roleFormRef = ref(null);
+const roleSubmitting = ref(false);
+const roleForm = reactive({
+  role: '',
+  password: ''
+});
+
+const resetRoleForm = () => {
+  roleForm.role = '';
+  roleForm.password = '';
+  if (roleFormRef.value) {
+    roleFormRef.value.resetFields();
+  }
+};
+
+const roleFormRules = {
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  password: [
+    { validator: (rule, value) => {
+      if (value && value.length < 8) {
+        return Promise.reject('密码长度不能小于8位');
+      }
+      return Promise.resolve();
+    }, trigger: 'blur' }
+  ]
+};
+
+// 当前正在修改的用户ID和用户名
+const currentUserId = ref('');
+const currentUserName = ref('');
+const currentUserRole = ref('');
+const publicKey = ref(''); // 存储公钥
+
+// 打开修改角色对话框
+const handleModifyRole = async (row) => {
+  try {
+    // 先获取公钥用于加密密码
+    publicKey.value = await getPublicKey();
+    
+    // 设置当前用户信息
+    currentUserId.value = row.adminId;
+    currentUserName.value = row.account;
+    currentUserRole.value = row.role;
+    roleForm.role = row.role;
+    
+    // 打开对话框
+    roleModifyDialogVisible.value = true;
+  } catch (error) {
+    console.error('获取公钥失败:', error);
+    ElMessage.error('系统错误，无法修改用户信息');
+  }
+};
+
+// 修改用户角色和密码
+const submitRoleAndPassword = async () => {
+  if (!roleFormRef.value) return;
+  
+  await roleFormRef.value.validate(async (valid) => {
+    if (!valid) return;
+    
+    // 检查是否有修改
+    if (!roleForm.password && roleForm.role === currentUserRole.value) {
+      ElMessage.warning('未检测到任何修改');
+      return;
+    }
+    
+    roleSubmitting.value = true;
+    try {
+      // 准备请求数据
+      const requestData = {
+        role: roleForm.role
+      };
+      
+      // 判断是否修改了角色
+      const isRoleChanged = roleForm.role !== currentUserRole.value;
+      
+      // 判断是否修改了密码，如果修改了，使用公钥加密
+      if (roleForm.password) {
+        // 使用JSEncrypt进行RSA加密
+        const jsEncrypt = new JSEncrypt();
+        jsEncrypt.setPublicKey(publicKey.value);
+        requestData.password = jsEncrypt.encrypt(roleForm.password);
+      }
+      
+      // 设置isEditRole标识
+      requestData.isEditRole = isRoleChanged;
+      
+      // 调用编辑API
+      await editAdmin(currentUserId.value, requestData);
+      
+      // 构建成功消息
+      let successMsg = '';
+      if (isRoleChanged && roleForm.password) {
+        successMsg = `已修改用户 ${currentUserName.value} 的角色和密码`;
+      } else if (isRoleChanged) {
+        successMsg = `已将用户 ${currentUserName.value} 的角色修改为 ${roleForm.role}`;
+      } else {
+        successMsg = `已修改用户 ${currentUserName.value} 的密码`;
+      }
+      
+      ElMessage.success(successMsg);
+      roleModifyDialogVisible.value = false;
+      
+      // 重新加载数据
+      await fetchAdminList(1, true);
+    } catch (error) {
+      console.error('修改失败:', error);
+      ElMessage.error('修改失败，请重试');
+    } finally {
+      roleSubmitting.value = false;
+    }
+  });
 };
 </script>
 

@@ -125,7 +125,7 @@
                 {{ row.reconciliationComment || '无' }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" min-width="120" align="center">
+            <!-- <el-table-column label="操作" min-width="120" align="center">
               <template #default="{ row }">
                 <el-button 
                   v-if="row.status === '已支付'" 
@@ -138,7 +138,7 @@
                 </el-button>
                 <span v-else>-</span>
               </template>
-            </el-table-column>
+            </el-table-column> -->
           </el-table>
         </div>
         <el-empty v-else description="暂无支付记录"></el-empty>

@@ -160,7 +160,7 @@ const submitForm = async () => {
           meterId: form.meterId,
           inspectionType: form.inspectionType,
           inspectionTime: form.inspectionTime,
-          inspectionStatus: form.inspectionStatus,
+          status: form.inspectionStatus,
           faultDescription: form.faultDescription,
           solution: form.solution,
           inspectorName: form.inspectorName,
