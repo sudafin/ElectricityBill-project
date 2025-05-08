@@ -23,8 +23,8 @@ const routes = [
             component: () => import('@/views/user/payment/EBUserBillDashBoard.vue'),
             meta: { title: '账单中心', userType: 'user' },
           },
-          { path: 'payment/:id', name: 'UserPayment', component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费', userType: 'user' } },
-          { path: 'detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserBillDetail.vue'), meta: { title: '缴费详情', userType: 'user' } },
+          { path: 'payment/:id', name: 'UserPayment',component: () => import('@/views/user/payment/EBUserPayment.vue'), meta: { title: '缴纳电费', userType: 'user' } },
+          { path: 'bill/detail/:id', name: 'UserPaymentDetail', component: () => import('@/views/user/payment/EBUserBillDetail.vue'), meta: { title: '缴费详情', userType: 'user' } },
           { path: 'notifications', name: 'UserNotifications', component: () => import('@/views/user/notification/EBUserNotifications.vue'), meta: { title: '通知中心', userType: 'user' } },
           { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/profile/EBUserProfile.vue'), meta: { title: '个人信息', userType: 'user' } },
           {

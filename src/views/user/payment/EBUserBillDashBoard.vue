@@ -420,7 +420,7 @@ const loadInitialData = async () => {
 
 // 查看账单详情
 const viewBillDetail = (bill) => {
-  router.push(`/user/payment/detail/${bill.billId}`);
+  router.push(`/user/bill/detail/${bill.billId}`);
 };
 
 // 缴费
