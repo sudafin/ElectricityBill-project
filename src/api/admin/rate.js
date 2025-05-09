@@ -16,7 +16,7 @@ import request from '@/utils/request';
  */
 export function queryRatePage(params) {
   return request({
-    url: '/rate/page',
+    url: '/admin/rate/page',
     method: 'get',
     params
   });
@@ -29,7 +29,7 @@ export function queryRatePage(params) {
  */
 export function getRateDetail(id) {
   return request({
-    url: `/rate/detail/${id}`,
+    url: `/admin/rate/detail/${id}`,
     method: 'get'
   });
 }
@@ -41,7 +41,7 @@ export function getRateDetail(id) {
  */
 export function createRate(data) {
   return request({
-    url: '/rate/create',
+    url: '/admin/rate/create',
     method: 'post',
     data
   });
@@ -55,7 +55,7 @@ export function createRate(data) {
  */
 export function editRate(id, data) {
   return request({
-    url: `/rate/edit/${id}`,
+    url: `/admin/rate/edit/${id}`,
     method: 'put',
     data
   });
@@ -68,7 +68,7 @@ export function editRate(id, data) {
  */
 export function deleteRate(ids) {
   return request({
-    url: '/rate/delete',
+    url: '/admin/rate/delete',
     method: 'delete',
     params: { ids }
   });
@@ -87,7 +87,7 @@ export function deleteRate(ids) {
  */
 export function getRateList(params) {
   return request({
-    url: '/api/rates',
+    url: '/admin/rate/list',
     method: 'get',
     params
   });
@@ -114,7 +114,7 @@ export function getRateList(params) {
  */
 export function addRate(data) {
   return request({
-    url: '/api/rates',
+    url: '/admin/rate/create',
     method: 'post',
     data
   });
@@ -142,7 +142,7 @@ export function addRate(data) {
  */
 export function updateRate(data) {
   return request({
-    url: `/api/rates/${data.id}`,
+    url: `/admin/rate/edit/${data.id}`,
     method: 'put',
     data
   });
@@ -155,7 +155,7 @@ export function updateRate(data) {
  */
 export function batchDeleteRates(ids) {
   return request({
-    url: '/api/rates/batch-delete',
+    url: '/admmnin/rae/batch-delete',
     method: 'post',
     data: {ids: ids }
   });
@@ -169,7 +169,7 @@ export function batchDeleteRates(ids) {
  */
 export function toggleRateStatus(id, status) {
   return request({
-    url: `/api/rates/${id}/toggle-status`,
+    url: `/admin/rate/${id}/toggle-status`,
     method: 'put',
     data: { status }
   });
@@ -182,7 +182,7 @@ export function toggleRateStatus(id, status) {
  */
 export function getCurrentRate(userType) {
   return request({
-    url: '/api/rates/current',
+    url: '/admin/rate/current',
     method: 'get',
     params: { user_type: userType }
   });
@@ -198,7 +198,7 @@ export function getCurrentRate(userType) {
  */
 export function getRateHistory(params) {
   return request({
-    url: '/api/rates/history',
+    url: '/admin/rate/history',
     method: 'get',
     params
   });

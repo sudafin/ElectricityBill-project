@@ -18,7 +18,7 @@ import request from '@/utils/request';
  */
 export function queryPage(params) {
   return request({
-    url: '/reconciliation/page',
+    url: '/admin/reconciliation/page',
     method: 'get',
     params
   });
@@ -31,7 +31,7 @@ export function queryPage(params) {
  */
 export function queryReconciliationDetail(id) {
   return request({
-    url: `/reconciliation/detail/${id}`,
+    url: `/admin/reconciliation/detail/${id}`,
     method: 'get'
   });
 }
@@ -43,7 +43,7 @@ export function queryReconciliationDetail(id) {
  */
 export function queryApprovalReconciliationDetail(id) {
   return request({
-    url: `/reconciliation/approve/detail/${id}`,
+    url: `/admin/reconciliation/approve/detail/${id}`,
     method: 'get'
   });
 }
@@ -58,7 +58,7 @@ export function queryApprovalReconciliationDetail(id) {
  */
 export function approveReconciliation(id, data) {
   return request({
-    url: `/reconciliation/approve/${id}`,
+    url: `/admin/reconciliation/approve/${id}`,
     method: 'put',
     data
   });
@@ -70,7 +70,7 @@ export function approveReconciliation(id, data) {
  */
 export function exportReconciliation() {
   return request({
-    url: '/reconciliation/export',
+    url: '/admin/reconciliation/export',
     method: 'get',
     responseType: 'blob'
   });
