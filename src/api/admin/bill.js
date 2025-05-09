@@ -151,7 +151,7 @@ export function refundBill(data) {
  */
 export function refundPayment(data) {
   return request({
-    url: '/admin/bill/payment/refund',
+    url: '/admin/bill/refund',
     method: 'post',
     data
   });

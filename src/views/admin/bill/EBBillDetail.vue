@@ -84,11 +84,6 @@
       <el-card class="payment-card">
         <div class="card-header">
           <h3>支付详情</h3>
-          <div class="card-actions" v-if="bill.status === '已支付'">
-            <el-button type="danger" size="small" @click="showRefundDialog">
-              <el-icon><Back /></el-icon> 申请退款
-            </el-button>
-          </div>
         </div>
 
         <div v-if="bill.paymentDetailVOList && bill.paymentDetailVOList.length > 0">
@@ -125,10 +120,10 @@
                 {{ row.reconciliationComment || '无' }}
               </template>
             </el-table-column>
-            <!-- <el-table-column label="操作" min-width="120" align="center">
+            <el-table-column label="操作" min-width="120" align="center">
               <template #default="{ row }">
                 <el-button 
-                  v-if="row.status === '已支付'" 
+                  v-if="row.status === '已支付' && (row.reconciliationStatus === '退回')" 
                   type="danger" 
                   link 
                   size="small" 
@@ -136,44 +131,30 @@
                 >
                   申请退款
                 </el-button>
+                <el-tooltip
+                  v-else-if="row.status === '已支付'"
+                  content="只有对账状态为'退回'或未对账的支付才能申请退款"
+                  placement="top"
+                >
+                  <el-button 
+                    type="info" 
+                    link 
+                    size="small" 
+                    disabled
+                  >
+                    申请退款
+                  </el-button>
+                </el-tooltip>
                 <span v-else>-</span>
               </template>
-            </el-table-column> -->
+            </el-table-column>
           </el-table>
         </div>
         <el-empty v-else description="暂无支付记录"></el-empty>
       </el-card>
     </div>
     
-    <!-- 退款对话框 -->
-    <el-dialog
-      v-model="refundDialogVisible"
-      title="申请退款"
-      width="500px"
-    >
-      <el-form :model="refundForm" label-width="100px" ref="refundFormRef" :rules="refundRules">
-        <el-form-item label="账单号">
-          <span>{{ bill?.billId }}</span>
-        </el-form-item>
-        <el-form-item label="支付金额">
-          <span>{{ bill?.totalAmount }} 元</span>
-        </el-form-item>
-        <el-form-item label="退款原因" prop="reason">
-          <el-input 
-            v-model="refundForm.reason" 
-            type="textarea" 
-            :rows="3" 
-            placeholder="请输入退款原因"
-          ></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="refundDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitRefund" :loading="refunding">确认退款</el-button>
-        </span>
-      </template>
-    </el-dialog>
+  
     
     <!-- 支付记录退款对话框 -->
     <el-dialog
@@ -191,18 +172,23 @@
         <el-form-item label="支付方式">
           <span>{{ selectedPayment?.paymentMethod || '未指定' }}</span>
         </el-form-item>
-        <el-form-item label="支付时间">
-          <span>{{ formatDateTime(selectedPayment?.paymentTime) }}</span>
-        </el-form-item>
         <el-form-item label="退款金额" prop="amount">
-          <el-input-number 
-            v-model="paymentRefundForm.amount" 
-            :min="0.01" 
-            :max="paymentMaxAmount"
-            :precision="2" 
-            :step="0.01"
-            style="width: 100%;"
-          ></el-input-number>
+          <div style="display: flex; align-items: center; width: 100%;">
+            <el-input
+              v-model.number="paymentRefundForm.amount"
+              type="number"
+              placeholder="请输入退款金额"
+              style="width: 100%;"
+              :min="0.01"
+              :max="paymentMaxAmount"
+              disabled
+            >
+              <template #append>元</template>
+            </el-input>
+          </div>
+          <div class="amount-hint" style="font-size: 12px; color: #909399; margin-top: 5px;">
+            固定退款金额: {{ paymentRefundForm.amount }} 元
+          </div>
         </el-form-item>
         <el-form-item label="退款原因" prop="reason">
           <el-input 
@@ -279,7 +265,19 @@ const refundRules = {
 
 const paymentRefundRules = {
   amount: [
-    { required: true, message: '请输入退款金额', trigger: 'blur' }
+    { required: true, message: '请输入退款金额', trigger: 'blur' },
+    { 
+      validator: (rule, value, callback) => {
+        console.log('验证退款金额:', value, typeof value);
+        // 由于金额是固定的，简化验证逻辑
+        if (value === '' || value === null || value === undefined) {
+          callback(new Error('退款金额不能为空'));
+        } else {
+          callback();
+        }
+      }, 
+      trigger: 'blur' 
+    }
   ],
   reason: [
     { required: true, message: '请输入退款原因', trigger: 'blur' },
@@ -287,14 +285,10 @@ const paymentRefundRules = {
   ]
 };
 
-// 计算最大退款金额
+// 计算最大退款金额 (现在仅作为参考信息)
 const paymentMaxAmount = computed(() => {
-  if (!selectedPayment.value) return 0.01;
-  // 这里假设支付记录中有paymentAmount字段表示支付金额
-  // 如果没有可以根据实际情况修改
-  const amount = selectedPayment.value.paymentAmount || 0;
-  // 确保最大值至少为0.01，避免min>max错误
-  return Math.max(amount, 0.01);
+  // 使用账单总金额
+  return billDetail.value ? billDetail.value.totalAmount : (props.bill ? props.bill.totalAmount : 0);
 });
 
 // 返回上一页
@@ -327,19 +321,49 @@ const showRefundDialog = () => {
 
 // 显示支付记录退款对话框
 const showPaymentRefundDialog = (payment) => {
+  // 检查支付记录的支付状态和对账状态
+  if (payment.status !== '已支付') {
+    ElMessage.warning('只有已支付的记录才能申请退款');
+    return;
+  }
+
+  // 检查支付记录的对账状态
+  if (payment.reconciliationStatus !== '退回' && payment.reconciliationStatus !== null && payment.reconciliationStatus !== undefined) {
+    ElMessage.warning('只有对账状态为"退回"或未对账的记录才能申请退款');
+    return;
+  }
+
+  // 检查整个账单的对账状态
+  const currentBill = props.bill || billDetail.value;
+  if (currentBill && currentBill.reconciliationStatus && currentBill.reconciliationStatus !== '退回') {
+    ElMessage.warning('该账单的对账状态不允许申请退款');
+    return;
+  }
+
   selectedPayment.value = payment;
-  // 确保支付金额存在且大于0
-  const paymentAmount = payment.paymentAmount || 0;
-  const safeAmount = Math.max(paymentAmount, 0.01);
   
+  // 获取支付金额，直接使用账单总金额或支付记录金额
+  const paymentAmount = payment.paymentAmount || payment.amount || (currentBill ? currentBill.totalAmount : 0);
+  
+  // 确保先设置好初始值
   paymentRefundForm.value = {
     paymentId: payment.paymentId,
-    billId: bill.value.billId,
-    // 默认全额退款，但确保金额至少为0.01
-    amount: safeAmount,
+    billId: (currentBill && currentBill.billId) || route.params.id,
+    amount: paymentAmount,
     reason: ''
   };
-  paymentRefundDialogVisible.value = true;
+  
+  // 输出调试信息
+  console.log('退款信息准备:', {
+    payment: payment,
+    billDetail: currentBill,
+    formData: paymentRefundForm.value
+  });
+  
+  // 然后再显示对话框
+  setTimeout(() => {
+    paymentRefundDialogVisible.value = true;
+  }, 0);
 };
 
 // 提交退款申请
@@ -354,6 +378,7 @@ const submitRefund = async () => {
       const currentBill = props.bill || billDetail.value;
       const res = await refundBill({
         billId: currentBill.billId,
+        amount: refundForm.value.amount,
         reason: refundForm.value.reason
       });
       
@@ -382,19 +407,26 @@ const submitRefund = async () => {
 const submitPaymentRefund = async () => {
   if (!paymentRefundFormRef.value) return;
   
+  // 再次检查是否允许退款
   await paymentRefundFormRef.value.validate(async (valid) => {
     if (!valid) return;
     
     paymentRefunding.value = true;
     try {
-      const res = await refundPayment(paymentRefundForm.value);
+      // 确保金额是合法的数字
+      const formData = {
+        ...paymentRefundForm.value,
+        amount: parseFloat(paymentRefundForm.value.amount).toFixed(2)
+      };
+      
+      console.log('提交退款数据:', formData);
+      const res = await refundPayment(formData);
       
       if (res.success || res.code === 200) {
         ElMessage.success('支付记录退款申请提交成功');
         paymentRefundDialogVisible.value = false;
         
         // 重新获取账单详情
-        const currentBill = props.bill || billDetail.value;
         fetchBillDetail(currentBill.billId);
       } else {
         ElMessage.error(res.msg || '支付记录退款申请失败');
