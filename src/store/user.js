@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { login, logout, refreshAccessToken } from '@/api/user';
+import { login, logout, refreshAccessToken } from '@/api/admin/user';
 import { setToken, removeToken, getToken, setAdminInfo, removeAdminInfo, getAdminInfo,setRefreshToken, removeRefreshToken } from '@/utils/auth';
 
 export const useUserStore = defineStore('user', {

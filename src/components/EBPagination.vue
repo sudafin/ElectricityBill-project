@@ -2,13 +2,15 @@
   <div class="eb-pagination">
     <el-pagination
       :current-page="currentPage"
-      :page-sizes="pageSizes"
       :page-size="pageSize"
-      :layout="layout"
       :total="total"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-    />
+      :disabled="disabled"
+      @current-change="handlePageChange"
+      :layout="layout"
+      :prev-text="prevText"
+      :next-text="nextText"
+    ></el-pagination>
+    <div class="eb-pagination-total" v-if="showTotal">共 {{ total }} 条</div>
   </div>
 </template>
 
@@ -18,40 +20,55 @@ import { defineProps, defineEmits } from 'vue';
 const props = defineProps({
   currentPage: {
     type: Number,
-    default: 1,
-  },
-  pageSizes: {
-    type: Array,
-    default: () => [10, 20, 30, 50],
+    required: true,
   },
   pageSize: {
     type: Number,
     default: 10,
   },
-  layout: {
-    type: String,
-    default: 'total, sizes, prev, pager, next, jumper',
-  },
   total: {
     type: Number,
-    default: 0,
+    required: true,
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  layout: {
+    type: String,
+    default: 'prev, pager, next, jumper',
+  },
+  prevText: {
+    type: String,
+    default: '上一页',
+  },
+  nextText: {
+    type: String,
+    default: '下一页',
+  },
+  showTotal: {
+    type: Boolean,
+    default: true,
   },
 });
 
-const emit = defineEmits(['size-change', 'current-change']);
+const emit = defineEmits(['page-change']);
 
-const handleSizeChange = (val) => {
-  emit('size-change', val);
-};
-
-const handleCurrentChange = (val) => {
-  emit('current-change', val);
+const handlePageChange = (page) => {
+  emit('page-change', page);
 };
 </script>
 
 <style scoped>
 .eb-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 20px;
-  text-align: right;
+}
+
+.eb-pagination-total {
+  color: #999;
+  font-size: 14px;
 }
 </style> 
